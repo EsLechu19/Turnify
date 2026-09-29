@@ -23,7 +23,10 @@ import type {
   TicketRecord,
   TicketRepository,
 } from '../repositories';
-import type { Database, TicketRow } from '../../../packages/types/database';
+import type { Database } from '../../../packages/types/database';
+
+// Row type of the live tickets table (regenerated from turnify-dev).
+type TicketRow = Database['public']['Tables']['tickets']['Row'];
 
 // Minimal env typing without pulling in @types/node, so tsc stays green.
 declare const process: { env: Record<string, string | undefined> };
@@ -111,7 +114,7 @@ export class SupabaseTicketRepository implements TicketRepository {
   ): Promise<TicketRecord> {
     const { data, error } = await this.client.rpc('tomar_turno', {
       p_codigo: companyCode,
-      p_fila_id: queueId ?? null,
+      p_fila_id: queueId ?? undefined,
     });
     if (error) throwRpcError(error, companyCode);
     return toTicketRecord(data as unknown as TicketRow);
@@ -152,7 +155,7 @@ export class SupabaseTicketRepository implements TicketRepository {
     const { data, error } = await this.client.rpc('crear_ticket_presencial', {
       p_fila_id: queueId,
       p_prioridad: priority,
-      p_nombre_ref: guestName ?? null,
+      p_nombre_ref: guestName ?? undefined,
     });
     if (error) throwRpcError(error, queueId);
     return toTicketRecord(data as unknown as TicketRow);
@@ -198,10 +201,10 @@ export class SupabaseBusinessRepository implements BusinessRepository {
   async createBusiness(input: CreateBusinessInput): Promise<BusinessRecord> {
     const { data, error } = await this.client.rpc('crear_empresa', {
       p_nombre: input.name,
-      p_id_fiscal: input.fiscalId ?? null,
-      p_correo: input.email ?? null,
-      p_telefono: input.phone ?? null,
-      p_direccion: input.address ?? null,
+      p_id_fiscal: input.fiscalId ?? undefined,
+      p_correo: input.email ?? undefined,
+      p_telefono: input.phone ?? undefined,
+      p_direccion: input.address ?? undefined,
     });
     if (error) throwRpcError(error, input.name);
     const row = data as unknown as {
