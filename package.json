@@ -9,5 +9,9 @@
   "scripts": {
     "mobile": "npm --workspace turnify-mobile run start",
     "web": "npm --workspace turnify-web run dev"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
   }
 }
