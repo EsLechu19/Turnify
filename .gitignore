@@ -2,5 +2,22 @@ node_modules/
 .expo/
 dist/
 .env
+.env*.local
 *.log
 supabase/.temp/
+
+# Expo (apps/mobile)
+web-build/
+.kotlin/
+*.tsbuildinfo
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.metro-health-check*
+
+# generated native folders
+apps/mobile/ios/
+apps/mobile/android/
