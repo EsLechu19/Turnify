@@ -1,0 +1,13 @@
+{
+  "name": "turnify",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "mobile": "npm --workspace turnify-mobile run start",
+    "web": "npm --workspace turnify-web run dev"
+  }
+}
