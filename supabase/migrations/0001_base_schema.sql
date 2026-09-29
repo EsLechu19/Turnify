@@ -1,8 +1,7 @@
 -- Turnify MVP base schema (migration 0001).
 -- English comments only; database object names stay in Spanish per spec.
 -- This migration defines structure, indexes and RLS only.
--- It is NOT applied to any live database here (no credentials, no network).
--- Writes to tickets happen through RPC functions (added in a later task),
+-- Writes to tickets happen through RPC functions (added in migration 0002),
 -- so tickets expose a SELECT policy only.
 
 -- ---------------------------------------------------------------------------
@@ -28,30 +27,6 @@ create type estado_ticket as enum (
   'cancelado',
   'ausente'
 );
-
--- ---------------------------------------------------------------------------
--- Helper functions (created first: RLS policies below depend on them)
--- ---------------------------------------------------------------------------
-
--- Returns the role of the current authenticated user.
-create or replace function mi_rol()
-returns rol_usuario
-language sql
-security definer
-set search_path = ''
-as $$
-  select rol from public.perfiles where id = auth.uid();
-$$;
-
--- Returns the empresa the current authenticated user belongs to.
-create or replace function mi_empresa_id()
-returns uuid
-language sql
-security definer
-set search_path = ''
-as $$
-  select empresa_id from public.perfiles where id = auth.uid();
-$$;
 
 -- ---------------------------------------------------------------------------
 -- Tables
@@ -160,6 +135,31 @@ create index tickets_empresa_fecha_idx on tickets (empresa_id, fecha_operativa);
 
 -- Customer history lookups.
 create index tickets_cliente_idx on tickets (cliente_id);
+
+-- ---------------------------------------------------------------------------
+-- Helper functions (after tables: SQL bodies validate referenced tables
+-- at creation; RLS policies below depend on them)
+-- ---------------------------------------------------------------------------
+
+-- Returns the role of the current authenticated user.
+create or replace function mi_rol()
+returns rol_usuario
+language sql
+security definer
+set search_path = ''
+as $$
+  select rol from public.perfiles where id = auth.uid();
+$$;
+
+-- Returns the empresa the current authenticated user belongs to.
+create or replace function mi_empresa_id()
+returns uuid
+language sql
+security definer
+set search_path = ''
+as $$
+  select empresa_id from public.perfiles where id = auth.uid();
+$$;
 
 -- ---------------------------------------------------------------------------
 -- Row Level Security
