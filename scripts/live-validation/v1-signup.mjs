@@ -13,7 +13,7 @@ if (!url || !anonKey) {
 
 const stamp = Date.now().toString(36);
 const only = new Set(process.argv.slice(2));
-const roles = ['client-a', 'client-b', 'staff-c', 'admin-d'].filter((r) => only.size === 0 || only.has(r));
+const roles = ['client-a', 'client-b', 'staff-c', 'admin-d', 'client-e', 'client-f'].filter((r) => only.size === 0 || only.has(r));
 const supabase = createClient(url, anonKey);
 
 for (const role of roles) {
