@@ -64,7 +64,7 @@ describe('projectQueue', () => {
     ]);
   });
 
-  it('respects the preferential interleaving when projecting', () => {
+  it('projects the preferential first service slot', () => {
     const queue = buildQueue({ normals: 3, preferentials: 1 });
     const projected = projectQueue(queue, {
       averageSeconds: 300,
@@ -72,13 +72,13 @@ describe('projectQueue', () => {
       preferencialCada: 3,
     });
     expect(projected.map((entry) => entry.id)).toEqual([
+      'preferencial-1',
       'normal-1',
       'normal-2',
       'normal-3',
-      'preferencial-1',
     ]);
-    expect(projected[3]).toMatchObject({ posicion: 4, personasDelante: 3 });
-    expect(projected[3]?.etaMinutes).toBe(15);
+    expect(projected[0]).toMatchObject({ posicion: 1, personasDelante: 0 });
+    expect(projected[0]?.etaMinutes).toBe(0);
   });
 
   it('skips non-waiting tickets in the projection', () => {

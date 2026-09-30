@@ -1,6 +1,6 @@
 // Waiting-queue ordering: interleaves normal and preferential tickets
-// into service slots. Preferentials take every (N+1)-th slot while both
-// lanes still wait; an empty lane yields its slots to the other side so
+// into service slots. Preferentials take the first slot, then every (N+1)-th
+// slot while both lanes wait; an empty lane yields its slots to the other side so
 // the order never has gaps. Pure and deterministic: the input is never
 // mutated and ties break by creation time, then ticket number.
 import type { TicketStatus } from './turn';
@@ -23,8 +23,8 @@ export interface OrderedSlot {
   posicion: number;
 }
 
-// Default lanes served per preferential slot: three normals, then one
-// preferential (preferentials land on slots 4, 8, 12, ...).
+// Default normal slots after each preferential slot: a preferential ticket,
+// then three normals (preferentials land on slots 1, 5, 9, ...).
 export const DEFAULT_PREFERENCIAL_CADA = 3;
 
 // Only these statuses still wait for service; every other status
@@ -78,7 +78,7 @@ export function orderWaiting(
     normalIndex < normals.length ||
     preferentialIndex < preferentials.length
   ) {
-    const isPreferentialSlot = posicion % (preferencialCada + 1) === 0;
+    const isPreferentialSlot = (posicion - 1) % (preferencialCada + 1) === 0;
     let next: QueueSnapshotItem;
     if (isPreferentialSlot && preferentialIndex < preferentials.length) {
       next = preferentials[preferentialIndex] as QueueSnapshotItem;

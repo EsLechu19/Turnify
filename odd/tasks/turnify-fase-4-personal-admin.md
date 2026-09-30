@@ -40,7 +40,7 @@ Local en `C:\Users\esa\Desktop\Turnify` y datos demo en turnify-dev. Sin push Gi
 - [x] Usuario registra negocio y recibe código + QR.
 - [x] Personal/admin ve solo códigos de su empresa, con cambios en vivo.
 - [x] Personal completa ciclo llamado → atención → finalizado y marca ausente.
-- [ ] Presencial preferencial genera ticket y respeta orden.
+- [ ] Presencial preferencial genera ticket y respeta orden. Fixed locally; pending deployment and device validation.
 - [x] Invitación convierte cliente a personal de la empresa correcta.
 - [x] Checks verdes y walkthrough real.
 
@@ -64,6 +64,7 @@ Local en `C:\Users\esa\Desktop\Turnify` y datos demo en turnify-dev. Sin push Gi
 - 2026-09-30: A4 dispositivo real PASS (usuario): admin generó invitación; una segunda cuenta la canjeó, se convirtió en personal y entró al panel de personal.
 - 2026-09-30: A5 dispositivo real PASS (usuario): admin cambió `Avisar cada posición` a 5, guardó, regresó al panel sin error y confirmó la persistencia al reabrir configuración.
 - 2026-09-30: A6 walkthrough PASS (usuario): con cuentas y dispositivos separados, una acción de ticket desde personal actualizó el panel admin en vivo; la evidencia anterior cubre presencial, llamado, inicio/finalización y ausente. La lista de tareas A1–A6 está completa; `filas.activa` sigue diferida como migración fuera de alcance.
+- 2026-09-30: Preferential ordering corrected locally: `preferencial_cada = N` now serves a preferential ticket first, followed by N normal tickets. The forward migration is pending deployment and device validation, so the acceptance criterion remains open.
 
 ## Verification evidence
 - A1 writer + parent spot-check: typecheck OK, vitest 56/56, Expo Doctor 21/21, diff-check OK. Sin datos personales en panel; rol cliente solo controla navegación (RPC/RLS son autoridad). Pending-device: crear negocio real y visualizar QR.

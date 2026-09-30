@@ -26,35 +26,35 @@ describe('orderWaiting', () => {
     expect(orderWaiting(queue).map((slot) => slot.id)).toEqual(['n-low', 'n-high']);
   });
 
-  it('interleaves with N=3: three normals then one preferential', () => {
+  it('interleaves with N=3: preferential first, then three normals', () => {
     const queue = buildQueue({ normals: 6, preferentials: 2 });
     const ids = orderWaiting(queue, 3).map((slot) => slot.id);
     expect(ids).toEqual([
+      'preferencial-1',
       'normal-1',
       'normal-2',
       'normal-3',
-      'preferencial-1',
+      'preferencial-2',
       'normal-4',
       'normal-5',
       'normal-6',
-      'preferencial-2',
     ]);
   });
 
-  it('uses every (N+1) slot for preferentials with a custom N=1', () => {
+  it('uses the first slot for preferentials with a custom N=1', () => {
     const queue = buildQueue({ normals: 2, preferentials: 2 });
     const ids = orderWaiting(queue, 1).map((slot) => slot.id);
-    expect(ids).toEqual(['normal-1', 'preferencial-1', 'normal-2', 'preferencial-2']);
+    expect(ids).toEqual(['preferencial-1', 'normal-1', 'preferencial-2', 'normal-2']);
   });
 
-  it('defaults to N=3 when preferencialCada is omitted', () => {
+  it('defaults to a preferential first slot followed by three normals', () => {
     const queue = buildQueue({ normals: 4, preferentials: 1 });
     const ids = orderWaiting(queue).map((slot) => slot.id);
     expect(ids).toEqual([
+      'preferencial-1',
       'normal-1',
       'normal-2',
       'normal-3',
-      'preferencial-1',
       'normal-4',
     ]);
   });
@@ -63,10 +63,10 @@ describe('orderWaiting', () => {
     const queue = buildQueue({ normals: 5, preferentials: 1 });
     const ids = orderWaiting(queue, 3).map((slot) => slot.id);
     expect(ids).toEqual([
+      'preferencial-1',
       'normal-1',
       'normal-2',
       'normal-3',
-      'preferencial-1',
       'normal-4',
       'normal-5',
     ]);
@@ -103,10 +103,10 @@ describe('orderWaiting', () => {
   it('assigns 1-based positions without gaps', () => {
     const queue = buildQueue({ normals: 4, preferentials: 1 });
     expect(orderWaiting(queue, 3)).toEqual([
-      { id: 'normal-1', posicion: 1 },
-      { id: 'normal-2', posicion: 2 },
-      { id: 'normal-3', posicion: 3 },
-      { id: 'preferencial-1', posicion: 4 },
+      { id: 'preferencial-1', posicion: 1 },
+      { id: 'normal-1', posicion: 2 },
+      { id: 'normal-2', posicion: 3 },
+      { id: 'normal-3', posicion: 4 },
       { id: 'normal-4', posicion: 5 },
     ]);
   });
