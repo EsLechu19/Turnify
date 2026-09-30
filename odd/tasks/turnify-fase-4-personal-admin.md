@@ -60,6 +60,7 @@ Local en `C:\Users\esa\Desktop\Turnify` y datos demo en turnify-dev. Sin push Gi
 - 2026-09-29: Fixed the admin Realtime reconnect lifecycle. Each effect lifetime now uses a fresh channel topic, so React development cleanup/reconnect cannot add callbacks to an already subscribed channel. Typecheck and Vitest 56/56 PASS; pending-device validation.
 - 2026-09-29: Corrección del fix anterior de Realtime admin: el contador en `useRef` se reiniciaba en cada remount y volvía a generar el tópico `:1` mientras el canal anterior podía seguir registrado. El contador ahora vive a nivel de módulo y aumenta durante todo el proceso de la app; se conserva el cleanup y los refresh de tickets/filas. Typecheck PASS y Vitest 56/56 PASS. Evidencia de work unit: `fix(mobile): keep admin realtime topics process-unique`.
 - 2026-09-30: Realtime admin en dispositivo real PASS (usuario): tras reiniciar Expo con limpieza de caché, el admin cambió y guardó la configuración de la empresa y volvió al panel sin el Render Error `cannot add postgres_changes callbacks ... after subscribe()`.
+- 2026-09-30: Validación Realtime admin/personal en dispositivos y cuentas separadas PASS (usuario): una acción de ticket desde el panel de personal actualizó el panel de administración en vivo.
 
 ## Verification evidence
 - A1 writer + parent spot-check: typecheck OK, vitest 56/56, Expo Doctor 21/21, diff-check OK. Sin datos personales en panel; rol cliente solo controla navegación (RPC/RLS son autoridad). Pending-device: crear negocio real y visualizar QR.
@@ -70,6 +71,7 @@ Local en `C:\Users\esa\Desktop\Turnify` y datos demo en turnify-dev. Sin push Gi
 - Admin Realtime reconnect fix: `npm --workspace turnify-mobile run typecheck` PASS; `npx vitest run` PASS (6 files, 56 tests). The repository has domain-only Vitest coverage and no React Native renderer or Supabase Realtime mock, so the React passive-effect reconnect lifecycle requires device validation.
 - Admin Realtime remount correction: `npm --workspace turnify-mobile run typecheck` PASS; `npx vitest run` PASS (6 files, 56 tests). La corrección mantiene un sufijo de tópico monotónico a nivel de módulo, por lo que cada mount usa un canal distinto incluso cuando el cleanup asíncrono del mount previo todavía no terminó. Work-unit commit: `fix(mobile): keep admin realtime topics process-unique`.
 - Admin Realtime device validation (usuario): PASS — después de reiniciar Expo con limpieza de caché, el admin guardó cambios de configuración de empresa y regresó al panel sin el Render Error `cannot add postgres_changes callbacks ... after subscribe()`.
+- Admin/personal Realtime device validation (usuario): PASS — con cuentas y dispositivos separados, una acción de ticket desde el panel de personal actualizó el panel de administración en vivo. Esto valida la propagación en vivo de la acción; el walkthrough completo de A6 sigue pendiente.
 - Limitación real: schema actual no tiene `filas.activa`; tampoco permite puestos <1. La UI no finge un toggle de activación. Agregarlo requiere migración autorizada posterior.
 
 ## Next step
