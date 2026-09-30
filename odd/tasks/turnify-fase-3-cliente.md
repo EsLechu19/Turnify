@@ -55,6 +55,7 @@ Local en `C:\Users\esa\Desktop\Turnify` + datos de prueba en turnify-dev. No pus
 - 2026-09-29: React alineado en 19.2.3 exacto para root/mobile/web (965df01); expo-doctor 21/21, tsc móvil limpio, vitest 56/56. `.env` local creado y ignorado.
 - 2026-09-29: Slice B done (C3+C4): entrada QR/código, preview, tomar turno y ticket vivo. Commits 4efedd2 + 29887d9; typecheck, vitest 56/56 y expo-doctor 21/21.
 - 2026-09-29: C5 done (063d79b): historial propio + perfil editable (solo nombre/teléfono). C6 parcial: checks estáticos verdes; walkthrough pending-device.
+- 2026-09-29: Walkthrough real C2 PASS (usuario): registro, redirect a Inicio, persistencia tras relanzar, cerrar sesión y volver a iniciar sesión sin errores.
 
 ## Decisions log (hallazgos Slice A)
 - Generar el template en temp y copiar dentro de apps/mobile: scaffold in-place renombra el workspace `turnify-mobile` y rompe el script raíz.
@@ -71,6 +72,7 @@ Local en `C:\Users\esa\Desktop\Turnify` + datos de prueba en turnify-dev. No pus
 - Parent spot check Slice B: log con 29887d9/4efedd2, typecheck verde, vitest 56/56, expo-doctor 21/21. Coincide.
 - Slice C writer: historial query `.eq('cliente_id', customerId)`; perfil lee solo id/nombre/teléfono y actualiza solo nombre/teléfono; Realtime continúa filtrado a ticket propio + fila propia. Typecheck, 56/56, expo-doctor 21/21 y diff-check verdes. Metro en 8082 inició, sin interacción.
 - Parent spot check Slice C: log con 063d79b; typecheck verde, vitest 56/56, expo-doctor 21/21. Coincide.
+- Dispositivo real (usuario): C2 PASS. C3–C5 aún requieren empresa demo para observar código/preview/turno vivo/historial/perfil.
 
 ## Next step
 - C6: walkthrough interactivo contra turnify-dev en Android/emulador (login, tomar turno <30s, actualización viva, historial/perfil).
