@@ -32,7 +32,7 @@ Es el camino demostrable del MVP (aceptación: turno en <30s, posición en vivo 
 - [x] C3 — Entrada y turno: escáner QR (expo-camera) + código manual, resumen_empresa, tomar_turno. Commit. Ruta: delegated direct (slice B). Done 4efedd2.
 - [x] C4 — Mi turno en vivo: canal a fila + ticket, mi_ticket_estado, posición/tiempo/estado, cancelar_ticket. Commit. Ruta: delegated direct (slice B). Done 29887d9.
 - [x] C5 — Historial y perfil: lista de tickets propios, perfil/ajustes. Commit. Ruta: delegated direct (slice C). Done 063d79b.
-- [ ] C6 — Verificación slice: checks estáticos OK; walkthrough interactivo pendiente de dispositivo/emulador. Ruta: delegated direct (slice C).
+- [ ] C6 — Verificación slice: walkthrough funcional PASS; medición formal de turno <30 s pendiente. Ruta: delegated direct (slice C).
 
 ## Authorized scope
 Local en `C:\Users\esa\Desktop\Turnify` + datos de prueba en turnify-dev. No push de git, no PR, no publicación en tiendas. Sin secrets en repo.
@@ -56,6 +56,7 @@ Local en `C:\Users\esa\Desktop\Turnify` + datos de prueba en turnify-dev. No pus
 - 2026-09-29: Slice B done (C3+C4): entrada QR/código, preview, tomar turno y ticket vivo. Commits 4efedd2 + 29887d9; typecheck, vitest 56/56 y expo-doctor 21/21.
 - 2026-09-29: C5 done (063d79b): historial propio + perfil editable (solo nombre/teléfono). C6 parcial: checks estáticos verdes; walkthrough pending-device.
 - 2026-09-29: Walkthrough real C2 PASS (usuario): registro, redirect a Inicio, persistencia tras relanzar, cerrar sesión y volver a iniciar sesión sin errores.
+- 2026-09-29: Walkthrough real C3-C5 PASS (usuario): código DEMO2026, preview, selección de fila, ticket A-001, estado Llamado por Realtime sin recargar, Mis turnos y perfil persistido. No se midió formalmente el criterio <30 s.
 
 ## Decisions log (hallazgos Slice A)
 - Generar el template en temp y copiar dentro de apps/mobile: scaffold in-place renombra el workspace `turnify-mobile` y rompe el script raíz.
@@ -73,6 +74,7 @@ Local en `C:\Users\esa\Desktop\Turnify` + datos de prueba en turnify-dev. No pus
 - Slice C writer: historial query `.eq('cliente_id', customerId)`; perfil lee solo id/nombre/teléfono y actualiza solo nombre/teléfono; Realtime continúa filtrado a ticket propio + fila propia. Typecheck, 56/56, expo-doctor 21/21 y diff-check verdes. Metro en 8082 inició, sin interacción.
 - Parent spot check Slice C: log con 063d79b; typecheck verde, vitest 56/56, expo-doctor 21/21. Coincide.
 - Dispositivo real (usuario): C2 PASS. C3–C5 aún requieren empresa demo para observar código/preview/turno vivo/historial/perfil.
+- Dispositivo real (usuario): C3-C5 PASS. Ticket A-001 pasó a Llamado por una transición demo y la UI actualizó sin reload; Mis turnos mostró estado Llamado; Profile persistió nombre/teléfono.
 
 ## Next step
-- C6: walkthrough interactivo contra turnify-dev en Android/emulador (login, tomar turno <30s, actualización viva, historial/perfil).
+- Medir formalmente el criterio de turno <30 s o aceptarlo como evidencia pendiente; después iniciar Fase 4 (personal/admin).
