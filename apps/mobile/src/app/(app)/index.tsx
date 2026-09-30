@@ -78,7 +78,7 @@ export default function HomeScreen() {
               value={invitationCode}
               onChangeText={setInvitationCode}
               placeholder="Pega el código que recibiste"
-              autoCapitalize="characters"
+              autoCapitalize="none"
             />
             <AuthErrorMessage message={invitationError} />
             <AuthButton label="Aceptar invitación" onPress={() => void handleRedeemInvitation()} disabled={isRedeemingInvitation} isLoading={isRedeemingInvitation} />

@@ -77,7 +77,7 @@ export async function createPersonalInvitation(email: string): Promise<PersonalI
 
 export async function acceptPersonalInvitation(token: string): Promise<void> {
   const { error } = await getSupabase().rpc('aceptar_invitacion', {
-    p_token: token.trim(),
+    p_token: token.trim().toLowerCase(),
   });
 
   if (error) {
