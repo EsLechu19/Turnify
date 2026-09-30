@@ -29,20 +29,20 @@ El MVP necesita cerrar el ciclo completo cliente → negocio. Push y dashboard d
 - [x] A1 — Registro negocio: formulario, `crear_empresa`, transición a admin, código de 8 caracteres + QR. Ruta delegated direct. Done 4d8f363; dispositivo real PASS.
 - [x] A2 — Cola de negocio: tickets por código, Realtime, llamar/iniciar/finalizar/ausente. Ruta delegated direct. Done 37ea208; dispositivo real PASS.
 - [x] A3 — Turno presencial: normal/preferencial, fila activa, feedback de código. Ruta delegated direct. Done 0f24e05; dispositivo real PASS.
-- [ ] A4 — Invitaciones: implementación verde (cb2a434); walkthrough con segunda cuenta pendiente. Crear/canjear código de personal, refresh de rol. Ruta delegated direct (slice C).
-- [ ] A5 — Configuración: implementación verde (0cff323); walkthrough pendiente. Abrir/cerrar, avisos, gracia, preferenciales, filas. Ruta delegated direct (slice C).
-- [ ] A6 — Verificación: checks estáticos OK; walkthrough admin/personal con dos cuentas pendiente. Ruta delegated direct (slice C).
+- [x] A4 — Invitaciones: admin generó una invitación, una segunda cuenta la canjeó, pasó a ser personal y entró al panel de personal. Implementación verde (cb2a434). Ruta delegated direct (slice C).
+- [x] A5 — Configuración: admin cambió `Avisar cada posición` a 5, guardó, volvió al panel sin error, reabrió configuración y confirmó persistencia. Implementación verde (0cff323). Ruta delegated direct (slice C).
+- [x] A6 — Verificación: cuentas y dispositivos separados de admin/personal realizaron una acción de ticket y el panel admin se actualizó en vivo; la evidencia previa cubre presencial, llamado, inicio/finalización y ausente. Ruta delegated direct (slice C).
 
 ## Authorized scope
 Local en `C:\Users\esa\Desktop\Turnify` y datos demo en turnify-dev. Sin push Git, PR, publicación o secretos.
 
 ## Acceptance criteria
-- [ ] Usuario registra negocio y recibe código + QR.
-- [ ] Personal/admin ve solo códigos de su empresa, con cambios en vivo.
-- [ ] Personal completa ciclo llamado → atención → finalizado y marca ausente.
+- [x] Usuario registra negocio y recibe código + QR.
+- [x] Personal/admin ve solo códigos de su empresa, con cambios en vivo.
+- [x] Personal completa ciclo llamado → atención → finalizado y marca ausente.
 - [ ] Presencial preferencial genera ticket y respeta orden.
-- [ ] Invitación convierte cliente a personal de la empresa correcta.
-- [ ] Checks verdes y walkthrough real.
+- [x] Invitación convierte cliente a personal de la empresa correcta.
+- [x] Checks verdes y walkthrough real.
 
 ## Applicable checks
 - `npm --workspace turnify-mobile run typecheck`
@@ -61,6 +61,9 @@ Local en `C:\Users\esa\Desktop\Turnify` y datos demo en turnify-dev. Sin push Gi
 - 2026-09-29: Corrección del fix anterior de Realtime admin: el contador en `useRef` se reiniciaba en cada remount y volvía a generar el tópico `:1` mientras el canal anterior podía seguir registrado. El contador ahora vive a nivel de módulo y aumenta durante todo el proceso de la app; se conserva el cleanup y los refresh de tickets/filas. Typecheck PASS y Vitest 56/56 PASS. Evidencia de work unit: `fix(mobile): keep admin realtime topics process-unique`.
 - 2026-09-30: Realtime admin en dispositivo real PASS (usuario): tras reiniciar Expo con limpieza de caché, el admin cambió y guardó la configuración de la empresa y volvió al panel sin el Render Error `cannot add postgres_changes callbacks ... after subscribe()`.
 - 2026-09-30: Validación Realtime admin/personal en dispositivos y cuentas separadas PASS (usuario): una acción de ticket desde el panel de personal actualizó el panel de administración en vivo.
+- 2026-09-30: A4 dispositivo real PASS (usuario): admin generó invitación; una segunda cuenta la canjeó, se convirtió en personal y entró al panel de personal.
+- 2026-09-30: A5 dispositivo real PASS (usuario): admin cambió `Avisar cada posición` a 5, guardó, regresó al panel sin error y confirmó la persistencia al reabrir configuración.
+- 2026-09-30: A6 walkthrough PASS (usuario): con cuentas y dispositivos separados, una acción de ticket desde personal actualizó el panel admin en vivo; la evidencia anterior cubre presencial, llamado, inicio/finalización y ausente. La lista de tareas A1–A6 está completa; `filas.activa` sigue diferida como migración fuera de alcance.
 
 ## Verification evidence
 - A1 writer + parent spot-check: typecheck OK, vitest 56/56, Expo Doctor 21/21, diff-check OK. Sin datos personales en panel; rol cliente solo controla navegación (RPC/RLS son autoridad). Pending-device: crear negocio real y visualizar QR.
@@ -72,7 +75,10 @@ Local en `C:\Users\esa\Desktop\Turnify` y datos demo en turnify-dev. Sin push Gi
 - Admin Realtime remount correction: `npm --workspace turnify-mobile run typecheck` PASS; `npx vitest run` PASS (6 files, 56 tests). La corrección mantiene un sufijo de tópico monotónico a nivel de módulo, por lo que cada mount usa un canal distinto incluso cuando el cleanup asíncrono del mount previo todavía no terminó. Work-unit commit: `fix(mobile): keep admin realtime topics process-unique`.
 - Admin Realtime device validation (usuario): PASS — después de reiniciar Expo con limpieza de caché, el admin guardó cambios de configuración de empresa y regresó al panel sin el Render Error `cannot add postgres_changes callbacks ... after subscribe()`.
 - Admin/personal Realtime device validation (usuario): PASS — con cuentas y dispositivos separados, una acción de ticket desde el panel de personal actualizó el panel de administración en vivo. Esto valida la propagación en vivo de la acción; el walkthrough completo de A6 sigue pendiente.
+- A4 invitation device validation (usuario): PASS — una invitación creada por admin fue canjeada por una segunda cuenta, que recibió el rol de personal y accedió al panel de personal.
+- A5 configuration device validation (usuario): PASS — el valor `Avisar cada posición` se cambió a 5, se guardó sin error, persistió al volver a abrir configuración y el usuario confirma que la configuración funciona correctamente.
+- A6 walkthrough device validation (usuario): PASS — admin y personal, en cuentas y dispositivos separados, ejecutaron una acción de ticket y el panel admin se actualizó en vivo. Junto con A2+A3 dispositivo real PASS, cubre presencial, llamado, inicio/finalización y ausente.
 - Limitación real: schema actual no tiene `filas.activa`; tampoco permite puestos <1. La UI no finge un toggle de activación. Agregarlo requiere migración autorizada posterior.
 
 ## Next step
-- A6: walkthrough con dos cuentas (admin crea invitación; segunda cuenta canjea; personal atiende; admin cambia config). Decidir luego si se autoriza migración `filas.activa`.
+- Fase 5: trabajo de push/no-show. `filas.activa` permanece como migración diferida y fuera del alcance de Fase 4.
