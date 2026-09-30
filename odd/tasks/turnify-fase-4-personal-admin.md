@@ -29,9 +29,9 @@ El MVP necesita cerrar el ciclo completo cliente → negocio. Push y dashboard d
 - [x] A1 — Registro negocio: formulario, `crear_empresa`, transición a admin, código de 8 caracteres + QR. Ruta delegated direct. Done 4d8f363; dispositivo real PASS.
 - [x] A2 — Cola de negocio: tickets por código, Realtime, llamar/iniciar/finalizar/ausente. Ruta delegated direct. Done 37ea208; dispositivo real PASS.
 - [x] A3 — Turno presencial: normal/preferencial, fila activa, feedback de código. Ruta delegated direct. Done 0f24e05; dispositivo real PASS.
-- [ ] A4 — Invitaciones: crear/canjear código de personal, refresh de rol. Ruta delegated direct (slice C).
-- [ ] A5 — Configuración: abrir/cerrar, avisos, gracia, preferenciales, filas. Ruta delegated direct (slice C).
-- [ ] A6 — Verificación: typecheck, vitest, Expo Doctor, walkthrough admin/personal con dos cuentas. Ruta delegated direct (slice C).
+- [ ] A4 — Invitaciones: implementación verde (cb2a434); walkthrough con segunda cuenta pendiente. Crear/canjear código de personal, refresh de rol. Ruta delegated direct (slice C).
+- [ ] A5 — Configuración: implementación verde (0cff323); walkthrough pendiente. Abrir/cerrar, avisos, gracia, preferenciales, filas. Ruta delegated direct (slice C).
+- [ ] A6 — Verificación: checks estáticos OK; walkthrough admin/personal con dos cuentas pendiente. Ruta delegated direct (slice C).
 
 ## Authorized scope
 Local en `C:\Users\esa\Desktop\Turnify` y datos demo en turnify-dev. Sin push Git, PR, publicación o secretos.
@@ -56,12 +56,15 @@ Local en `C:\Users\esa\Desktop\Turnify` y datos demo en turnify-dev. Sin push Gi
 - 2026-09-29: A1 dispositivo real PASS (usuario): panel admin y código visibles tras registrar negocio.
 - 2026-09-29: Slice B (A2+A3) implementado: cola empresa en vivo + acciones de servicio (37ea208), presencial normal/preferencial (0f24e05). Typecheck, vitest 56/56 y Expo Doctor 21/21; pending-device.
 - 2026-09-29: A2+A3 dispositivo real PASS (usuario): presencial normal, llamado, inicio/finalización y ausente funcionan correctamente.
+- 2026-09-29: Slice C (A4+A5) implementado: invitación/canje de personal (cb2a434), configuración de empresa + filas propias (0cff323). Typecheck, vitest 56/56 y Expo Doctor 21/21; pending-device.
 
 ## Verification evidence
 - A1 writer + parent spot-check: typecheck OK, vitest 56/56, Expo Doctor 21/21, diff-check OK. Sin datos personales en panel; rol cliente solo controla navegación (RPC/RLS son autoridad). Pending-device: crear negocio real y visualizar QR.
 - A1 dispositivo real (usuario): PASS — panel admin + código visibles.
 - Slice B writer + parent spot-check: typecheck OK, vitest 56/56, Expo Doctor 21/21, diff-check OK. Consulta/Realtime scoped a empresa; solo códigos/estado/origen/prioridad, sin referencia ni perfiles. Pending-device: acciones reales admin/personal.
 - A2+A3 dispositivo real (usuario): PASS — los cinco pasos operativos completaron sin error.
+- Slice C writer + parent spot-check: typecheck OK, vitest 56/56, Expo Doctor 21/21 y diff-check OK. Invitación usa RPC con rol personal fijo, canje refresca profile; config es admin-only y scope a empresa propia. Pending-device: invitación + config reales.
+- Limitación real: schema actual no tiene `filas.activa`; tampoco permite puestos <1. La UI no finge un toggle de activación. Agregarlo requiere migración autorizada posterior.
 
 ## Next step
-- Slice A (A1): registro negocio y código/QR.
+- A6: walkthrough con dos cuentas (admin crea invitación; segunda cuenta canjea; personal atiende; admin cambia config). Decidir luego si se autoriza migración `filas.activa`.
