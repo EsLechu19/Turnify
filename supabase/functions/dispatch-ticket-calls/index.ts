@@ -6,6 +6,10 @@ type Delivery = {
   id: string;
   notificacion_id: string;
   dispositivo: { push_token: string } | null;
+  notificacion: {
+    ticket_id: string;
+    ticket: { fila_id: string } | null;
+  } | null;
 };
 
 const requiredEnvironment = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'EXPO_ACCESS_TOKEN'] as const;
@@ -42,7 +46,7 @@ async function claimDelivery(url: string, serviceKey: string, deliveryId: string
   const response = await supabase(
     url,
     serviceKey,
-    `notificacion_entregas?id=eq.${encodeURIComponent(deliveryId)}&estado=eq.pendiente&select=id,notificacion_id,dispositivo:dispositivos(push_token)`,
+    `notificacion_entregas?id=eq.${encodeURIComponent(deliveryId)}&estado=eq.pendiente&select=id,notificacion_id,dispositivo:dispositivos(push_token),notificacion:notificaciones_salientes(ticket_id,ticket:tickets(fila_id))`,
     {
       method: 'PATCH',
       headers: { prefer: 'return=representation' },
@@ -94,6 +98,9 @@ Deno.serve(async (request) => {
       // is never automatically retried, preferring no duplicate alert.
       try {
         if (!delivery.dispositivo?.push_token) throw new Error('Recipient device is unavailable.');
+        if (!delivery.notificacion?.ticket || !delivery.notificacion.ticket_id) {
+          throw new Error('Called-ticket routing metadata is unavailable.');
+        }
         const provider = await fetch('https://exp.host/--/api/v2/push/send', {
           method: 'POST',
           headers: {
@@ -104,7 +111,11 @@ Deno.serve(async (request) => {
             to: delivery.dispositivo.push_token,
             title: 'Turnify',
             body: 'Tu turno fue llamado.',
-            data: { notificationId: delivery.notificacion_id },
+            data: {
+              type: 'turnify.ticket-called',
+              ticketId: delivery.notificacion.ticket_id,
+              queueId: delivery.notificacion.ticket.fila_id,
+            },
           }),
         });
         if (!provider.ok) throw new Error('Push provider rejected delivery.');

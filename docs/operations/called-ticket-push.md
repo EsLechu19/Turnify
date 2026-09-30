@@ -11,8 +11,9 @@ physical-device validation.
    locally verified.
 2. Obtain separate explicit authorization for each remote destination,
    operation, and credential/session before deploying or configuring anything.
-3. Configure server-only secrets, deploy the function, and arrange a
-   service-role-only invoker only within that authorization.
+3. Configure server-only secrets and the documented Vault entries, deploy the
+   function and migration, and enable the service-role-only cron invoker only
+   within that authorization.
 4. Create and use an Android development build to validate a real
    `llamado` transition on a physical device.
 5. Record the authorized remote operation and validation evidence without
@@ -25,7 +26,8 @@ physical-device validation.
 | Staff calls next ticket | `llamar_siguiente` transitions an eligible ticket to `llamado`. | This database transition is the only enqueue trigger. |
 | Database outbox | Migration `0009_called_ticket_delivery.sql` creates one `ticket_llamado` notification per ticket and one delivery per registered device. | Event and recipient uniqueness prevent duplicate enqueueing. |
 | Server dispatcher | `dispatch-ticket-calls` claims only `pendiente` deliveries before calling Expo. | A dispatcher retry cannot claim the same delivery twice. |
-| Provider request | The dispatcher sends the Spanish title and body to Expo using a server-held access token. | The mobile client never supplies provider credentials. |
+| Scheduled invoker | Migration `0010_dispatch_ticket_calls_schedule.sql` schedules `pg_cron` every minute and uses `pg_net` to call the dispatcher with a Vault-held service-role key. | No client can invoke the outbox or receive server credentials. |
+| Provider request | The dispatcher sends the Spanish title and body plus the typed ticket route to Expo using a server-held access token. | The mobile client never supplies provider credentials. |
 | Mobile receipt | Customer-only lifecycle requests permission, registers its token when an EAS project ID is available, and installs foreground/background listeners. | Notification failures do not block the application. |
 
 Only a customer ticket that changes from `en_espera` or `notificado` to
@@ -39,7 +41,7 @@ unchanged status updates, and tickets without a customer do not enqueue a push.
 | Local source review | Review migrations `0008` and `0009`, the Edge Function, and mobile lifecycle source. | Completed locally. |
 | Remote database and function work | Explicit authorization naming the Supabase project, deployment or migration operation, and approved credential/session. | Pending; not authorized by this work unit. |
 | Server-secret configuration | Explicit authorization for the secret-store destination, mutation, and credential/session. | Pending; no secrets were configured. |
-| Scheduled invocation | Explicit authorization for a service-role-only scheduler or invoker. | Pending; no invoker was configured. |
+| Scheduled invocation | Explicit authorization to apply migration `0010`, enable `pg_net`, and configure the named Vault entries. | Source is ready locally; remote configuration is pending. |
 | Android development build | Explicit authorization naming the Expo/EAS destination, build/configuration operation, and credential/session. | Pending; no build was created. |
 | Physical-device walkthrough | A deployed path and Android development build. | F5-T05 remains pending. |
 
@@ -57,11 +59,47 @@ without the corresponding explicit authorization.
 | Outbox access | `notificaciones_salientes` and `notificacion_entregas` are unavailable to `anon` and `authenticated`; the dispatcher uses `service_role`. |
 | Dispatcher invocation | The function rejects requests unless their authorization header equals the server service-role key. |
 | Required server-only settings | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `EXPO_ACCESS_TOKEN` are read only from the Edge Function environment. |
+| Scheduled invoker | `pg_cron` calls the function once per minute through `pg_net`. It reads only `turnify_project_url` and `turnify_service_role_key` from Supabase Vault; neither value is in source or cron text. |
 | Client boundary | Mobile source contains no provider credential, service-role key, concrete token, or secret configuration. |
 
 Never place a secret or device token in source, app configuration, task records,
 test fixtures, command history, issue text, or logs. When describing a remote
 operation, name only the secret variable and its approved server-side store.
+
+### Required remote configuration
+
+Before applying migration `0010_dispatch_ticket_calls_schedule.sql`, an
+authorized Supabase operator must create these Vault entries without recording
+their values in this repository:
+
+| Vault name | Value | Purpose |
+|---|---|---|
+| `turnify_project_url` | Target Supabase project URL | Builds the private Edge Function endpoint. |
+| `turnify_service_role_key` | That project's service-role key | Authenticates the cron request accepted by the dispatcher. |
+
+The same service-role key must already be available to the Edge Function as
+`SUPABASE_SERVICE_ROLE_KEY`; the Expo access token remains the separate
+`EXPO_ACCESS_TOKEN` Edge Function secret. The migration enables `pg_net` and
+uses the existing `pg_cron` extension. This dashboard/secret-store step is a
+deployment prerequisite, not something source code can safely perform.
+
+## Push payload contract
+
+The provider request sends only the routing fields consumed by the strict mobile
+router. It contains no customer data, device token, server credential, or
+notification content as navigation input:
+
+```json
+{
+  "type": "turnify.ticket-called",
+  "ticketId": "UUID",
+  "queueId": "UUID"
+}
+```
+
+Both identifiers come from the server-owned notification/ticket records after a
+delivery is claimed. Mobile code validates the event type and both UUIDs before
+navigating; title and body remain display-only.
 
 ## Validation checklist
 
@@ -70,11 +108,13 @@ operation, name only the secret variable and its approved server-side store.
 - [ ] Confirm local checks for the reviewed revision: mobile typecheck, Vitest,
   Expo Doctor, `git diff --check`, and a focused credential/token scan.
 - [ ] Confirm migrations `0008_device_token_registration.sql` and
-  `0009_called_ticket_delivery.sql` are approved for the target database.
+  `0009_called_ticket_delivery.sql` and
+  `0010_dispatch_ticket_calls_schedule.sql` are approved for the target database.
 - [ ] Confirm an explicit remote authorization exists for each planned action.
 - [ ] Confirm server-only secret values are available to the approved operator
   without revealing them in the repository or validation record.
-- [ ] Confirm the service-role-only scheduler/invoker design is approved.
+- [ ] Confirm the two named Vault entries exist, `pg_net` is available, and the
+  service-role-only cron invocation is approved.
 
 ### Physical Android development-build walkthrough (F5-T05)
 
@@ -116,17 +156,16 @@ on receipt, permission, delivery, or a mobile timer.
 
 ## Known limitations
 
-- No database migration, Edge Function deployment, secret configuration,
+- No database migration, Edge Function deployment, Vault/secret configuration,
   scheduler/invoker configuration, provider request, or remote validation has
   been performed by Phase 5 local work.
 - F5-T05 physical development-build validation is pending and is not replaced
   by Expo Go or by local source checks.
-- The current server payload contains only `notificationId`. Mobile navigation
-  accepts a future trusted payload with `type`, UUID `ticketId`, and UUID
-  `queueId`; therefore notification taps do not navigate until separately
-  authorized server payload-contract work adds those fields.
-- The current dispatcher processes up to 50 pending deliveries per invocation;
-  an approved scheduler/invoker and its cadence have not been selected.
+- The local server payload now contains the strict trusted route (`type`, UUID
+  `ticketId`, UUID `queueId`), but it is not active until the approved function
+  and migration are deployed with the required Vault configuration.
+- The dispatcher processes up to 50 pending deliveries per invocation; the
+  local cron cadence is once per minute and remains inactive until deployment.
 - `indeterminada` deliveries are intentionally not automatically retried.
 - Local tests assert source-level contracts; they do not prove a deployed
   database, deployed function, Expo provider delivery, Android permission flow,
@@ -140,6 +179,11 @@ passed; Vitest passed (8 files, 62 tests); Expo Doctor passed (21/21 checks).
 F5-T04 recorded: typecheck passed; Vitest passed (9 files, 64 tests); Expo
 Doctor passed (21/21 checks). Each recorded work unit also passed `git diff
 --check` and a focused source inspection for provider credentials and concrete
+device tokens. The bounded local correction recorded here passed
+`npm --workspace turnify-mobile run typecheck`; `npx vitest run` (9 files, 66
+tests); and `npm --workspace turnify-mobile exec expo-doctor` (21/21 checks).
+`git diff --check` passed. A focused scan of the changed tracked files found no
+concrete credential, device token, or user-data payload leak.
 
 ## Ownership
 
