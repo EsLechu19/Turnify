@@ -81,4 +81,4 @@ Local en `C:\Users\esa\Desktop\Turnify` y datos demo en turnify-dev. Sin push Gi
 - Limitación real: schema actual no tiene `filas.activa`; tampoco permite puestos <1. La UI no finge un toggle de activación. Agregarlo requiere migración autorizada posterior.
 
 ## Next step
-- Fase 5: trabajo de push/no-show. `filas.activa` permanece como migración diferida y fuera del alcance de Fase 4.
+- Realizar una prueba en dispositivo del orden preferencial: confirmar que un presencial preferencial genera ticket y respeta el orden. Fase 4 solo puede cerrarse por completo tras PASS; entonces sigue Fase 5 (push/no-show). `filas.activa` permanece como migración diferida y fuera del alcance de Fase 4.
