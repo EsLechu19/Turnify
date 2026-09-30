@@ -9,7 +9,7 @@ import { useAuth } from '@/features/auth/use-auth';
 import { normalizeBusinessCode } from '@/features/queue/queue-api';
 
 export default function HomeScreen() {
-  const { session, signOut } = useAuth();
+  const { session, profile, isProfileLoading, signOut } = useAuth();
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +45,12 @@ export default function HomeScreen() {
       <AuthButton label="Escanear código QR" onPress={() => router.push('/(app)/scan')} />
       <AuthButton label="Mis turnos" onPress={() => router.push('/(app)/history' as Href)} />
       <AuthButton label="Mi perfil" onPress={() => router.push('/(app)/profile' as Href)} />
+      {!isProfileLoading && profile?.role === 'cliente' && !profile.businessId && (
+        <AuthButton label="Registrar mi empresa" onPress={() => router.push('/(app)/register-business' as Href)} />
+      )}
+      {!isProfileLoading && profile?.role === 'admin' && (
+        <AuthButton label="Panel de administración" onPress={() => router.push('/(app)/admin' as Href)} />
+      )}
       <AuthButton label="Cerrar sesión" onPress={() => void signOut()} />
     </AuthScreenContainer>
   );

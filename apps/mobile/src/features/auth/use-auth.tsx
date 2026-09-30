@@ -7,11 +7,19 @@ import { getSupabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export type AuthError = string | null;
 
+export type AuthProfile = {
+  role: 'cliente' | 'admin' | 'personal';
+  businessId: string | null;
+};
+
 export interface AuthContextValue {
   /** True until the persisted session has been read from storage on launch. */
   isRestoring: boolean;
   session: Session | null;
   isSupabaseConfigured: boolean;
+  profile: AuthProfile | null;
+  isProfileLoading: boolean;
+  reloadProfile(): Promise<AuthProfile | null>;
   signIn(email: string, password: string): Promise<AuthError>;
   signUp(email: string, password: string): Promise<AuthError>;
   signOut(): Promise<void>;
@@ -22,6 +30,8 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isRestoring, setIsRestoring] = useState(true);
+  const [profile, setProfile] = useState<AuthProfile | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -68,9 +78,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await getSupabase().auth.signOut();
   }, []);
 
+  const reloadProfile = useCallback(async (): Promise<AuthProfile | null> => {
+    const userId = session?.user.id;
+    if (!userId) {
+      setProfile(null);
+      return null;
+    }
+
+    setIsProfileLoading(true);
+    try {
+      const { data, error } = await getSupabase()
+        .from('perfiles')
+        .select('rol, empresa_id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      const nextProfile = data
+        ? {
+            role: data.rol as AuthProfile['role'],
+            businessId: data.empresa_id,
+          }
+        : null;
+      setProfile(nextProfile);
+      return nextProfile;
+    } finally {
+      setIsProfileLoading(false);
+    }
+  }, [session?.user.id]);
+
+  useEffect(() => {
+    if (!session) {
+      setProfile(null);
+      setIsProfileLoading(false);
+      return;
+    }
+
+    void reloadProfile().catch(() => {
+      setProfile(null);
+    });
+  }, [reloadProfile, session]);
+
   const value = useMemo<AuthContextValue>(
-    () => ({ isRestoring, session, isSupabaseConfigured, signIn, signUp, signOut }),
-    [isRestoring, session, signIn, signUp, signOut]
+    () => ({
+      isRestoring,
+      session,
+      isSupabaseConfigured,
+      profile,
+      isProfileLoading,
+      reloadProfile,
+      signIn,
+      signUp,
+      signOut,
+    }),
+    [isRestoring, session, profile, isProfileLoading, reloadProfile, signIn, signUp, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
