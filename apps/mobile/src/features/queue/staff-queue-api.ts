@@ -18,6 +18,10 @@ export type StaffTicket = {
   priority: 'normal' | 'preferencial';
 };
 
+export type CreatedWalkInTicket = {
+  visibleCode: string;
+};
+
 type StaffQueueRow = {
   id: string;
   nombre: string;
@@ -126,6 +130,23 @@ export function finishService(ticketId: string): Promise<void> {
 
 export function markAbsent(ticketId: string): Promise<void> {
   return runStaffAction('marcar_ausente', ticketId);
+}
+
+export async function createWalkInTicket(
+  queueId: string,
+  priority: 'normal' | 'preferencial',
+  referenceName: string,
+): Promise<CreatedWalkInTicket> {
+  const { data, error } = await getSupabase().rpc('crear_ticket_presencial', {
+    p_fila_id: queueId,
+    p_prioridad: priority,
+    p_nombre_ref: referenceName.trim() || null,
+  });
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return { visibleCode: (data as StaffTicketRow).codigo_visible };
 }
 
 export function translateStaffQueueError(message: string): string {

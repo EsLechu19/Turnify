@@ -4,11 +4,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { AppState, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AuthButton, AuthErrorMessage, AuthScreenContainer } from '@/components/auth/auth-ui';
+import { AuthField } from '@/components/auth/auth-field';
 import { ThemedText } from '@/components/themed-text';
 import { getBusiness, type Business } from '@/features/business/business-api';
 import { useAuth } from '@/features/auth/use-auth';
 import {
   callNextTicket,
+  createWalkInTicket,
   finishService,
   getStaffQueue,
   markAbsent,
@@ -28,6 +30,9 @@ export default function AdminScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isActing, setIsActing] = useState(false);
+  const [walkInPriority, setWalkInPriority] = useState<'normal' | 'preferencial'>('normal');
+  const [walkInReference, setWalkInReference] = useState('');
+  const [createdWalkInCode, setCreatedWalkInCode] = useState<string | null>(null);
 
   const loadBusiness = useCallback(async () => {
     if (!profile?.businessId) return;
@@ -152,6 +157,38 @@ export default function AdminScreen() {
           </View>
           {selectedQueue && (
             <View style={styles.queueSection}>
+              <View style={styles.walkInSection}>
+                <ThemedText type="smallBold">Turno presencial</ThemedText>
+                <ThemedText type="small">Fila activa: {selectedQueue.name}</ThemedText>
+                <View style={styles.priorityOptions}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: walkInPriority === 'normal' }}
+                    onPress={() => setWalkInPriority('normal')}
+                    style={[styles.priorityOption, walkInPriority === 'normal' && styles.queueOptionSelected]}>
+                    <ThemedText type="smallBold">Normal</ThemedText>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: walkInPriority === 'preferencial' }}
+                    onPress={() => setWalkInPriority('preferencial')}
+                    style={[styles.priorityOption, walkInPriority === 'preferencial' && styles.queueOptionSelected]}>
+                    <ThemedText type="smallBold">Preferencial</ThemedText>
+                  </Pressable>
+                </View>
+                <AuthField
+                  label="Referencia (opcional)"
+                  value={walkInReference}
+                  onChangeText={setWalkInReference}
+                  placeholder="Ej. Recepción"
+                />
+                <AuthButton label="Crear turno presencial" onPress={() => void handleAction(async () => {
+                  const ticket = await createWalkInTicket(selectedQueue.id, walkInPriority, walkInReference);
+                  setCreatedWalkInCode(ticket.visibleCode);
+                  setWalkInReference('');
+                })} disabled={isActing} isLoading={isActing} />
+                {createdWalkInCode && <ThemedText type="smallBold">Turno creado: {createdWalkInCode}</ThemedText>}
+              </View>
               <ThemedText type="smallBold">Atención en {selectedQueue.name}</ThemedText>
               {currentTicket ? (
                 <View style={styles.ticketCard}>
@@ -210,4 +247,7 @@ const styles = StyleSheet.create({
   ticketCard: { gap: 10, borderRadius: 8, backgroundColor: '#E8F0FE', padding: 16 },
   ticketList: { gap: 8 },
   ticketRow: { gap: 2, borderBottomWidth: 1, borderBottomColor: '#DADCE0', paddingVertical: 8 },
+  walkInSection: { gap: 8, borderRadius: 8, backgroundColor: '#F8F9FA', padding: 12 },
+  priorityOptions: { flexDirection: 'row', gap: 8 },
+  priorityOption: { flex: 1, alignItems: 'center', borderWidth: 1, borderColor: '#DADCE0', borderRadius: 8, padding: 10 },
 });
