@@ -19,7 +19,7 @@ async function configureNotificationFoundation(): Promise<void> {
 
   try {
     await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
-      name: 'Ticket updates',
+      name: 'Actualizaciones de turnos',
       importance: Notifications.AndroidImportance.HIGH,
     });
   } catch {

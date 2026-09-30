@@ -4,7 +4,13 @@ import { useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider } from '@/features/auth/use-auth';
+import { useNotificationLifecycle } from '@/features/notifications/use-notification-lifecycle';
 import { initializeNotificationFoundation } from '@/lib/notifications';
+
+function NotificationLifecycle() {
+  useNotificationLifecycle();
+  return null;
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -15,6 +21,7 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
+      <NotificationLifecycle />
       <SafeAreaProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <Stack screenOptions={{ headerShown: false }}>
