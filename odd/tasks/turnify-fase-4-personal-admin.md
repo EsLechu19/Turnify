@@ -57,6 +57,7 @@ Local en `C:\Users\esa\Desktop\Turnify` y datos demo en turnify-dev. Sin push Gi
 - 2026-09-29: Slice B (A2+A3) implementado: cola empresa en vivo + acciones de servicio (37ea208), presencial normal/preferencial (0f24e05). Typecheck, vitest 56/56 y Expo Doctor 21/21; pending-device.
 - 2026-09-29: A2+A3 dispositivo real PASS (usuario): presencial normal, llamado, inicio/finalización y ausente funcionan correctamente.
 - 2026-09-29: Slice C (A4+A5) implementado: invitación/canje de personal (cb2a434), configuración de empresa + filas propias (0cff323). Typecheck, vitest 56/56 y Expo Doctor 21/21; pending-device.
+- 2026-09-29: Fixed the admin Realtime reconnect lifecycle. Each effect lifetime now uses a fresh channel topic, so React development cleanup/reconnect cannot add callbacks to an already subscribed channel. Typecheck and Vitest 56/56 PASS; pending-device validation.
 
 ## Verification evidence
 - A1 writer + parent spot-check: typecheck OK, vitest 56/56, Expo Doctor 21/21, diff-check OK. Sin datos personales en panel; rol cliente solo controla navegación (RPC/RLS son autoridad). Pending-device: crear negocio real y visualizar QR.
@@ -64,6 +65,7 @@ Local en `C:\Users\esa\Desktop\Turnify` y datos demo en turnify-dev. Sin push Gi
 - Slice B writer + parent spot-check: typecheck OK, vitest 56/56, Expo Doctor 21/21, diff-check OK. Consulta/Realtime scoped a empresa; solo códigos/estado/origen/prioridad, sin referencia ni perfiles. Pending-device: acciones reales admin/personal.
 - A2+A3 dispositivo real (usuario): PASS — los cinco pasos operativos completaron sin error.
 - Slice C writer + parent spot-check: typecheck OK, vitest 56/56, Expo Doctor 21/21 y diff-check OK. Invitación usa RPC con rol personal fijo, canje refresca profile; config es admin-only y scope a empresa propia. Pending-device: invitación + config reales.
+- Admin Realtime reconnect fix: `npm --workspace turnify-mobile run typecheck` PASS; `npx vitest run` PASS (6 files, 56 tests). The repository has domain-only Vitest coverage and no React Native renderer or Supabase Realtime mock, so the React passive-effect reconnect lifecycle requires device validation.
 - Limitación real: schema actual no tiene `filas.activa`; tampoco permite puestos <1. La UI no finge un toggle de activación. Agregarlo requiere migración autorizada posterior.
 
 ## Next step
