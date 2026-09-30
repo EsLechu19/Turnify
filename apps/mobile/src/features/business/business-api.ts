@@ -14,6 +14,10 @@ export type Business = {
   code: string;
 };
 
+export type PersonalInvitation = {
+  token: string;
+};
+
 type BusinessRow = {
   id: string;
   nombre: string;
@@ -56,4 +60,47 @@ export async function getBusiness(businessId: string): Promise<Business | null> 
   }
 
   return data ? toBusiness(data as unknown as BusinessRow) : null;
+}
+
+export async function createPersonalInvitation(email: string): Promise<PersonalInvitation> {
+  const { data, error } = await getSupabase().rpc('crear_invitacion', {
+    p_email: email.trim() || undefined,
+    p_rol: 'personal',
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return { token: (data as { token: string }).token };
+}
+
+export async function acceptPersonalInvitation(token: string): Promise<void> {
+  const { error } = await getSupabase().rpc('aceptar_invitacion', {
+    p_token: token.trim(),
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export function translateInvitationError(message: string): string {
+  const normalized = message.toLowerCase();
+  if (normalized.includes('venc') || normalized.includes('expir')) {
+    return 'Esta invitación venció. Solicita una nueva invitación al administrador.';
+  }
+  if (normalized.includes('inválid') || normalized.includes('inval') || normalized.includes('no encontrada')) {
+    return 'El código de invitación no es válido. Revisa el código e intenta de nuevo.';
+  }
+  if (normalized.includes('ya fue aceptada') || normalized.includes('ya acept')) {
+    return 'Esta invitación ya fue utilizada. Solicita una nueva invitación al administrador.';
+  }
+  if (normalized.includes('debes iniciar sesión')) {
+    return 'Tu sesión ya no es válida. Ingresa nuevamente.';
+  }
+  if (normalized.includes('network') || normalized.includes('fetch')) {
+    return 'No pudimos conectar con el servidor. Revisa tu conexión.';
+  }
+  return 'No pudimos procesar la invitación. Intenta de nuevo.';
 }

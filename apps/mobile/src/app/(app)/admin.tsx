@@ -6,7 +6,7 @@ import { AppState, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { AuthButton, AuthErrorMessage, AuthScreenContainer } from '@/components/auth/auth-ui';
 import { AuthField } from '@/components/auth/auth-field';
 import { ThemedText } from '@/components/themed-text';
-import { getBusiness, type Business } from '@/features/business/business-api';
+import { createPersonalInvitation, getBusiness, translateInvitationError, type Business } from '@/features/business/business-api';
 import { useAuth } from '@/features/auth/use-auth';
 import {
   callNextTicket,
@@ -33,6 +33,8 @@ export default function AdminScreen() {
   const [walkInPriority, setWalkInPriority] = useState<'normal' | 'preferencial'>('normal');
   const [walkInReference, setWalkInReference] = useState('');
   const [createdWalkInCode, setCreatedWalkInCode] = useState<string | null>(null);
+  const [invitationEmail, setInvitationEmail] = useState('');
+  const [invitationToken, setInvitationToken] = useState<string | null>(null);
 
   const loadBusiness = useCallback(async () => {
     if (!profile?.businessId) return;
@@ -113,6 +115,21 @@ export default function AdminScreen() {
     }
   }
 
+  async function handleCreateInvitation() {
+    setIsActing(true);
+    setError(null);
+    setInvitationToken(null);
+    try {
+      const invitation = await createPersonalInvitation(invitationEmail);
+      setInvitationToken(invitation.token);
+      setInvitationEmail('');
+    } catch (reason) {
+      setError(translateInvitationError(reason instanceof Error ? reason.message : ''));
+    } finally {
+      setIsActing(false);
+    }
+  }
+
   return (
     <AuthScreenContainer>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -121,20 +138,40 @@ export default function AdminScreen() {
         <ThemedText type="small">Actualizando filas…</ThemedText>
       ) : business ? (
         <View style={styles.content}>
-          {profile?.role === 'admin' && (
-            <View style={styles.businessDetails}>
-              <ThemedText type="smallBold">{business.name}</ThemedText>
-              <ThemedText type="small">Código de empresa</ThemedText>
-              <ThemedText type="title">{business.code}</ThemedText>
-              <View style={styles.qr}>
-                <QRCode value={`turnify:${business.code}`} size={208} />
-              </View>
-              <View style={styles.guidance}>
-                <ThemedText type="smallBold">Compártelo con tus clientes</ThemedText>
-                <ThemedText type="small">Pueden escanear este QR o ingresar el código de 8 caracteres en Turnify para ver tus filas.</ThemedText>
-              </View>
-            </View>
-          )}
+           {profile?.role === 'admin' && (
+             <>
+               <View style={styles.businessDetails}>
+                 <ThemedText type="smallBold">{business.name}</ThemedText>
+                 <ThemedText type="small">Código de empresa</ThemedText>
+                 <ThemedText type="title">{business.code}</ThemedText>
+                 <View style={styles.qr}>
+                   <QRCode value={`turnify:${business.code}`} size={208} />
+                 </View>
+                 <View style={styles.guidance}>
+                   <ThemedText type="smallBold">Compártelo con tus clientes</ThemedText>
+                   <ThemedText type="small">Pueden escanear este QR o ingresar el código de 8 caracteres en Turnify para ver tus filas.</ThemedText>
+                 </View>
+               </View>
+               <View style={styles.invitationSection}>
+                 <ThemedText type="smallBold">Invitar personal</ThemedText>
+                 <AuthField
+                   label="Correo (opcional)"
+                   value={invitationEmail}
+                   onChangeText={setInvitationEmail}
+                   placeholder="personal@empresa.com"
+                   keyboardType="email-address"
+                 />
+                 <AuthButton label="Crear invitación" onPress={() => void handleCreateInvitation()} disabled={isActing} isLoading={isActing} />
+                 {invitationToken && (
+                   <View style={styles.invitationToken}>
+                     <ThemedText type="smallBold">Código de invitación (se muestra una sola vez)</ThemedText>
+                     <ThemedText type="title">{invitationToken}</ThemedText>
+                     <ThemedText type="small">Compártelo solo por un medio privado. El código vence; no lo publiques ni lo reenvíes.</ThemedText>
+                   </View>
+                 )}
+               </View>
+             </>
+           )}
           <View style={styles.queueSection}>
             <ThemedText type="smallBold">Fila activa</ThemedText>
             {queues.length === 0 ? (
@@ -248,6 +285,8 @@ const styles = StyleSheet.create({
   ticketList: { gap: 8 },
   ticketRow: { gap: 2, borderBottomWidth: 1, borderBottomColor: '#DADCE0', paddingVertical: 8 },
   walkInSection: { gap: 8, borderRadius: 8, backgroundColor: '#F8F9FA', padding: 12 },
+  invitationSection: { gap: 8, borderRadius: 8, backgroundColor: '#F8F9FA', padding: 12 },
+  invitationToken: { gap: 6, borderRadius: 8, backgroundColor: '#E8F0FE', padding: 12 },
   priorityOptions: { flexDirection: 'row', gap: 8 },
   priorityOption: { flex: 1, alignItems: 'center', borderWidth: 1, borderColor: '#DADCE0', borderRadius: 8, padding: 10 },
 });
