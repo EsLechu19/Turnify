@@ -40,7 +40,7 @@ Local en `C:\Users\esa\Desktop\Turnify` y datos demo en turnify-dev. Sin push Gi
 - [x] Usuario registra negocio y recibe código + QR.
 - [x] Personal/admin ve solo códigos de su empresa, con cambios en vivo.
 - [x] Personal completa ciclo llamado → atención → finalizado y marca ausente.
-- [ ] Presencial preferencial genera ticket y respeta orden. Fixed locally; pending deployment and device validation.
+- [x] Presencial preferencial genera ticket y respeta orden.
 - [x] Invitación convierte cliente a personal de la empresa correcta.
 - [x] Checks verdes y walkthrough real.
 
@@ -65,6 +65,7 @@ Local en `C:\Users\esa\Desktop\Turnify` y datos demo en turnify-dev. Sin push Gi
 - 2026-09-30: A5 dispositivo real PASS (usuario): admin cambió `Avisar cada posición` a 5, guardó, regresó al panel sin error y confirmó la persistencia al reabrir configuración.
 - 2026-09-30: A6 walkthrough PASS (usuario): con cuentas y dispositivos separados, una acción de ticket desde personal actualizó el panel admin en vivo; la evidencia anterior cubre presencial, llamado, inicio/finalización y ausente. La lista de tareas A1–A6 está completa; `filas.activa` sigue diferida como migración fuera de alcance.
 - 2026-09-30: Preferential ordering corrected locally: `preferencial_cada = N` now serves a preferential ticket first, followed by N normal tickets. The forward migration is pending deployment and device validation, so the acceptance criterion remains open.
+- 2026-09-30: Fase 4 cerrada: después de desplegar la migración 0007 en turnify-dev y abrir la app actualizada en Expo Go, con `preferencial_cada = 1` se llamó un presencial preferencial antes que un presencial normal.
 
 ## Verification evidence
 - A1 writer + parent spot-check: typecheck OK, vitest 56/56, Expo Doctor 21/21, diff-check OK. Sin datos personales en panel; rol cliente solo controla navegación (RPC/RLS son autoridad). Pending-device: crear negocio real y visualizar QR.
@@ -79,7 +80,8 @@ Local en `C:\Users\esa\Desktop\Turnify` y datos demo en turnify-dev. Sin push Gi
 - A4 invitation device validation (usuario): PASS — una invitación creada por admin fue canjeada por una segunda cuenta, que recibió el rol de personal y accedió al panel de personal.
 - A5 configuration device validation (usuario): PASS — el valor `Avisar cada posición` se cambió a 5, se guardó sin error, persistió al volver a abrir configuración y el usuario confirma que la configuración funciona correctamente.
 - A6 walkthrough device validation (usuario): PASS — admin y personal, en cuentas y dispositivos separados, ejecutaron una acción de ticket y el panel admin se actualizó en vivo. Junto con A2+A3 dispositivo real PASS, cubre presencial, llamado, inicio/finalización y ausente.
+- Preferential-order migration and device validation (usuario): PASS — migration 0007 was deployed to turnify-dev; the updated app opened in Expo Go; with `preferencial_cada = 1`, a preferential walk-in was called before a normal walk-in.
 - Limitación real: schema actual no tiene `filas.activa`; tampoco permite puestos <1. La UI no finge un toggle de activación. Agregarlo requiere migración autorizada posterior.
 
 ## Next step
-- Realizar una prueba en dispositivo del orden preferencial: confirmar que un presencial preferencial genera ticket y respeta el orden. Fase 4 solo puede cerrarse por completo tras PASS; entonces sigue Fase 5 (push/no-show). `filas.activa` permanece como migración diferida y fuera del alcance de Fase 4.
+- Iniciar Fase 5: trabajo de push/no-show. `filas.activa` permanece como migración diferida y fuera del alcance de Fase 4.
