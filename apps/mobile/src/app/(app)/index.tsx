@@ -48,8 +48,8 @@ export default function HomeScreen() {
       {!isProfileLoading && profile?.role === 'cliente' && !profile.businessId && (
         <AuthButton label="Registrar mi empresa" onPress={() => router.push('/(app)/register-business' as Href)} />
       )}
-      {!isProfileLoading && profile?.role === 'admin' && (
-        <AuthButton label="Panel de administración" onPress={() => router.push('/(app)/admin' as Href)} />
+       {!isProfileLoading && (profile?.role === 'admin' || profile?.role === 'personal') && profile.businessId && (
+         <AuthButton label="Panel de atención" onPress={() => router.push('/(app)/admin' as Href)} />
       )}
       <AuthButton label="Cerrar sesión" onPress={() => void signOut()} />
     </AuthScreenContainer>
