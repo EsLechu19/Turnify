@@ -46,7 +46,7 @@ Implement in small, reviewable work units. Establish the Android development-bui
 ## Tasks
 
 - [x] F5-T01 — Foundation and configuration: define the Android development-build, notification configuration, environment boundaries, and secret-handling contract. Local planning only until remote build authorization is granted.
-- [ ] F5-T02 — Authenticated device-token registration: register, refresh, deduplicate, and revoke the current authenticated customer's device token with ownership enforcement.
+- [x] F5-T02 — Authenticated device-token registration: register, refresh, deduplicate, and revoke the current authenticated customer's device token with ownership enforcement.
 - [ ] F5-T03 — Secure server-side delivery: trigger one push only when a customer ticket becomes `llamado`; keep provider credentials in server secrets and add delivery observability without sensitive token leakage.
 - [ ] F5-T04 — Mobile notification handling: request permission, handle foreground/background receipt and navigation, and use Spanish customer-facing text.
 - [ ] F5-T05 — Real-device validation: create and use an Android development build to prove remote delivery for a called ticket; Expo Go is not acceptable evidence.
@@ -81,6 +81,7 @@ This record authorizes local source and documentation work for F5-T01 through F5
 
 - 2026-09-30: Task record created. Status: planned. No implementation or remote operation has started.
 - 2026-09-30: F5-T01 completed locally. The mobile app config includes the `expo-notifications` plugin, and the app root initializes an idempotent notification foundation that configures the Android high-importance `ticket-updates` channel and foreground presentation behavior. No EAS project ID or Android development build was created; no permission request, device-token registration, or push delivery was implemented.
+- 2026-09-30: F5-T02 completed locally. Migration `0008_device_token_registration.sql` makes provider tokens globally unique, keeps the latest registration per token, and exposes only customer-scoped `registrar_dispositivo` and `revocar_dispositivo` RPCs. Both derive the owner from `auth.uid()` and validate the caller role; direct `dispositivos` access is revoked from mobile roles while the existing RLS owner policy remains active as defence in depth. `apps/mobile/src/features/notifications/device-token-api.ts` invokes only these RPCs and never logs, returns, or configures provider tokens. Exact local checks: `npm --workspace turnify-mobile run typecheck` passed; `npx vitest run` passed (7 files, 59 tests); `npm --workspace turnify-mobile exec expo-doctor` passed (21/21 checks); `git diff --check` passed; the changed tracked files were inspected for token/secret exposure and contain no provider credential, concrete device token, or client configuration addition. Commit evidence: `feat(notifications): register authenticated device tokens` (one local F5-T02 work-unit commit; revision is recorded in local Git history).
 - Engram mirror: pending until the project memory service accepts the Phase 5 task record at `odd/turnify-fase-5-push-no-show/tasks`.
 
 ## Next step
