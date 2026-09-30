@@ -170,6 +170,7 @@ export default function AdminScreen() {
                    </View>
                  )}
                </View>
+               <AuthButton label="Configurar empresa y filas" onPress={() => router.push('/(app)/configuration')} disabled={isActing} />
              </>
            )}
           <View style={styles.queueSection}>
