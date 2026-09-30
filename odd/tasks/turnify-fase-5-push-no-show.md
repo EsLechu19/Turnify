@@ -45,7 +45,7 @@ Implement in small, reviewable work units. Establish the Android development-bui
 
 ## Tasks
 
-- [ ] F5-T01 — Foundation and configuration: define the Android development-build, notification configuration, environment boundaries, and secret-handling contract. Local planning only until remote build authorization is granted.
+- [x] F5-T01 — Foundation and configuration: define the Android development-build, notification configuration, environment boundaries, and secret-handling contract. Local planning only until remote build authorization is granted.
 - [ ] F5-T02 — Authenticated device-token registration: register, refresh, deduplicate, and revoke the current authenticated customer's device token with ownership enforcement.
 - [ ] F5-T03 — Secure server-side delivery: trigger one push only when a customer ticket becomes `llamado`; keep provider credentials in server secrets and add delivery observability without sensitive token leakage.
 - [ ] F5-T04 — Mobile notification handling: request permission, handle foreground/background receipt and navigation, and use Spanish customer-facing text.
@@ -80,6 +80,7 @@ This record authorizes local source and documentation work for F5-T01 through F5
 ## Progress
 
 - 2026-09-30: Task record created. Status: planned. No implementation or remote operation has started.
+- 2026-09-30: F5-T01 completed locally. The mobile app config includes the `expo-notifications` plugin, and the app root initializes an idempotent notification foundation that configures the Android high-importance `ticket-updates` channel and foreground presentation behavior. No EAS project ID or Android development build was created; no permission request, device-token registration, or push delivery was implemented.
 - Engram mirror: pending until the project memory service accepts the Phase 5 task record at `odd/turnify-fase-5-push-no-show/tasks`.
 
 ## Next step
