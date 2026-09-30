@@ -1,6 +1,6 @@
 import QRCode from 'react-native-qrcode-svg';
 import { Redirect, router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AppState, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AuthButton, AuthErrorMessage, AuthScreenContainer } from '@/components/auth/auth-ui';
@@ -21,6 +21,8 @@ import {
 } from '@/features/queue/staff-queue-api';
 import { getSupabase } from '@/lib/supabase';
 
+let realtimeSubscriptionId = 0;
+
 export default function AdminScreen() {
   const { profile, isProfileLoading } = useAuth();
   const [business, setBusiness] = useState<Business | null>(null);
@@ -35,7 +37,6 @@ export default function AdminScreen() {
   const [createdWalkInCode, setCreatedWalkInCode] = useState<string | null>(null);
   const [invitationEmail, setInvitationEmail] = useState('');
   const [invitationToken, setInvitationToken] = useState<string | null>(null);
-  const realtimeSubscriptionId = useRef(0);
 
   const loadBusiness = useCallback(async () => {
     if (!profile?.businessId) return;
@@ -73,7 +74,7 @@ export default function AdminScreen() {
 
     const supabase = getSupabase();
     const channel = supabase
-      .channel(`staff-queue:${profile.businessId}:${++realtimeSubscriptionId.current}`)
+      .channel(`staff-queue:${profile.businessId}:${++realtimeSubscriptionId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets', filter: `empresa_id=eq.${profile.businessId}` }, () => {
         void loadBusiness();
       })
