@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, type Href, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -54,6 +54,8 @@ export default function TicketScreen() {
             <AuthButton label="Cancelar turno" onPress={handleCancel} disabled={isCancelling} isLoading={isCancelling} />
           )}
           <AuthButton label="Actualizar" onPress={() => void refresh()} disabled={isCancelling} />
+          <AuthButton label="Mis turnos" onPress={() => router.push('/(app)/history' as Href)} disabled={isCancelling} />
+          <AuthButton label="Mi perfil" onPress={() => router.push('/(app)/profile' as Href)} disabled={isCancelling} />
         </View>
       )}
       {!ticket && !isLoading && <AuthButton label="Volver al inicio" onPress={() => router.replace('/(app)')} />}

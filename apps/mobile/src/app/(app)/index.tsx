@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -43,7 +43,8 @@ export default function HomeScreen() {
       <AuthErrorMessage message={error} />
       <AuthButton label="Ver filas" onPress={handlePreview} />
       <AuthButton label="Escanear código QR" onPress={() => router.push('/(app)/scan')} />
-
+      <AuthButton label="Mis turnos" onPress={() => router.push('/(app)/history' as Href)} />
+      <AuthButton label="Mi perfil" onPress={() => router.push('/(app)/profile' as Href)} />
       <AuthButton label="Cerrar sesión" onPress={() => void signOut()} />
     </AuthScreenContainer>
   );
