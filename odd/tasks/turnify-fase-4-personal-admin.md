@@ -27,8 +27,8 @@ El MVP necesita cerrar el ciclo completo cliente → negocio. Push y dashboard d
 
 ## Tasks
 - [x] A1 — Registro negocio: formulario, `crear_empresa`, transición a admin, código de 8 caracteres + QR. Ruta delegated direct. Done 4d8f363; dispositivo real PASS.
-- [ ] A2 — Cola de negocio: pantalla admin/personal, tickets por código, Realtime, llamar/iniciar/finalizar/ausente. Ruta delegated direct (slice B).
-- [ ] A3 — Turno presencial: normal/preferencial, fila activa, feedback de código. Ruta delegated direct (slice B).
+- [ ] A2 — Cola de negocio: implementación verde (37ea208); walkthrough admin/personal pendiente. Tickets por código, Realtime, llamar/iniciar/finalizar/ausente. Ruta delegated direct (slice B).
+- [ ] A3 — Turno presencial: implementación verde (0f24e05); walkthrough pendiente. Normal/preferencial, fila activa, feedback de código. Ruta delegated direct (slice B).
 - [ ] A4 — Invitaciones: crear/canjear código de personal, refresh de rol. Ruta delegated direct (slice C).
 - [ ] A5 — Configuración: abrir/cerrar, avisos, gracia, preferenciales, filas. Ruta delegated direct (slice C).
 - [ ] A6 — Verificación: typecheck, vitest, Expo Doctor, walkthrough admin/personal con dos cuentas. Ruta delegated direct (slice C).
@@ -54,10 +54,12 @@ Local en `C:\Users\esa\Desktop\Turnify` y datos demo en turnify-dev. Sin push Gi
 - 2026-09-29: creado este documento. Fase 3 sigue en feature/turnify-fase-3-cliente; walkthrough funcional PASS, timing <30s pendiente.
 - 2026-09-29: A1 implementado en feature/turnify-fase-4-personal-admin (4d8f363). Typecheck, vitest 56/56, Expo Doctor 21/21 y Metro `/status` OK; falta observación humana de crear negocio/QR.
 - 2026-09-29: A1 dispositivo real PASS (usuario): panel admin y código visibles tras registrar negocio.
+- 2026-09-29: Slice B (A2+A3) implementado: cola empresa en vivo + acciones de servicio (37ea208), presencial normal/preferencial (0f24e05). Typecheck, vitest 56/56 y Expo Doctor 21/21; pending-device.
 
 ## Verification evidence
 - A1 writer + parent spot-check: typecheck OK, vitest 56/56, Expo Doctor 21/21, diff-check OK. Sin datos personales en panel; rol cliente solo controla navegación (RPC/RLS son autoridad). Pending-device: crear negocio real y visualizar QR.
 - A1 dispositivo real (usuario): PASS — panel admin + código visibles.
+- Slice B writer + parent spot-check: typecheck OK, vitest 56/56, Expo Doctor 21/21, diff-check OK. Consulta/Realtime scoped a empresa; solo códigos/estado/origen/prioridad, sin referencia ni perfiles. Pending-device: acciones reales admin/personal.
 
 ## Next step
 - Slice A (A1): registro negocio y código/QR.
