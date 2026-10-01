@@ -5,7 +5,10 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 import { registerDeviceToken, revokeDeviceToken, type DevicePlatform } from '@/features/notifications/device-token-api';
-import { registerTokenAfterPermission } from '@/features/notifications/notification-registration';
+import {
+  registerTokenAfterPermission,
+  reportNotificationRegistrationDiagnostic,
+} from '@/features/notifications/notification-registration';
 import { ticketTargetFromNotificationData } from '@/features/notifications/notification-routing';
 import { useAuth } from '@/features/auth/use-auth';
 import { initializeNotificationFoundation } from '@/lib/notifications';
@@ -30,39 +33,43 @@ export function useNotificationLifecycle(): void {
   const isEligibleCustomer = Boolean(session && profile?.role === 'cliente' && !isProfileLoading);
 
   useEffect(() => {
-    if (!isEligibleCustomer || (Platform.OS !== 'android' && Platform.OS !== 'ios')) return;
+    if (isProfileLoading || (Platform.OS !== 'android' && Platform.OS !== 'ios')) return;
+    if (!isEligibleCustomer) {
+      reportNotificationRegistrationDiagnostic('missing_authenticated_customer_profile');
+      return;
+    }
 
     const projectId = configuredProjectId();
-    if (!projectId) return;
+    if (!projectId) {
+      reportNotificationRegistrationDiagnostic('expo_project_id_missing');
+      return;
+    }
     const registrationProjectId = projectId;
 
     let active = true;
     let registeredToken: string | null = null;
 
     async function registerCurrentDevice(): Promise<void> {
-      try {
-        await registerTokenAfterPermission({
-          initializeNotifications: initializeNotificationFoundation,
-          getPermissions: Notifications.getPermissionsAsync,
-          requestPermissions: Notifications.requestPermissionsAsync,
-          registerToken: async () => {
-            if (!active) return;
+      await registerTokenAfterPermission({
+        initializeNotifications: initializeNotificationFoundation,
+        getPermissions: Notifications.getPermissionsAsync,
+        requestPermissions: Notifications.requestPermissionsAsync,
+        acquireToken: async () => {
+          if (!active) throw new Error();
+          return (await Notifications.getExpoPushTokenAsync({ projectId: registrationProjectId })).data;
+        },
+        registerToken: async (token) => {
+          if (!active) return;
 
-            const token = (await Notifications.getExpoPushTokenAsync({ projectId: registrationProjectId })).data;
-            if (!active) return;
-
-            await registerDeviceToken(token, Platform.OS as DevicePlatform);
-            if (active) {
-              registeredToken = token;
-            } else {
-              void revokeDeviceToken(token).catch(() => undefined);
-            }
-          },
-        });
-      } catch {
-        // Do not log token values or provider errors. This stable signal is safe for mobile diagnostics.
-        console.warn('[notifications] Device registration did not complete.');
-      }
+          await registerDeviceToken(token, Platform.OS as DevicePlatform);
+          if (active) {
+            registeredToken = token;
+          } else {
+            void revokeDeviceToken(token).catch(() => undefined);
+          }
+        },
+        onDiagnostic: reportNotificationRegistrationDiagnostic,
+      });
     }
 
     void registerCurrentDevice();
