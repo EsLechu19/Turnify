@@ -24,6 +24,13 @@ describe('called-ticket delivery outbox', () => {
     expect(functionSource).toContain("estado: 'indeterminada'");
   });
 
+  it('requires an explicit successful Expo receipt before recording delivery', () => {
+    expect(functionSource).toContain('function successfulProviderReceiptId(payload: unknown): string | null');
+    expect(functionSource).toContain('!Array.isArray(response.data) || !receipt || receipt.status !== \'ok\'');
+    expect(functionSource).toContain('successfulProviderReceiptId(await provider.json())');
+    expect(functionSource).toContain('proveedor_mensaje_id: providerMessageId');
+  });
+
   it('keeps outbox access and provider credentials server-only without token logs', () => {
     expect(migration).toContain('revoke all on table public.notificaciones_salientes, public.notificacion_entregas from anon, authenticated;');
     expect(migration).toContain('to service_role;');

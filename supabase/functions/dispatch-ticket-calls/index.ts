@@ -12,6 +12,15 @@ type Delivery = {
   } | null;
 };
 
+type ExpoPushTicket = {
+  status: 'ok' | 'error';
+  id?: string;
+};
+
+type ExpoPushResponse = {
+  data: ExpoPushTicket[];
+};
+
 const requiredEnvironment = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'EXPO_ACCESS_TOKEN'] as const;
 
 function environment(): Record<(typeof requiredEnvironment)[number], string> {
@@ -23,6 +32,20 @@ function environment(): Record<(typeof requiredEnvironment)[number], string> {
     throw new Error('Server delivery environment is incomplete.');
   }
   return values;
+}
+
+function successfulProviderReceiptId(payload: unknown): string | null {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Push provider response is malformed.');
+  }
+
+  const response = payload as Partial<ExpoPushResponse>;
+  const receipt = response.data?.[0];
+  if (!Array.isArray(response.data) || !receipt || receipt.status !== 'ok') {
+    throw new Error('Push provider did not accept delivery.');
+  }
+
+  return typeof receipt.id === 'string' ? receipt.id : null;
 }
 
 async function supabase(
@@ -120,12 +143,12 @@ Deno.serve(async (request) => {
         });
         if (!provider.ok) throw new Error('Push provider rejected delivery.');
 
-        const result = await provider.json() as { data?: { id?: string } };
+        const providerMessageId = successfulProviderReceiptId(await provider.json());
         await supabase(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, `notificacion_entregas?id=eq.${encodeURIComponent(delivery.id)}`, {
           method: 'PATCH',
           body: JSON.stringify({
             estado: 'entregada',
-            proveedor_mensaje_id: result.data?.id ?? null,
+            proveedor_mensaje_id: providerMessageId,
             enviado_en: new Date().toISOString(),
           }),
         });
