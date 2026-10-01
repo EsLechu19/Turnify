@@ -21,3 +21,9 @@ web-build/
 # generated native folders
 apps/mobile/ios/
 apps/mobile/android/
+
+# Firebase Android client configuration is public and intentionally tracked.
+!apps/mobile/google-services.json
+
+# Firebase service-account private keys must never be committed.
+**/*service-account*.json
