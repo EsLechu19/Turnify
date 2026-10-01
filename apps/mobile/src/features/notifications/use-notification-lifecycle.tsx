@@ -5,8 +5,10 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 import { registerDeviceToken, revokeDeviceToken, type DevicePlatform } from '@/features/notifications/device-token-api';
+import { registerTokenAfterPermission } from '@/features/notifications/notification-registration';
 import { ticketTargetFromNotificationData } from '@/features/notifications/notification-routing';
 import { useAuth } from '@/features/auth/use-auth';
+import { initializeNotificationFoundation } from '@/lib/notifications';
 
 function configuredProjectId(): string | null {
   const projectId = Constants.easConfig?.projectId ?? Constants.expoConfig?.extra?.eas?.projectId;
@@ -39,23 +41,27 @@ export function useNotificationLifecycle(): void {
 
     async function registerCurrentDevice(): Promise<void> {
       try {
-        const existingPermission = await Notifications.getPermissionsAsync();
-        const permission = existingPermission.granted
-          ? existingPermission
-          : await Notifications.requestPermissionsAsync();
-        if (!active || !permission.granted) return;
+        await registerTokenAfterPermission({
+          initializeNotifications: initializeNotificationFoundation,
+          getPermissions: Notifications.getPermissionsAsync,
+          requestPermissions: Notifications.requestPermissionsAsync,
+          registerToken: async () => {
+            if (!active) return;
 
-        const token = (await Notifications.getExpoPushTokenAsync({ projectId: registrationProjectId })).data;
-        if (!active) return;
+            const token = (await Notifications.getExpoPushTokenAsync({ projectId: registrationProjectId })).data;
+            if (!active) return;
 
-        await registerDeviceToken(token, Platform.OS as DevicePlatform);
-        if (active) {
-          registeredToken = token;
-        } else {
-          void revokeDeviceToken(token).catch(() => undefined);
-        }
+            await registerDeviceToken(token, Platform.OS as DevicePlatform);
+            if (active) {
+              registeredToken = token;
+            } else {
+              void revokeDeviceToken(token).catch(() => undefined);
+            }
+          },
+        });
       } catch {
-        // Permission, token, and registration failures must not block the app.
+        // Do not log token values or provider errors. This stable signal is safe for mobile diagnostics.
+        console.warn('[notifications] Device registration did not complete.');
       }
     }
 
