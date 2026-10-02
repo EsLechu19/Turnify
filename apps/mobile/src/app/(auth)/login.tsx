@@ -1,12 +1,10 @@
-import { Link } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { AuthButton, AuthErrorMessage, AuthScreenContainer } from '@/components/auth/auth-ui';
 import { AuthField } from '@/components/auth/auth-field';
 import { useAuth } from '@/features/auth/use-auth';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 
 export default function LoginScreen() {
   const { signIn, isSupabaseConfigured } = useAuth();
@@ -29,7 +27,7 @@ export default function LoginScreen() {
     <AuthScreenContainer>
       <View style={styles.header}>
         <ThemedText type="subtitle">Iniciar sesión</ThemedText>
-        <ThemedText type="small">Entra para tomar y seguir tu turno.</ThemedText>
+        <ThemedText type="small">Acceso exclusivo para barberos y personal autorizado.</ThemedText>
       </View>
 
       {!isSupabaseConfigured && (
@@ -69,12 +67,6 @@ export default function LoginScreen() {
         isLoading={isLoading}
       />
 
-      <ThemedView style={styles.footer}>
-        <Text style={styles.footerText}>¿No tienes cuenta?</Text>
-        <Link href="/(auth)/register" style={styles.link}>
-          Regístrate
-        </Link>
-      </ThemedView>
     </AuthScreenContainer>
   );
 }
@@ -85,20 +77,5 @@ const styles = StyleSheet.create({
   },
   notice: {
     marginBottom: 4,
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  footerText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  link: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#3c87f7',
-    fontWeight: 600,
   },
 });

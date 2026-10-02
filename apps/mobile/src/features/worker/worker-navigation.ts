@@ -24,9 +24,9 @@ export type AppRouteName =
   | 'worker-history'
   | 'worker-profile';
 
-const customerRoutes = new Set<AppRouteName>(['index', 'history', 'preview', 'profile', 'scan', 'ticket']);
-const workerRoutes = new Set<AppRouteName>(['index', 'worker', 'worker-queue', 'worker-history', 'worker-profile']);
-const adminRoutes = new Set<AppRouteName>(['admin', 'configuration', 'index']);
+const customerRoutes = new Set<AppRouteName>();
+const workerRoutes = new Set<AppRouteName>(['worker', 'worker-queue', 'worker-history', 'worker-profile']);
+const adminRoutes = new Set<AppRouteName>(['admin', 'configuration']);
 
 export function appRouteNameFromSegments(segments: readonly string[]): AppRouteName {
   const leaf = segments.at(-1);

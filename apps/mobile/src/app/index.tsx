@@ -1,17 +1,16 @@
-import { Redirect } from 'expo-router';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Text, TextInput, View } from 'react-native';
 
-import { useAuth } from '@/features/auth/use-auth';
+import { CustomerButton, CustomerCard, CustomerHeading, CustomerPage, CustomerState } from '@/components/customer/customer-ui';
+import { useTheme } from '@/hooks/use-theme';
+import { normalizeBusinessCode } from '@/features/queue/queue-api';
+import { publicShopRoute } from '@/features/public/public-route-policy';
 
-/**
- * Entry route: sends the user to the auth stack or the app stack depending on
- * the restored session, so neither group needs to duplicate the check.
- */
-export default function IndexScreen() {
-  const { isRestoring, session } = useAuth();
-
-  if (isRestoring) {
-    return null;
-  }
-
-  return <Redirect href={session ? '/(app)' : '/(auth)/login'} />;
+/** Public launch route. Guest access never depends on an authenticated session. */
+export default function PublicWelcomeScreen() {
+  const theme = useTheme(); const [code, setCode] = useState(''); const [showCodeDrawer, setShowCodeDrawer] = useState(false); const [error, setError] = useState<string | null>(null);
+  function continueWithCode() { const normalized = normalizeBusinessCode(code); if (!normalized) { setError('Ingresa el código válido que muestra la barbería.'); return; } setError(null); router.push({ pathname: publicShopRoute, params: { code: normalized } }); }
+  const input = { alignSelf: 'stretch' as const, backgroundColor: theme.background, borderColor: theme.border, borderRadius: 12, borderWidth: 1, color: theme.text, minHeight: 52, paddingHorizontal: 14 };
+  return <CustomerPage><View style={{ alignItems: 'center', gap: 8, paddingTop: 20 }}><View style={{ alignItems: 'center', backgroundColor: theme.primary, borderRadius: 16, height: 48, justifyContent: 'center', width: 48 }}><View style={{ backgroundColor: theme.background, borderRadius: 2, height: 20, width: 20 }} /></View><Text style={{ color: theme.primary, fontSize: 22, fontWeight: '800' }}>turnify</Text></View><CustomerHeading eyebrow="Fila de atención" title="Tu turno, sin esperar de más" detail="Escanea el código QR de la barbería o ingresa su código para unirte a la fila." /><CustomerCard style={{ alignItems: 'center', gap: 10, paddingVertical: 28 }}><View style={{ borderColor: theme.primary, borderRadius: 20, borderWidth: 2, height: 140, width: 140 }} /><View style={{ backgroundColor: theme.primary, height: 2, width: 112 }} /><Text style={{ color: theme.textSecondary, textAlign: 'center' }}>Escanea el código que muestra la barbería para identificarla.</Text></CustomerCard><CustomerButton label="Escanear código QR" onPress={() => router.push('/(public)/scan')} /><CustomerButton label="Ingresar código de la barbería" variant="secondary" onPress={() => setShowCodeDrawer((current) => !current)} />{showCodeDrawer && <CustomerCard><TextInput accessibilityLabel="Código de la barbería" autoCapitalize="characters" onChangeText={setCode} onSubmitEditing={continueWithCode} placeholder="Código de la barbería" placeholderTextColor={theme.textSecondary} style={input} value={code} /><View style={{ marginTop: 12 }}><CustomerButton label="Continuar" onPress={continueWithCode} /></View></CustomerCard>}{error && <CustomerState label={error} />}<View style={{ flexDirection: 'row', gap: 8 }}><CustomerCard style={{ flex: 1, padding: 12 }}><Text style={{ color: theme.text, fontWeight: '700' }}>Fila en tiempo real</Text><Text style={{ color: theme.textSecondary, marginTop: 4 }}>Consulta tu posición con el acceso de tu turno.</Text></CustomerCard><CustomerCard style={{ flex: 1, padding: 12 }}><Text style={{ color: theme.text, fontWeight: '700' }}>Sin cuenta</Text><Text style={{ color: theme.textSecondary, marginTop: 4 }}>Solo pedimos tus datos para crear el turno.</Text></CustomerCard></View><CustomerButton label="Ingresar como personal" variant="secondary" onPress={() => router.push('/(auth)/login')} /></CustomerPage>;
 }

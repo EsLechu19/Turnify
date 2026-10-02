@@ -6,9 +6,10 @@ import {
   roleCanAccessAppRoute,
 } from '../../apps/mobile/src/features/customer/customer-navigation';
 import { workerNavigationItems } from '../../apps/mobile/src/features/worker/worker-navigation';
+import { staffLanding } from '../../apps/mobile/src/features/public/public-route-policy';
 
 describe('customer navigation', () => {
-  it('offers only the approved customer destinations', () => {
+  it('keeps account destinations out of the public guest flow', () => {
     expect(customerNavigationItems).toEqual([
       { key: 'home', label: 'Inicio', href: '/(app)' },
       { key: 'history', label: 'Mis turnos', href: '/(app)/history' },
@@ -16,15 +17,15 @@ describe('customer navigation', () => {
     ]);
   });
 
-  it('keeps customer booking and ticket routes available while blocking worker and admin routes', () => {
-    expect(roleCanAccessAppRoute('cliente', 'preview')).toBe(true);
-    expect(roleCanAccessAppRoute('cliente', 'ticket')).toBe(true);
+  it('denies authenticated customer routes while preserving staff-only access', () => {
+    expect(roleCanAccessAppRoute('cliente', 'preview')).toBe(false);
+    expect(roleCanAccessAppRoute('cliente', 'ticket')).toBe(false);
     expect(roleCanAccessAppRoute('cliente', 'worker')).toBe(false);
     expect(roleCanAccessAppRoute('cliente', 'admin')).toBe(false);
     expect(roleCanAccessAppRoute('cliente', 'configuration')).toBe(false);
   });
 
-  it('resolves the app group root as the customer landing route', () => {
+  it('does not make the protected app group a landing route', () => {
     expect(appRouteNameFromSegments(['(app)'])).toBe('index');
     expect(appRouteNameFromSegments(['(app)', 'history'])).toBe('history');
   });
@@ -40,5 +41,11 @@ describe('customer navigation', () => {
     expect(roleCanAccessAppRoute('personal', 'history')).toBe(false);
     expect(roleCanAccessAppRoute('cliente', 'worker-profile')).toBe(false);
     expect(roleCanAccessAppRoute('admin', 'worker-history')).toBe(false);
+  });
+
+  it('redirects authenticated staff to their existing role-safe operational landing', () => {
+    expect(staffLanding({ role: 'personal', businessId: 'shop' })).toBe('/(app)/worker');
+    expect(staffLanding({ role: 'admin', businessId: 'shop' })).toBe('/(app)/admin');
+    expect(staffLanding({ role: 'cliente', businessId: null })).toBe('/');
   });
 });

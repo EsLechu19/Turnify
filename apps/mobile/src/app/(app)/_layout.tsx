@@ -4,7 +4,7 @@ import { useAuth } from '@/features/auth/use-auth';
 import { appRouteNameFromSegments, roleCanAccessAppRoute } from '@/features/worker/worker-navigation';
 
 /**
- * Guard: a signed-out user never reaches the app stack.
+ * Guard: only authenticated staff may reach operational routes.
  */
 export default function AppLayout() {
   const { isRestoring, session, profile, isProfileLoading } = useAuth();
@@ -15,15 +15,15 @@ export default function AppLayout() {
   }
 
   if (!session) {
-    return <Redirect href="/(auth)/login" />;
+    return <Redirect href="/" />;
   }
 
   if (isProfileLoading) {
     return null;
   }
 
-  if (profile && !roleCanAccessAppRoute(profile.role, appRouteNameFromSegments(segments))) {
-    return <Redirect href="/(app)" />;
+  if (!profile || !roleCanAccessAppRoute(profile.role, appRouteNameFromSegments(segments))) {
+    return <Redirect href="/" />;
   }
 
   return <Stack screenOptions={{ headerShown: false }} />;

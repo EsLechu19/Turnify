@@ -1,0 +1,59 @@
+import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+
+import type { CommercialCatalog } from '@/features/queue/commercial-queue-api';
+import type { GuestDetails } from '@/features/queue/guest-ticket-details';
+import type { GuestTicketAccess } from '@/features/queue/public-guest-ticket-api';
+
+export type GuestBookingDraft = {
+  companyCode: string;
+  catalog: CommercialCatalog;
+  serviceId: string;
+  requestedBarberId: string | null;
+  details: GuestDetails;
+};
+
+type GuestFlowContextValue = {
+  draft: GuestBookingDraft | null;
+  ticketAccess: GuestTicketAccess | null;
+  beginDiscovery(companyCode: string, catalog: CommercialCatalog): void;
+  chooseService(serviceId: string): void;
+  chooseBarber(requestedBarberId: string | null): void;
+  setDetails(details: GuestDetails): void;
+  setTicketAccess(access: GuestTicketAccess): void;
+  reset(): void;
+};
+
+const GuestFlowContext = createContext<GuestFlowContextValue | undefined>(undefined);
+
+export function GuestFlowProvider({ children }: { children: ReactNode }) {
+  const [draft, setDraft] = useState<GuestBookingDraft | null>(null);
+  const [ticketAccess, setTicketAccess] = useState<GuestTicketAccess | null>(null);
+
+  const value = useMemo<GuestFlowContextValue>(() => ({
+    draft,
+    ticketAccess,
+    beginDiscovery(companyCode, catalog) {
+      setTicketAccess(null);
+      setDraft({ companyCode, catalog, serviceId: '', requestedBarberId: null, details: { name: '' } });
+    },
+    chooseService(serviceId) {
+      setDraft((current) => current ? { ...current, serviceId, requestedBarberId: null } : current);
+    },
+    chooseBarber(requestedBarberId) {
+      setDraft((current) => current ? { ...current, requestedBarberId } : current);
+    },
+    setDetails(details) {
+      setDraft((current) => current ? { ...current, details } : current);
+    },
+    setTicketAccess(access) { setTicketAccess(access); },
+    reset() { setDraft(null); setTicketAccess(null); },
+  }), [draft, ticketAccess]);
+
+  return <GuestFlowContext.Provider value={value}>{children}</GuestFlowContext.Provider>;
+}
+
+export function useGuestFlow(): GuestFlowContextValue {
+  const context = useContext(GuestFlowContext);
+  if (!context) throw new Error('useGuestFlow must be used inside GuestFlowProvider.');
+  return context;
+}
