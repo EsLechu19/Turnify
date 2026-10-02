@@ -2,7 +2,8 @@ import { Alert, AppState, Pressable, ScrollView, StyleSheet, View } from 'react-
 import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 
-import { AuthButton, AuthErrorMessage, AuthScreenContainer } from '@/components/auth/auth-ui';
+import { AuthButton, AuthErrorMessage } from '@/components/auth/auth-ui';
+import { WorkerScreenContainer } from '@/components/worker/worker-screen-container';
 import { ThemedText } from '@/components/themed-text';
 import { AppCard, StatusBadge } from '@/components/ui/surface';
 import { useAuth } from '@/features/auth/use-auth';
@@ -87,7 +88,7 @@ export default function WorkerScreen() {
   }
 
   return (
-    <AuthScreenContainer>
+    <WorkerScreenContainer activeNavigation="live">
       <ScrollView contentContainerStyle={styles.content}>
         <ThemedText type="subtitle">Mi operación</ThemedText>
         {isLoading ? <ThemedText type="small">Actualizando tu cola…</ThemedText> : (
@@ -108,9 +109,9 @@ export default function WorkerScreen() {
         {notice && <AppCard><ThemedText type="smallBold">{notice}</ThemedText></AppCard>}
         {error && <AuthButton label="Reintentar" variant="secondary" onPress={() => void refresh()} disabled={isActing} />}
         <AuthButton label="Actualizar" variant="secondary" onPress={() => void refresh()} disabled={isActing} />
-        <AuthButton label="Volver al inicio" variant="secondary" onPress={() => router.replace('/(app)')} disabled={isActing} />
+        <AuthButton label="Ver cola compatible" variant="secondary" onPress={() => router.replace('/(app)/worker-queue')} disabled={isActing} />
       </ScrollView>
-    </AuthScreenContainer>
+    </WorkerScreenContainer>
   );
 }
 
@@ -139,4 +140,4 @@ function TicketFacts({ ticket }: { ticket: WorkerTicket }) {
   return <View style={styles.facts}><ThemedText type="small">{ticket.queueName}</ThemedText>{ticket.serviceName && <ThemedText type="small">Servicio: {ticket.serviceName}</ThemedText>}{ticket.requestedBarberName && <ThemedText type="small">Solicitó: {ticket.requestedBarberName}</ThemedText>}{ticket.assignedBarberName && <ThemedText type="small">Asignado: {ticket.assignedBarberName}</ThemedText>}</View>;
 }
 
-const styles = StyleSheet.create({ content: { gap: 16, paddingVertical: 24 }, card: { gap: 10 }, actions: { gap: 8 }, queue: { gap: 8 }, ticket: { borderWidth: 1, borderRadius: 10, gap: 6, padding: 12 }, facts: { gap: 2 } });
+const styles = StyleSheet.create({ content: { gap: 16, paddingHorizontal: 20, paddingVertical: 24 }, card: { gap: 10 }, actions: { gap: 8 }, queue: { gap: 8 }, ticket: { borderWidth: 1, borderRadius: 10, gap: 6, padding: 12 }, facts: { gap: 2 } });

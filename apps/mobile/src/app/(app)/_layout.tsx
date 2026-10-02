@@ -1,7 +1,7 @@
 import { Redirect, Stack, useSegments } from 'expo-router';
 
 import { useAuth } from '@/features/auth/use-auth';
-import { appRouteNameFromSegments, roleCanAccessAppRoute } from '@/features/customer/customer-navigation';
+import { appRouteNameFromSegments, roleCanAccessAppRoute } from '@/features/worker/worker-navigation';
 
 /**
  * Guard: a signed-out user never reaches the app stack.
