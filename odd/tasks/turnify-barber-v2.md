@@ -18,7 +18,7 @@ Turnify is now a real commercial product rather than a university-only project. 
 | --- | --- |
 | Product model | Commercial B2B2C product. |
 | Initial ICP | Peruvian walk-in barbershops with 2–6 barbers. |
-| Customer choice | The customer may select a specific barber or choose **Any available barber**. |
+| Customer choice | The customer may select a specific on-shift barber, including one who is busy, or choose **Any available barber**. A barber who is off shift is not selectable. |
 | Queue flow | Customer queue journeys must be fast, operationally simple, and suitable for walk-ins. |
 | Design source | The V2 UX/UI base is designed first in the new Google Stitch project `turnifyV2.0`. |
 | Implementation target | Approved base UI is then implemented in the existing Turnify application. |
@@ -33,6 +33,7 @@ Turnify is now a real commercial product rather than a university-only project. 
 - Add the relevant service, barber, and capacity data-model work required by the approved flow.
 - Verify design, implementation, accessibility, tests, type checks, and operational queue acceptance flows.
 - Document decisions, implementation evidence, verification results, and deferred scope.
+- Deliver the commercial product in this order: customer first, worker second, administrator later under a separate approved scope.
 
 ## Constraints
 
@@ -48,9 +49,10 @@ Turnify is now a real commercial product rather than a university-only project. 
 
 ### Accepted now
 
-- Walk-in queue UX for customer, staff, and administrator roles.
+- Customer journey: shop discovery, active service selection, named-barber or any-available preference, confirmation, and live ticket.
+- Worker journey: availability, compatible queue work, calling, service start/finish, absence, and bounded reassignment.
 - Service selection, barber preference, any-available assignment, and operational capacity foundations.
-- Stitch-first V2 design and approved base-UI implementation.
+- Stitch-derived commercial UX adapted to current product constraints, rather than copied literally.
 
 ### Deferred until later
 
@@ -63,6 +65,8 @@ Turnify is now a real commercial product rather than a university-only project. 
 - Public display.
 - Countdown reminders.
 - Existing `notificado` UI wording, until after MVP.
+- Administrator management screens and any new administrator features; these require a separate product brief after customer and worker delivery.
+- Payments, payment collection, SMS/WhatsApp, add-on services, ticket pausing, manual queue reordering, absent-ticket reinstatement, shift scheduling, multi-location support, CSV/PDF exports, predictions, and public/kiosk displays.
 
 ## Delivery Route and Evidence
 
@@ -70,7 +74,7 @@ Turnify is now a real commercial product rather than a university-only project. 
 | --- | --- |
 | Work classification | Substantial work. Each implementation task closes with a focused Conventional Commit work unit; split review slices when the forecast exceeds 400 authored lines. |
 | Route | Delegated direct route for focused task execution and review. |
-| Required order | Gather product decisions, inspect current architecture/data evidence, create or update Stitch design and design system, complete design review, then write application source. |
+| Required order | Implement commercial foundations and customer flow first; then worker operations; reserve administrator expansion for a separate scope. |
 | Sources before writes | Product decisions in this record; current repository architecture and data model; reviewed `turnifyV2.0` Stitch screens/design system. No base UI implementation begins before these sources are recorded and approved. |
 | Verification | Run focused tests for changed behavior, TypeScript/type checks, relevant lint/build checks, `git diff --check`, and role-based operational walkthroughs. Record exact commands and results in this file. |
 | Runtime evidence | Verify customer named-barber and any-available flows, staff queue operations, and administrator configuration against a safe approved environment before declaring implementation complete. |
@@ -78,24 +82,23 @@ Turnify is now a real commercial product rather than a university-only project. 
 
 ## Stable Task IDs
 
-- [ ] **TV2-ARCH-01 — Architecture and domain decisions.** Inspect the current domain, queue, and role boundaries; define the bounded concepts and invariants for service, barber preference, any-available assignment, capacity, and walk-in queue ordering. Record compatibility and migration decisions before implementation.
-- [ ] **TV2-DES-02 — Stitch project and design system.** Create/configure Google Stitch project `turnifyV2.0`; establish the V2 design system, responsive foundations, accessibility baseline, and reusable role-aware components.
-- [ ] **TV2-CLIENT-03 — Customer screen generation.** Generate the customer journey in Stitch: discovery/entry, service choice, named-barber or any-available choice, queue confirmation, live ticket state, and recovery/error states.
-- [ ] **TV2-STAFF-04 — Staff/barber screen generation.** Generate staff screens in Stitch for availability, assigned and any-available queue work, calling/serving customers, capacity visibility, and exception states.
-- [ ] **TV2-ADMIN-05 — Administrator screen generation.** Generate administrator screens in Stitch for shop setup, barber roster, service catalog, capacity/availability configuration, and operational overview appropriate to the initial ICP.
-- [ ] **TV2-REVIEW-06 — Design review.** Review the Stitch flows against product decisions, accessibility, role boundaries, walk-in speed, and operational simplicity. Capture accepted screens, defects, and explicit implementation-ready decisions.
+- [ ] **TV2-ARCH-01 — Commercial queue foundation.** Partial: migration `0012_commercial_queue_foundation.sql` adds services, barber capabilities, on-shift operational state, immutable-at-creation ticket snapshots, catalog and commercial ticket-creation RPCs, and narrow RLS/RPC groundwork. A named on-shift barber remains selectable while busy; **Any available barber** chooses a deterministic compatible route. Capacity reservation, worker assignment ownership/reassignment, and barber-specific ETA remain for the next bounded foundation slice.
+- [x] **TV2-DES-02 — Stitch designs and visual language.** Customer, worker, and administrator designs were generated in their dedicated Stitch projects. The application implements only the shared V2 visual base so far; design-specific product flows remain pending.
+- [ ] **TV2-CLIENT-03 — Customer commercial flow.** Implement the customer Stitch journey first: QR/code discovery, active service catalog, named barber or **Any available barber**, confirmation, immutable ticket snapshot, live ticket with assignment/ETA, cancellation, loading, empty, closed, and error states. Adapt prices to optional PEN reference prices only; do not add payments, SMS/WhatsApp, location claims, or countdown reminders.
+- [ ] **TV2-CLIENT-04 — Customer quality and rollout.** Add database/RPC concurrency and RLS tests plus mobile flow, accessibility, realtime, and device walkthrough coverage for the customer journey. Document the customer ETA and assignment contract.
+- [ ] **TV2-WORKER-05 — Worker operational flow.** After the customer flow is operational, implement the worker Stitch journey: availability state, compatible next-ticket claim, assigned-ticket view, call, start, finish, absent, and explicit reassignment. Do not add manual reordering, ticket pause, shift planning, WhatsApp, or nonessential dashboards.
+- [ ] **TV2-WORKER-06 — Worker quality and rollout.** Add worker authorization, concurrency, assignment-ownership, reassignment, realtime, accessibility, and device walkthrough coverage. Preserve the existing called-ticket push outbox only for `llamado`.
+- [ ] **TV2-ADMIN-07 — Administrator scope decision.** Deferred. Define a separate commercial brief for owner/admin needs after customer and worker delivery; do not implement or expand administrator features under this feature record.
 - [x] **TV2-UI-07 — Base UI implementation.** Implemented the first bounded visual work unit: shared mobile tokens, typography, buttons, inputs, cards, status badges, and adaptations for the existing customer preview/ticket and staff/admin operational screens. No business behavior or backend data contract changed.
-- [ ] **TV2-DATA-08 — Service, barber, and capacity data model.** Implement the approved domain, persistence, authorization, migration, and adapter changes for services, barbers, capacity, named-barber preference, and any-available assignment; include focused tests.
-- [ ] **TV2-VERIFY-09 — Verification.** Execute focused automated checks and role-based walkthroughs for customer, staff, and administrator flows; verify queue behavior for named barber and any available barber, type safety, accessibility baseline, and regressions.
-- [ ] **TV2-DOC-10 — Documentation and closure.** Update product/technical documentation, this record, verification evidence, deferred-scope status, and work-unit commit references; preserve rollback boundaries.
+- [ ] **TV2-DOC-08 — Incremental documentation and closure.** Update this record and product/technical documentation after each customer and worker work unit with verification evidence, migration notes, rollout/rollback boundaries, and deferred administrator scope.
 
 ## Acceptance Criteria
 
-- [ ] The reviewed V2 design covers customer, staff/barber, and administrator roles in `turnifyV2.0`.
+- [ ] The implemented customer journey matches the approved customer Stitch intent while remaining truthful to the live backend contract.
 - [ ] A customer can explicitly select a barber or **Any available barber** without ambiguity.
 - [ ] The customer walk-in path is operationally simple and optimized for a small barbershop.
-- [ ] Staff can understand availability, queue responsibility, and capacity from the approved flow.
-- [ ] Administrator setup supports the initial ICP without introducing deferred commercial modules.
+- [ ] Workers can understand availability, assignment responsibility, and compatible capacity from the implemented flow.
+- [ ] Administrator functionality remains deliberately deferred and is not expanded accidentally.
 - [ ] Base UI implementation follows the accepted Stitch design review.
 - [ ] Data-model changes preserve queue, authorization, and capacity invariants with focused automated coverage.
 - [ ] Verification evidence records exact commands, results, walkthrough scenario, and rollback boundary for every implementation work unit.
@@ -118,6 +121,8 @@ Turnify is now a real commercial product rather than a university-only project. 
 
 - 2026-10-02: Feature record created. No source code, remote service, secret, or credential access is authorized or performed by this task.
 - 2026-10-02: Completed the first bounded source work unit after the user-approved Stitch client, worker, and admin designs. The mobile theme now uses warm ivory, deep ink, teal actions, terracotta destructive states, and warm borders. Existing Spanish UI copy and the customer-facing `notificado` label were preserved. The implementation intentionally does not display services, barbers, capacity, payments, subscriptions, geolocation, or analytics because the current backend contract does not provide those facts.
+- 2026-10-02: Re-scoped delivery for commercial product execution. The customer journey is implemented first, followed by worker operations. Administrator expansion is deferred to a separate product brief. Customer named-barber selection supports any on-shift barber, even while busy; **Any available barber** remains the fast compatible option. Stitch concepts that do not fit the initial ICP or current product commitments are excluded rather than copied literally.
+- 2026-10-02: TV2-ARCH-01 partial foundation added in work-unit commit `244f1fb`. Migration `0012_commercial_queue_foundation.sql` is additive and keeps legacy `tomar_turno` intact. It adds services, barber operational/capability records, immutable service/requested-barber snapshots plus a future assigned-barber snapshot, a public catalog RPC, and authenticated commercial ticket creation. The commercial RPC permits a compatible named barber whenever they are on shift, including when occupied; **Any available barber** routes deterministically by operational state, active assigned workload, name, then ID. No migration was deployed. Verification: `npx vitest run` passed (12 test files, 77 tests); `npm --workspace turnify-mobile run typecheck` passed; `git diff --check` passed. Runtime walkthrough: N/A because no local Supabase database or approved remote environment was used. Rollback boundary: revert migration `0012_commercial_queue_foundation.sql`, `commercial-queue-api.ts`, and its focused migration test together; no existing ticket or legacy RPC behavior was altered.
 
 ## Engram Mirror
 
@@ -126,4 +131,4 @@ Turnify is now a real commercial product rather than a university-only project. 
 
 ## Next Step
 
-Complete **TV2-DATA-08** before exposing barber preference, any-available assignment, services, or capacity in the customer or staff UI. Then complete **TV2-VERIFY-09** with a device/emulator walkthrough and screenshots.
+Complete **TV2-ARCH-01** as the first customer delivery foundation, then implement **TV2-CLIENT-03** in bounded work units. Do not begin worker UI until the customer journey and its assignment/ETA contract are verified.
