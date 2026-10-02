@@ -3,7 +3,8 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { AuthButton, AuthErrorMessage, AuthScreenContainer } from '@/components/auth/auth-ui';
+import { CustomerScreenContainer } from '@/components/customer/customer-screen-container';
+import { AuthButton, AuthErrorMessage } from '@/components/auth/auth-ui';
 import { ThemedText } from '@/components/themed-text';
 import { parseTurnifyQr } from '@/features/queue/queue-api';
 
@@ -25,22 +26,22 @@ export default function ScanScreen() {
   }
 
   if (!permission) {
-    return <AuthScreenContainer><ThemedText type="small">Preparando la cámara…</ThemedText></AuthScreenContainer>;
+    return <CustomerScreenContainer activeNavigation="home"><ThemedText type="small">Preparando la cámara…</ThemedText></CustomerScreenContainer>;
   }
 
   if (!permission.granted) {
     return (
-      <AuthScreenContainer>
+      <CustomerScreenContainer activeNavigation="home">
         <ThemedText type="subtitle">Escanear código QR</ThemedText>
         <ThemedText type="small">Necesitamos acceso a la cámara para escanear el código de la empresa.</ThemedText>
         <AuthButton label="Permitir cámara" onPress={() => void requestPermission()} />
         <AuthButton label="Volver" onPress={() => router.back()} />
-      </AuthScreenContainer>
+      </CustomerScreenContainer>
     );
   }
 
   return (
-    <AuthScreenContainer>
+    <CustomerScreenContainer activeNavigation="home">
       <ThemedText type="subtitle">Escanear código QR</ThemedText>
       <ThemedText type="small">Apunta la cámara al código de la empresa.</ThemedText>
       <View style={styles.cameraWrap}>
@@ -52,7 +53,7 @@ export default function ScanScreen() {
       </View>
       <AuthErrorMessage message={error} />
       <AuthButton label="Volver" onPress={() => router.back()} />
-    </AuthScreenContainer>
+    </CustomerScreenContainer>
   );
 }
 

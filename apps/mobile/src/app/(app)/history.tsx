@@ -2,7 +2,8 @@ import { useFocusEffect, router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { AuthButton, AuthErrorMessage, AuthScreenContainer } from '@/components/auth/auth-ui';
+import { CustomerScreenContainer } from '@/components/customer/customer-screen-container';
+import { AuthButton, AuthErrorMessage } from '@/components/auth/auth-ui';
 import { ThemedText } from '@/components/themed-text';
 import { getCustomerTicketHistory, type TicketHistoryItem, type TicketStatus } from '@/features/customer/customer-api';
 import { useAuth } from '@/features/auth/use-auth';
@@ -47,7 +48,7 @@ export default function HistoryScreen() {
   );
 
   return (
-    <AuthScreenContainer>
+    <CustomerScreenContainer activeNavigation="history">
       <ThemedText type="subtitle">Mis turnos</ThemedText>
       {isLoading && <ThemedText type="small">Cargando historial…</ThemedText>}
       <AuthErrorMessage message={error} />
@@ -66,7 +67,7 @@ export default function HistoryScreen() {
       </View>
       {error && <AuthButton label="Reintentar" onPress={() => void loadHistory()} />}
       <AuthButton label="Volver al inicio" onPress={() => router.replace('/(app)')} />
-    </AuthScreenContainer>
+    </CustomerScreenContainer>
   );
 }
 

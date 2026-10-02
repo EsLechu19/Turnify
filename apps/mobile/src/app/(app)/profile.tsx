@@ -3,7 +3,8 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AuthField } from '@/components/auth/auth-field';
-import { AuthButton, AuthErrorMessage, AuthScreenContainer } from '@/components/auth/auth-ui';
+import { CustomerScreenContainer } from '@/components/customer/customer-screen-container';
+import { AuthButton, AuthErrorMessage } from '@/components/auth/auth-ui';
 import { ThemedText } from '@/components/themed-text';
 import { getCustomerProfile, updateCustomerProfile } from '@/features/customer/customer-api';
 import { useAuth } from '@/features/auth/use-auth';
@@ -60,7 +61,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <AuthScreenContainer>
+    <CustomerScreenContainer activeNavigation="profile">
       <ThemedText type="subtitle">Mi perfil</ThemedText>
       {isLoading ? (
         <ThemedText type="small">Cargando perfil…</ThemedText>
@@ -83,7 +84,7 @@ export default function ProfileScreen() {
       {isLoading && <AuthErrorMessage message={error} />}
       <AuthButton label="Volver al inicio" onPress={() => router.replace('/(app)')} disabled={isSaving} />
       <AuthButton label="Cerrar sesión" onPress={() => void signOut()} disabled={isSaving} />
-    </AuthScreenContainer>
+    </CustomerScreenContainer>
   );
 }
 

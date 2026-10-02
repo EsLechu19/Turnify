@@ -2,7 +2,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { AuthButton, AuthErrorMessage, AuthScreenContainer } from '@/components/auth/auth-ui';
+import { CustomerScreenContainer } from '@/components/customer/customer-screen-container';
+import { AuthButton, AuthErrorMessage } from '@/components/auth/auth-ui';
 import { ThemedText } from '@/components/themed-text';
 import { AppCard, StatusBadge } from '@/components/ui/surface';
 import { useTheme } from '@/hooks/use-theme';
@@ -70,7 +71,7 @@ export default function PreviewScreen() {
   }
 
   return (
-    <AuthScreenContainer>
+    <CustomerScreenContainer activeNavigation="home">
       <ThemedText type="eyebrow" themeColor="primary">Turnify</ThemedText>
       <ThemedText type="subtitle">Reserva tu lugar</ThemedText>
       {isLoading && <ThemedText type="small">Consultando la barbería…</ThemedText>}
@@ -159,7 +160,7 @@ export default function PreviewScreen() {
         </View>
       )}
       <AuthButton label="Volver" variant="secondary" onPress={() => router.back()} disabled={isTakingTurn} />
-    </AuthScreenContainer>
+    </CustomerScreenContainer>
   );
 }
 

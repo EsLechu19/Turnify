@@ -2,7 +2,8 @@ import { router, type Href, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { AuthButton, AuthErrorMessage, AuthScreenContainer } from '@/components/auth/auth-ui';
+import { CustomerScreenContainer } from '@/components/customer/customer-screen-container';
+import { AuthButton, AuthErrorMessage } from '@/components/auth/auth-ui';
 import { ThemedText } from '@/components/themed-text';
 import { AppCard, StatusBadge } from '@/components/ui/surface';
 import { cancelTicket, translateQueueError } from '@/features/queue/queue-api';
@@ -33,7 +34,7 @@ export default function TicketScreen() {
   }
 
   return (
-    <AuthScreenContainer>
+    <CustomerScreenContainer activeNavigation="history">
       <ThemedText type="subtitle">Mi turno</ThemedText>
       {isLoading && <ThemedText type="small">Actualizando tu turno…</ThemedText>}
       <AuthErrorMessage message={error ?? actionError} />
@@ -80,7 +81,7 @@ export default function TicketScreen() {
           <AuthButton label="Volver al inicio" onPress={() => router.replace('/(app)')} />
         </View>
       )}
-    </AuthScreenContainer>
+    </CustomerScreenContainer>
   );
 }
 
