@@ -5,6 +5,7 @@ export type TicketStatusPresentation = {
   message: string;
   tone: 'primary' | 'destructive';
   showsQueueProgress: boolean;
+  isActiveTurn: boolean;
 };
 
 export function presentTicketStatus(status: TicketState['status']): TicketStatusPresentation {
@@ -15,6 +16,7 @@ export function presentTicketStatus(status: TicketState['status']): TicketStatus
         message: 'Tu turno está en espera.',
         tone: 'primary',
         showsQueueProgress: true,
+        isActiveTurn: false,
       };
     case 'notificado':
       return {
@@ -22,6 +24,7 @@ export function presentTicketStatus(status: TicketState['status']): TicketStatus
         message: 'Tu turno sigue en espera.',
         tone: 'primary',
         showsQueueProgress: true,
+        isActiveTurn: false,
       };
     case 'llamado':
       return {
@@ -29,6 +32,7 @@ export function presentTicketStatus(status: TicketState['status']): TicketStatus
         message: 'Tu turno fue llamado.',
         tone: 'primary',
         showsQueueProgress: false,
+        isActiveTurn: true,
       };
     case 'en_atencion':
       return {
@@ -36,6 +40,7 @@ export function presentTicketStatus(status: TicketState['status']): TicketStatus
         message: 'Tu servicio está en atención.',
         tone: 'primary',
         showsQueueProgress: false,
+        isActiveTurn: false,
       };
     case 'finalizado':
       return {
@@ -43,6 +48,7 @@ export function presentTicketStatus(status: TicketState['status']): TicketStatus
         message: 'Tu turno fue finalizado.',
         tone: 'primary',
         showsQueueProgress: false,
+        isActiveTurn: false,
       };
     case 'cancelado':
       return {
@@ -50,6 +56,7 @@ export function presentTicketStatus(status: TicketState['status']): TicketStatus
         message: 'Tu turno fue cancelado.',
         tone: 'destructive',
         showsQueueProgress: false,
+        isActiveTurn: false,
       };
     case 'ausente':
       return {
@@ -57,6 +64,7 @@ export function presentTicketStatus(status: TicketState['status']): TicketStatus
         message: 'Tu turno fue marcado como ausente.',
         tone: 'destructive',
         showsQueueProgress: false,
+        isActiveTurn: false,
       };
   }
 }
