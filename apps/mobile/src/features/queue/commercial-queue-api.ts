@@ -73,14 +73,14 @@ export async function takeCommercialTurn(input: {
   companyCode: string;
   serviceId: string;
   requestedBarberId?: string | null;
-}): Promise<{ ticketId: string }> {
+}): Promise<{ ticketId: string; queueId: string }> {
   const { data, error } = await getSupabase().rpc('tomar_turno_comercial', {
     p_codigo: input.companyCode,
     p_servicio_id: input.serviceId,
     p_barbero_solicitado_id: input.requestedBarberId ?? null,
   });
   if (error) throw new Error(error.message);
-  const ticket = data as { id: string } | null;
+  const ticket = data as { id: string; fila_id: string } | null;
   if (!ticket) throw new Error('Ticket creation returned no ticket');
-  return { ticketId: ticket.id };
+  return { ticketId: ticket.id, queueId: ticket.fila_id };
 }

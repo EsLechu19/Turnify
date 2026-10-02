@@ -1,62 +1,67 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AuthButton, AuthErrorMessage, AuthScreenContainer } from '@/components/auth/auth-ui';
 import { ThemedText } from '@/components/themed-text';
 import { AppCard, StatusBadge } from '@/components/ui/surface';
 import { useTheme } from '@/hooks/use-theme';
-import {
-  getBusinessSummary,
-  normalizeBusinessCode,
-  takeTurn,
-  translateQueueError,
-  type BusinessSummary,
-} from '@/features/queue/queue-api';
+import { bookingExpectation, compatibleBarbers, formatReferencePrice, selectedBarber, type BarberChoice } from '@/features/queue/commercial-booking';
+import { getCommercialCatalog, takeCommercialTurn, type CommercialCatalog } from '@/features/queue/commercial-queue-api';
+import { normalizeBusinessCode, translateQueueError } from '@/features/queue/queue-api';
 
 export default function PreviewScreen() {
   const theme = useTheme();
   const { code: rawCode } = useLocalSearchParams<{ code?: string }>();
   const code = normalizeBusinessCode(rawCode ?? '');
-  const [summary, setSummary] = useState<BusinessSummary | null>(null);
-  const [selectedQueueId, setSelectedQueueId] = useState<string | null>(null);
+  const [catalog, setCatalog] = useState<CommercialCatalog | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [barberChoice, setBarberChoice] = useState<BarberChoice | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isTakingTurn, setIsTakingTurn] = useState(false);
 
-  useEffect(() => {
+  const loadCatalog = useCallback(async () => {
     if (!code) {
       setError('El código de empresa no es válido.');
       setIsLoading(false);
       return;
     }
 
-    let isActive = true;
-    void getBusinessSummary(code)
-      .then((nextSummary) => {
-        if (!isActive) return;
-        setSummary(nextSummary);
-        setSelectedQueueId(nextSummary.queues[0]?.id ?? null);
-      })
-      .catch((reason: unknown) => {
-        if (isActive) setError(translateQueueError(reason instanceof Error ? reason.message : ''));
-      })
-      .finally(() => {
-        if (isActive) setIsLoading(false);
-      });
-
-    return () => {
-      isActive = false;
-    };
+    setIsLoading(true);
+    setError(null);
+    try {
+      const nextCatalog = await getCommercialCatalog(code);
+      setCatalog(nextCatalog);
+      setSelectedServiceId(null);
+      setBarberChoice(null);
+    } catch (reason) {
+      setError(translateQueueError(reason instanceof Error ? reason.message : ''));
+    } finally {
+      setIsLoading(false);
+    }
   }, [code]);
 
+  useEffect(() => {
+    void loadCatalog();
+  }, [loadCatalog]);
+
+  const selectedService = catalog?.services.find((service) => service.serviceId === selectedServiceId) ?? null;
+  const compatible = catalog ? compatibleBarbers(catalog, selectedServiceId) : [];
+  const chosenBarber = selectedBarber(compatible, barberChoice);
+  const canSubmit = Boolean(catalog?.open && selectedService && barberChoice && !isTakingTurn);
+
   async function handleTakeTurn() {
-    if (!code || !selectedQueueId) return;
+    if (!code || !selectedService || !barberChoice) return;
     setIsTakingTurn(true);
     setError(null);
     try {
-      const ticket = await takeTurn(code, selectedQueueId);
-      router.replace({ pathname: '/(app)/ticket', params: { ticketId: ticket.id, queueId: ticket.queueId } });
+      const ticket = await takeCommercialTurn({
+        companyCode: code,
+        serviceId: selectedService.serviceId,
+        requestedBarberId: barberChoice.kind === 'named' ? barberChoice.barberId : null,
+      });
+      router.replace({ pathname: '/(app)/ticket', params: { ticketId: ticket.ticketId, queueId: ticket.queueId } });
     } catch (reason) {
       setError(translateQueueError(reason instanceof Error ? reason.message : ''));
     } finally {
@@ -67,38 +72,88 @@ export default function PreviewScreen() {
   return (
     <AuthScreenContainer>
       <ThemedText type="eyebrow" themeColor="primary">Turnify</ThemedText>
-      <ThemedText type="subtitle">Elige tu fila</ThemedText>
-      {isLoading && <ThemedText type="small">Consultando filas…</ThemedText>}
+      <ThemedText type="subtitle">Reserva tu lugar</ThemedText>
+      {isLoading && <ThemedText type="small">Consultando la barbería…</ThemedText>}
       <AuthErrorMessage message={error} />
-      {summary && (
+      {error && !isLoading && <AuthButton label="Reintentar" variant="secondary" onPress={() => void loadCatalog()} />}
+      {catalog && (
         <View style={styles.content}>
           <AppCard>
-            <ThemedText type="smallBold">{summary.name}</ThemedText>
-            <StatusBadge label={summary.isOpen ? 'Abierto ahora' : 'Cerrado ahora'} tone={summary.isOpen ? 'success' : 'destructive'} />
+            <ThemedText type="smallBold">{catalog.name}</ThemedText>
+            <StatusBadge label={catalog.open ? 'Abierto ahora' : 'Cerrado ahora'} tone={catalog.open ? 'success' : 'destructive'} />
           </AppCard>
-          {summary.queues.map((queue) => (
+          {!catalog.open && <ThemedText type="small">Esta barbería está cerrada en este momento.</ThemedText>}
+          <ThemedText type="smallBold">Elige un servicio</ThemedText>
+          {catalog.services.map((service) => {
+            const isSelected = selectedServiceId === service.serviceId;
+            const price = formatReferencePrice(service.referencePriceCents);
+            return (
             <Pressable
-              key={queue.id}
+              key={service.serviceId}
               accessibilityRole="button"
-              accessibilityState={{ selected: selectedQueueId === queue.id }}
-              onPress={() => setSelectedQueueId(queue.id)}
-              disabled={isTakingTurn || !summary.isOpen}
+              accessibilityLabel={`Servicio: ${service.name}`}
+              accessibilityState={{ selected: isSelected, disabled: isTakingTurn || !catalog.open }}
+              onPress={() => { setSelectedServiceId(service.serviceId); setBarberChoice(null); }}
+              disabled={isTakingTurn || !catalog.open}
               style={({ pressed }) => [
                 styles.queueCard,
-                { backgroundColor: theme.backgroundElement, borderColor: selectedQueueId === queue.id ? theme.primary : theme.border, opacity: pressed ? 0.86 : 1 },
+                { backgroundColor: theme.backgroundElement, borderColor: isSelected ? theme.primary : theme.border, opacity: pressed ? 0.86 : 1 },
               ]}>
               <View style={styles.queueRow}>
-                <ThemedText type="smallBold">{queue.name}</ThemedText>
-                {selectedQueueId === queue.id && <StatusBadge label="Seleccionada" tone="primary" />}
+                <ThemedText type="smallBold">{service.name}</ThemedText>
+                {isSelected && <StatusBadge label="Seleccionado" tone="primary" />}
               </View>
-              <ThemedText type="small">{queue.waiting} en espera · {queue.waitMinutes} min estimados</ThemedText>
+              {service.description && <ThemedText type="small">{service.description}</ThemedText>}
+              <ThemedText type="small">{Math.ceil(service.estimatedDurationSeconds / 60)} min{price ? ` · Referencia ${price}` : ''}</ThemedText>
             </Pressable>
-          ))}
-          {summary.queues.length === 0 && <ThemedText type="small">No hay filas disponibles.</ThemedText>}
+          );
+          })}
+          {catalog.services.length === 0 && <ThemedText type="small">No hay servicios activos disponibles.</ThemedText>}
+          {selectedService && (
+            <>
+              <ThemedText type="smallBold">¿Con quién deseas atenderte?</ThemedText>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Cualquier barbero disponible"
+                accessibilityState={{ selected: barberChoice?.kind === 'any', disabled: isTakingTurn || !catalog.open }}
+                onPress={() => setBarberChoice({ kind: 'any' })}
+                disabled={isTakingTurn || !catalog.open}
+                style={({ pressed }) => [styles.queueCard, { backgroundColor: theme.backgroundElement, borderColor: barberChoice?.kind === 'any' ? theme.primary : theme.border, opacity: pressed ? 0.86 : 1 }]}>
+                <ThemedText type="smallBold">Cualquier barbero disponible</ThemedText>
+                <ThemedText type="small">La opción más rápida según la compatibilidad del servicio.</ThemedText>
+              </Pressable>
+              {compatible.map((barber) => {
+                const isSelected = barberChoice?.kind === 'named' && barberChoice.barberId === barber.barberId;
+                return (
+                  <Pressable
+                    key={barber.barberId}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Barbero: ${barber.name}, ${barber.operationalState === 'ocupado' ? 'atendiendo' : 'disponible'}`}
+                    accessibilityState={{ selected: isSelected, disabled: isTakingTurn || !catalog.open }}
+                    onPress={() => setBarberChoice({ kind: 'named', barberId: barber.barberId })}
+                    disabled={isTakingTurn || !catalog.open}
+                    style={({ pressed }) => [styles.queueCard, { backgroundColor: theme.backgroundElement, borderColor: isSelected ? theme.primary : theme.border, opacity: pressed ? 0.86 : 1 }]}>
+                    <View style={styles.queueRow}>
+                      <ThemedText type="smallBold">{barber.name}</ThemedText>
+                      <StatusBadge label={barber.operationalState === 'ocupado' ? 'Atendiendo' : 'Disponible'} tone={barber.operationalState === 'ocupado' ? 'neutral' : 'success'} />
+                    </View>
+                  </Pressable>
+                );
+              })}
+              {compatible.length === 0 && <ThemedText type="small">No hay barberos en turno compatibles con este servicio.</ThemedText>}
+            </>
+          )}
+          {selectedService && barberChoice && (
+            <AppCard>
+              <ThemedText type="smallBold">Confirma tu turno</ThemedText>
+              <ThemedText type="small">{selectedService.name} · {chosenBarber?.name ?? 'Cualquier barbero disponible'}</ThemedText>
+              <ThemedText type="small">{bookingExpectation(selectedService, chosenBarber)}</ThemedText>
+            </AppCard>
+          )}
           <AuthButton
             label="Confirmar turno"
             onPress={handleTakeTurn}
-            disabled={!summary.isOpen || !selectedQueueId || isTakingTurn}
+            disabled={!canSubmit}
             isLoading={isTakingTurn}
           />
         </View>
