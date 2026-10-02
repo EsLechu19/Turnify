@@ -4,8 +4,8 @@ import { workerIntentOutcome, workerRegistrationRoute, workerSignInRoute } from 
 import { roleCanAccessAppRoute } from '../../apps/mobile/src/features/worker/worker-navigation';
 
 describe('worker intent authentication', () => {
-  it('keeps staff sign-in and registration on dedicated worker-auth routes', () => {
-    expect(workerSignInRoute).toBe('/(auth)/worker-access');
+  it('opens worker registration directly from the public footer', () => {
+    expect(workerSignInRoute).toBe('/(auth)/worker-register');
     expect(workerRegistrationRoute).toBe('/(auth)/worker-register');
   });
 
