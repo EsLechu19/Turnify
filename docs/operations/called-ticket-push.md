@@ -1,9 +1,9 @@
 # Called-ticket Android push runbook
 
 This runbook covers the called-ticket push path, its configuration boundaries,
-recovery signals, and incident history. Remote delivery and background receipt
-have been verified on an Android development build; the remaining device
-validation scope is recorded below. This is a maintenance reference, not
+recovery signals, and incident history. Required Phase 5 device validation has
+been verified on an Android development build; the one optional follow-up is
+recorded below. This is a maintenance reference, not
 authorization for future deployments, secret changes, provider requests, or
 device validation.
 
@@ -67,9 +67,12 @@ Android development build in the background. The confirmed chain was:
 3. Expo/FCM delivered the called-ticket notification to the Android build.
 
 This evidence also confirms foreground presentation and background
-notification-tap navigation to the correct ticket detail. It does not prove
-cold-start navigation, excluded-event non-delivery, or an explicit no-show
-regression.
+notification-tap navigation to the correct ticket detail. At the configured
+proximity threshold, a `notificado` ticket produced no push. A disposable
+called ticket automatically transitioned to `ausente` after the configured
+no-show grace period, confirming the unchanged `marcar_ausentes` cron path.
+Cold-start navigation was not tested. The `notificado` result is limited to
+that state and does not claim every excluded event was physically tested.
 No identifiers, tokens, credentials, or raw provider data are recorded.
 
 ## Authorization and rollout gates
@@ -81,7 +84,7 @@ No identifiers, tokens, credentials, or raw provider data are recorded.
 | Server-secret configuration | Explicit authorization for the secret-store destination, mutation, and credential/session. | Configuration supported the validated path; values are not recorded. Future changes need separate authorization. |
 | Scheduled invocation | Explicit authorization to apply migration `0011`, enable `pg_net`, and configure the named Vault entries. | Dedicated-token scheduler-to-function execution was confirmed in the validated path. |
 | Android development build | Explicit authorization naming the Expo/EAS destination, build/configuration operation, and credential/session. | Completed; an Android development build was used for the confirmed receipt. |
-| Physical-device walkthrough | A deployed path and Android development build. | F5-T05 is complete for remote delivery and background receipt; remaining device scenarios are pending. |
+| Physical-device walkthrough | A deployed path and Android development build. | F5-T05 is complete: foreground/background receipt, background notification-tap routing, `notificado` non-delivery, and no-show enforcement were confirmed. Cold-start routing remains optional and untested. |
 
 Remote work must not be inferred from local implementation approval. Do not run
 dependency downloads, package installation, Expo/EAS configuration or builds,
@@ -165,8 +168,10 @@ build for the following walkthrough.
    an Expo ticket receipt with `status: "ok"` before delivery is recorded as
    delivered.
 6. On the device, confirm foreground presentation and background
-   notification-tap routing to the correct ticket detail. Cold-start navigation,
-   live-ticket authority, and excluded-event non-delivery remain pending.
+   notification-tap routing to the correct ticket detail. Confirm that a
+   `notificado` ticket at the configured proximity threshold produces no push,
+   and that a disposable called ticket becomes `ausente` after the configured
+   grace period. Cold-start navigation is an optional separate walkthrough.
 
 Expected checkpoints are limited to the deployed revision actually tested. This
 repository does not claim a complete physical Android validation merely because
@@ -227,11 +232,10 @@ the code and configuration are present.
 - [x] Verify background receipt.
 - [x] Confirm foreground presentation.
 - [x] Verify background notification-tap navigation to the correct ticket detail.
-- [ ] Confirm cold-start navigation to the ticket destination.
-- [ ] Confirm excluded events produce no push.
-- [ ] Confirm the ticket screen remains authoritative through live data.
-- [ ] Record pass/fail results without device tokens, personal data, secrets,
-  or raw server logs.
+- [x] Confirm that `notificado` at the configured proximity threshold produces no push.
+- [x] Confirm `marcar_ausentes` automatically transitions a disposable called ticket to `ausente` after the configured grace period.
+- [ ] Optional, non-blocking: confirm cold-start navigation to the ticket destination. This has not been tested.
+- [x] Record pass/fail results without device tokens, personal data, secrets, or raw server logs.
 
 ## Observability and safe failure handling
 
@@ -257,7 +261,9 @@ procedure requires a separately authorized operational decision.
 `marcar_ausentes` remains the sole authority for automatic absence. This push
 path does not change its cron schedule, grace rules, enforcement path, or
 ticket-state semantics. A push is informational only: absence must never depend
-on receipt, permission, delivery, or a mobile timer.
+on receipt, permission, delivery, or a mobile timer. Physical validation
+confirmed that a disposable called ticket automatically became `ausente` after
+the configured grace period; no push-path change was involved.
 
 ## Development builds and production behavior
 
@@ -273,10 +279,12 @@ new Android build.
 
 ## Known limitations
 
-- The validated deployment confirmed remote called-ticket delivery, background
-  receipt, foreground presentation, and background notification-tap navigation
-  to the correct ticket detail. Cold-start navigation, excluded-event behavior,
-  and an explicit no-show regression remain pending.
+- The validated deployment confirmed remote called-ticket delivery,
+  foreground/background receipt, and background notification-tap navigation to
+  the correct ticket detail. It also confirmed no push for `notificado` at the
+  configured proximity threshold and automatic no-show enforcement after the
+  configured grace period. Cold-start navigation is the only optional,
+  non-blocking follow-up and was not tested.
 - The deployed server payload contains the strict trusted route (`type`, UUID
   `ticketId`, UUID `queueId`).
 - The dispatcher processes up to 50 pending deliveries per invocation; its

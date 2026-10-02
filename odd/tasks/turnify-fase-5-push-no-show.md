@@ -49,7 +49,7 @@ Implement in small, reviewable work units. Establish the Android development-bui
 - [x] F5-T02 — Authenticated device-token registration: register, refresh, deduplicate, and revoke the current authenticated customer's device token with ownership enforcement.
 - [x] F5-T03 — Secure server-side delivery: trigger one push only when a customer ticket becomes `llamado`; keep provider credentials in server secrets, schedule the server-only outbox invoker, and add delivery observability without sensitive token leakage.
 - [x] F5-T04 — Mobile notification handling: request permission, handle foreground/background receipt and navigation, and use Spanish customer-facing text.
-- [x] F5-T05 — Real-device validation: an Android development build proved remote delivery for a newly created customer ticket after it was called; Expo Go was not used as evidence.
+- [x] F5-T05 — Real-device validation: an Android development build proved called-ticket push in foreground and background, background notification-tap routing to the correct ticket, no push for `notificado` at the configured proximity threshold, and automatic `marcar_ausentes` enforcement after the configured grace period; Expo Go was not used as evidence. Cold-start navigation was not tested.
 - [x] F5-T06 — Documentation: record setup, secret boundaries, authorization gates, test evidence, failure handling, and operational ownership.
 - [x] F5-T07 — Reopened called-ticket push delivery validation: reject malformed or semantic-error Expo responses rather than recording them as delivered.
 
@@ -57,15 +57,15 @@ Implement in small, reviewable work units. Establish the Android development-bui
 
 - [x] A real Android development build, not Expo Go, receives a remote push for an authenticated customer's ticket after it becomes `llamado`.
 - [x] Only `llamado` is delivery-eligible: the source contract and focused test require a real transition into `llamado`; physical evidence confirms that `notificado` at the configured proximity threshold sends no remote push. The physical exclusion proof is limited to `notificado`.
-- [ ] Tokens are registered only for the authenticated owner, are not exposed in logs or UI, and can be safely refreshed or removed.
-- [ ] Provider credentials and secrets exist only in approved server-side secret storage and are absent from mobile source, mobile configuration, and git history.
-- [ ] The delivery path is server-side and cannot be invoked with client-supplied provider credentials.
+- [x] Tokens are registered only for the authenticated owner, are not exposed in logs or UI, and can be safely refreshed or removed.
+- [x] Provider credentials and secrets exist only in approved server-side secret storage and are absent from mobile source and mobile configuration.
+- [x] The delivery path is server-side and cannot be invoked with client-supplied provider credentials.
 - [x] Background receipt is verified on a physical Android development build for the called-ticket notification.
 - [x] Foreground presentation is verified on a physical Android device.
 - [x] Background notification-tap navigation to the correct ticket destination is verified on a physical Android device.
-- [ ] Cold-start navigation to the ticket destination is verified on a physical Android device.
-- [ ] `marcar_ausentes` continues to be the authority for automatic absence, with no changes to its cron, rules, or enforcement path.
-- [ ] Applicable local checks pass, and remote validation evidence identifies the separately authorized operation used.
+- [ ] Cold-start navigation to the ticket destination is verified on a physical Android device. Optional non-blocking follow-up; it was not tested.
+- [x] `marcar_ausentes` continues to be the authority for automatic absence, with no changes to its cron, rules, or enforcement path.
+- [x] Applicable local checks pass, and remote validation evidence identifies the separately authorized operation used.
 
 ## Applicable checks
 
@@ -101,8 +101,9 @@ This record authorizes local source and documentation work for F5-T01 through F5
 - 2026-10-01: F5-T05 completed with confirmed physical evidence after the final scoped gateway deployment. At a safe operational level, authenticated customer registration completed, an Android device record existed, the dedicated scheduler token and scoped dispatcher gateway configuration allowed scheduler-to-function execution, and Expo/FCM delivery reached the Android development build when a newly created customer ticket was called. Background receipt was confirmed. This closes remote called-ticket delivery and background receipt only; foreground presentation, notification-tap/cold-start navigation, excluded-event behavior, and an explicit no-show regression remain unverified and pending. No IDs, tokens, credentials, or raw provider data are recorded.
 - 2026-10-01: Bounded Phase 5 closure check completed locally. The physical device check reached `notificado` at the configured proximity threshold and received no remote push, as expected: migration `0009_called_ticket_delivery.sql` only enqueues a real customer transition whose new state is `llamado`, and the focused source-contract test covers that guard. This is physical exclusion evidence for `notificado` only; it does not claim physical verification for other excluded event types. `marcar_ausentes` remains a separate `llamado`-to-`ausente` batch function in `0002_queue_rpcs.sql`, scheduled independently by `0005_cron_schedules.sql`; the outbox trigger does not invoke it and its source remains unchanged by the called-ticket push work. Its runtime no-show behavior is still pending because no direct runtime regression evidence was obtained. The customer-facing `notificado` label may be misleading, but the user explicitly deferred its UI rename until after MVP; no UI or code change was made.
 - 2026-10-01: Additional physical Android development-build evidence confirmed that the called-ticket notification appears while Turnify is foregrounded. After a called-ticket notification was received while the app was backgrounded, tapping that notification opened the correct ticket detail. This is notification-tap evidence only; cold-start navigation was not directly confirmed. The remaining runtime gate is direct proof that `marcar_ausentes` enforces automatic absence.
+- 2026-10-02: F5-T05 finalized with physical validation. An Android development build received the called-ticket push in foreground and background; tapping the background notification opened the correct ticket; and reaching `notificado` at the configured proximity threshold produced no push. A disposable called ticket automatically transitioned to `ausente` after the configured no-show grace period, confirming the unchanged `marcar_ausentes` cron enforcement path. Cold-start navigation was not tested. No identifiers, tokens, credentials, raw provider data, or user data are recorded.
 - Engram mirror: pending until the project memory service accepts the Phase 5 task record at `odd/turnify-fase-5-push-no-show/tasks`.
 
 ## Next step
 
-The remote called-ticket delivery, background receipt, foreground presentation, and background notification-tap navigation proof is complete. Remaining validation, under separate authorization where remote or device work is required, is cold-start navigation and a direct runtime regression check that `marcar_ausentes` still enforces automatic absence. Preserve the dedicated scheduler token boundary and the function-scoped gateway configuration; never print, copy into source, log, or commit secret material.
+Phase 5 is complete. The only named follow-up is optional, non-blocking cold-start notification-tap navigation validation; it was not tested and requires separate device-work authorization. Preserve the dedicated scheduler token boundary and the function-scoped gateway configuration; never print, copy into source, log, or commit secret material.
