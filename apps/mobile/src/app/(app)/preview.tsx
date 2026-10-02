@@ -1,9 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AuthButton, AuthErrorMessage, AuthScreenContainer } from '@/components/auth/auth-ui';
 import { ThemedText } from '@/components/themed-text';
+import { AppCard, StatusBadge } from '@/components/ui/surface';
+import { useTheme } from '@/hooks/use-theme';
 import {
   getBusinessSummary,
   normalizeBusinessCode,
@@ -13,6 +15,7 @@ import {
 } from '@/features/queue/queue-api';
 
 export default function PreviewScreen() {
+  const theme = useTheme();
   const { code: rawCode } = useLocalSearchParams<{ code?: string }>();
   const code = normalizeBusinessCode(rawCode ?? '');
   const [summary, setSummary] = useState<BusinessSummary | null>(null);
@@ -63,20 +66,33 @@ export default function PreviewScreen() {
 
   return (
     <AuthScreenContainer>
-      <ThemedText type="subtitle">Vista previa</ThemedText>
+      <ThemedText type="eyebrow" themeColor="primary">Turnify</ThemedText>
+      <ThemedText type="subtitle">Elige tu fila</ThemedText>
       {isLoading && <ThemedText type="small">Consultando filas…</ThemedText>}
       <AuthErrorMessage message={error} />
       {summary && (
         <View style={styles.content}>
-          <ThemedText type="smallBold">{summary.name}</ThemedText>
-          <ThemedText type="small">{summary.isOpen ? 'Abierto ahora' : 'Cerrado ahora'}</ThemedText>
+          <AppCard>
+            <ThemedText type="smallBold">{summary.name}</ThemedText>
+            <StatusBadge label={summary.isOpen ? 'Abierto ahora' : 'Cerrado ahora'} tone={summary.isOpen ? 'success' : 'destructive'} />
+          </AppCard>
           {summary.queues.map((queue) => (
-            <AuthButton
+            <Pressable
               key={queue.id}
-              label={`${selectedQueueId === queue.id ? '✓ ' : ''}${queue.name}: ${queue.waiting} en espera · ${queue.waitMinutes} min`}
+              accessibilityRole="button"
+              accessibilityState={{ selected: selectedQueueId === queue.id }}
               onPress={() => setSelectedQueueId(queue.id)}
               disabled={isTakingTurn || !summary.isOpen}
-            />
+              style={({ pressed }) => [
+                styles.queueCard,
+                { backgroundColor: theme.backgroundElement, borderColor: selectedQueueId === queue.id ? theme.primary : theme.border, opacity: pressed ? 0.86 : 1 },
+              ]}>
+              <View style={styles.queueRow}>
+                <ThemedText type="smallBold">{queue.name}</ThemedText>
+                {selectedQueueId === queue.id && <StatusBadge label="Seleccionada" tone="primary" />}
+              </View>
+              <ThemedText type="small">{queue.waiting} en espera · {queue.waitMinutes} min estimados</ThemedText>
+            </Pressable>
           ))}
           {summary.queues.length === 0 && <ThemedText type="small">No hay filas disponibles.</ThemedText>}
           <AuthButton
@@ -87,11 +103,13 @@ export default function PreviewScreen() {
           />
         </View>
       )}
-      <AuthButton label="Volver" onPress={() => router.back()} disabled={isTakingTurn} />
+      <AuthButton label="Volver" variant="secondary" onPress={() => router.back()} disabled={isTakingTurn} />
     </AuthScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
   content: { gap: 12 },
+  queueCard: { borderWidth: 1, borderRadius: 20, gap: 8, minHeight: 88, padding: 16 },
+  queueRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
 });

@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { AuthButton, AuthErrorMessage, AuthScreenContainer } from '@/components/auth/auth-ui';
 import { ThemedText } from '@/components/themed-text';
+import { AppCard, StatusBadge } from '@/components/ui/surface';
 import { cancelTicket, translateQueueError } from '@/features/queue/queue-api';
 import { useLiveTicket } from '@/features/queue/use-live-ticket';
 
@@ -46,16 +47,23 @@ export default function TicketScreen() {
       <AuthErrorMessage message={error ?? actionError} />
       {ticket && (
         <View style={styles.content}>
-          <ThemedText type="title" style={styles.code}>{ticket.visibleCode}</ThemedText>
-          <ThemedText type="smallBold">{statusLabels[ticket.status]}</ThemedText>
-          <ThemedText type="small">Personas delante: {ticket.peopleAhead}</ThemedText>
-          <ThemedText type="small">Espera estimada: {ticket.waitMinutes} min</ThemedText>
+          <AppCard style={styles.ticketCard}>
+            <ThemedText type="eyebrow" themeColor="primary">Tu código</ThemedText>
+            <ThemedText type="title" style={styles.code}>{ticket.visibleCode}</ThemedText>
+            <StatusBadge label={statusLabels[ticket.status]} tone={ticket.status === 'ausente' || ticket.status === 'cancelado' ? 'destructive' : 'primary'} />
+            <View style={styles.details}>
+              <ThemedText type="small">Personas delante</ThemedText>
+              <ThemedText type="smallBold">{ticket.peopleAhead}</ThemedText>
+              <ThemedText type="small">Espera estimada</ThemedText>
+              <ThemedText type="smallBold">{ticket.waitMinutes} min</ThemedText>
+            </View>
+          </AppCard>
           {canCancel && (
-            <AuthButton label="Cancelar turno" onPress={handleCancel} disabled={isCancelling} isLoading={isCancelling} />
+            <AuthButton label="Cancelar turno" variant="destructive" onPress={handleCancel} disabled={isCancelling} isLoading={isCancelling} />
           )}
-          <AuthButton label="Actualizar" onPress={() => void refresh()} disabled={isCancelling} />
-          <AuthButton label="Mis turnos" onPress={() => router.push('/(app)/history' as Href)} disabled={isCancelling} />
-          <AuthButton label="Mi perfil" onPress={() => router.push('/(app)/profile' as Href)} disabled={isCancelling} />
+          <AuthButton label="Actualizar" variant="secondary" onPress={() => void refresh()} disabled={isCancelling} />
+          <AuthButton label="Mis turnos" variant="secondary" onPress={() => router.push('/(app)/history' as Href)} disabled={isCancelling} />
+          <AuthButton label="Mi perfil" variant="secondary" onPress={() => router.push('/(app)/profile' as Href)} disabled={isCancelling} />
         </View>
       )}
       {!ticket && !isLoading && <AuthButton label="Volver al inicio" onPress={() => router.replace('/(app)')} />}
@@ -65,5 +73,7 @@ export default function TicketScreen() {
 
 const styles = StyleSheet.create({
   content: { gap: 12 },
-  code: { fontSize: 44, lineHeight: 52, letterSpacing: 1, textAlign: 'center' },
+  ticketCard: { alignItems: 'center', paddingVertical: 24 },
+  code: { fontSize: 52, lineHeight: 58, letterSpacing: 1, textAlign: 'center' },
+  details: { alignSelf: 'stretch', flexDirection: 'row', flexWrap: 'wrap', gap: 4, justifyContent: 'space-between', marginTop: 8 },
 });

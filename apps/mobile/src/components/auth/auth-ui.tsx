@@ -1,5 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type AuthButtonProps = {
@@ -7,11 +8,17 @@ export type AuthButtonProps = {
   onPress: () => void;
   disabled?: boolean;
   isLoading?: boolean;
+  variant?: 'primary' | 'secondary' | 'destructive';
 };
 
-export function AuthButton({ label, onPress, disabled, isLoading }: AuthButtonProps) {
+export function AuthButton({ label, onPress, disabled, isLoading, variant = 'primary' }: AuthButtonProps) {
   const theme = useTheme();
   const isDisabled = disabled || isLoading;
+  const colors = variant === 'destructive'
+    ? { background: theme.destructive, label: theme.background }
+    : variant === 'secondary'
+      ? { background: theme.primaryMuted, label: theme.primary }
+      : { background: theme.primary, label: theme.background };
 
   return (
     <Pressable
@@ -21,12 +28,12 @@ export function AuthButton({ label, onPress, disabled, isLoading }: AuthButtonPr
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor: theme.text, opacity: isDisabled ? 0.5 : pressed ? 0.8 : 1 },
+        { backgroundColor: colors.background, opacity: isDisabled ? 0.5 : pressed ? 0.86 : 1 },
       ]}>
       {isLoading ? (
-        <ActivityIndicator color={theme.background} />
+        <ActivityIndicator color={colors.label} />
       ) : (
-        <Text style={[styles.label, { color: theme.background }]}>{label}</Text>
+        <Text style={[styles.label, { color: colors.label }]}>{label}</Text>
       )}
     </Pressable>
   );
@@ -60,8 +67,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
-    gap: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 32,
+    gap: 20,
     maxWidth: 480,
     width: '100%',
     alignSelf: 'center',
@@ -69,8 +77,10 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 8,
+    minHeight: 52,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: Radius.medium,
   },
   label: {
     fontSize: 16,
@@ -78,9 +88,12 @@ const styles = StyleSheet.create({
     fontWeight: 600,
   },
   error: {
-    color: '#D93025',
+    color: '#C6533A',
+    backgroundColor: '#F8E6E1',
     fontSize: 14,
     lineHeight: 20,
     fontWeight: 500,
+    padding: 12,
+    borderRadius: Radius.small,
   },
 });

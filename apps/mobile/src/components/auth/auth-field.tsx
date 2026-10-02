@@ -1,6 +1,7 @@
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { TextInputProps } from 'react-native';
 
+import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type AuthFieldProps = TextInputProps & {
@@ -19,7 +20,7 @@ export function AuthField({ label, style, ...inputProps }: AuthFieldProps) {
       <TextInput
         style={[
           styles.input,
-          { color: theme.text, borderColor: theme.backgroundSelected, backgroundColor: theme.background },
+          { color: theme.text, borderColor: theme.border, backgroundColor: theme.backgroundElement },
           style,
         ]}
         placeholderTextColor={theme.textSecondary}
@@ -33,7 +34,7 @@ export function AuthField({ label, style, ...inputProps }: AuthFieldProps) {
 
 const styles = StyleSheet.create({
   container: {
-    gap: 4,
+    gap: 6,
   },
   label: {
     fontSize: 14,
@@ -43,9 +44,10 @@ const styles = StyleSheet.create({
   input: {
     fontSize: 16,
     lineHeight: 24,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    minHeight: 52,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: Radius.medium,
   },
 });

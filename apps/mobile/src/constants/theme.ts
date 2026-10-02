@@ -9,18 +9,30 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: '#15202B',
+    background: '#FBF9F5',
+    backgroundElement: '#FFFFFF',
+    backgroundSelected: '#D7E9E8',
+    textSecondary: '#5C6670',
+    primary: '#0E8388',
+    primaryMuted: '#E1F1F0',
+    destructive: '#C6533A',
+    destructiveMuted: '#F8E6E1',
+    border: '#E5DDD2',
+    success: '#237A5A',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: '#F7F3EC',
+    background: '#0E1E2E',
+    backgroundElement: '#172C3A',
+    backgroundSelected: '#214C50',
+    textSecondary: '#BCC7CC',
+    primary: '#40B8BA',
+    primaryMuted: '#173D40',
+    destructive: '#EC8A74',
+    destructiveMuted: '#482B2A',
+    border: '#304450',
+    success: '#66C39A',
   },
 } as const;
 
@@ -59,6 +71,12 @@ export const Spacing = {
   four: 24,
   five: 32,
   six: 64,
+} as const;
+
+export const Radius = {
+  small: 10,
+  medium: 14,
+  large: 20,
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;

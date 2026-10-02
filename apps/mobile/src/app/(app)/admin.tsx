@@ -6,6 +6,7 @@ import { AppState, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { AuthButton, AuthErrorMessage, AuthScreenContainer } from '@/components/auth/auth-ui';
 import { AuthField } from '@/components/auth/auth-field';
 import { ThemedText } from '@/components/themed-text';
+import { AppCard, StatusBadge } from '@/components/ui/surface';
 import { createPersonalInvitation, getBusiness, translateInvitationError, type Business } from '@/features/business/business-api';
 import { useAuth } from '@/features/auth/use-auth';
 import {
@@ -20,10 +21,12 @@ import {
   type StaffTicket,
 } from '@/features/queue/staff-queue-api';
 import { getSupabase } from '@/lib/supabase';
+import { useTheme } from '@/hooks/use-theme';
 
 let realtimeSubscriptionId = 0;
 
 export default function AdminScreen() {
+  const theme = useTheme();
   const { profile, isProfileLoading } = useAuth();
   const [business, setBusiness] = useState<Business | null>(null);
   const [queues, setQueues] = useState<StaffQueue[]>([]);
@@ -142,19 +145,19 @@ export default function AdminScreen() {
         <View style={styles.content}>
            {profile?.role === 'admin' && (
              <>
-               <View style={styles.businessDetails}>
-                 <ThemedText type="smallBold">{business.name}</ThemedText>
-                 <ThemedText type="small">Código de empresa</ThemedText>
-                 <ThemedText type="title">{business.code}</ThemedText>
-                 <View style={styles.qr}>
+                <AppCard style={styles.businessDetails}>
+                  <ThemedText type="smallBold">{business.name}</ThemedText>
+                  <ThemedText type="eyebrow" themeColor="primary">Código de empresa</ThemedText>
+                  <ThemedText type="title">{business.code}</ThemedText>
+                  <View style={[styles.qr, { backgroundColor: theme.background }]}>
                    <QRCode value={`turnify:${business.code}`} size={208} />
                  </View>
-                 <View style={styles.guidance}>
+                  <View style={[styles.guidance, { backgroundColor: theme.primaryMuted }]}>
                    <ThemedText type="smallBold">Compártelo con tus clientes</ThemedText>
                    <ThemedText type="small">Pueden escanear este QR o ingresar el código de 8 caracteres en Turnify para ver tus filas.</ThemedText>
                  </View>
-               </View>
-               <View style={styles.invitationSection}>
+                </AppCard>
+                <AppCard style={styles.invitationSection}>
                  <ThemedText type="smallBold">Invitar personal</ThemedText>
                  <AuthField
                    label="Correo (opcional)"
@@ -164,14 +167,14 @@ export default function AdminScreen() {
                    keyboardType="email-address"
                  />
                  <AuthButton label="Crear invitación" onPress={() => void handleCreateInvitation()} disabled={isActing} isLoading={isActing} />
-                 {invitationToken && (
-                   <View style={styles.invitationToken}>
+                  {invitationToken && (
+                    <View style={[styles.invitationToken, { backgroundColor: theme.primaryMuted }]}>
                      <ThemedText type="smallBold">Código de invitación (se muestra una sola vez)</ThemedText>
                      <ThemedText type="title">{invitationToken}</ThemedText>
                      <ThemedText type="small">Compártelo solo por un medio privado. El código vence; no lo publiques ni lo reenvíes.</ThemedText>
                    </View>
-                 )}
-               </View>
+                  )}
+                </AppCard>
                <AuthButton label="Configurar empresa y filas" onPress={() => router.push('/(app)/configuration')} disabled={isActing} />
              </>
            )}
@@ -187,9 +190,12 @@ export default function AdminScreen() {
                     accessibilityRole="button"
                     accessibilityState={{ selected: queue.id === selectedQueueId }}
                     onPress={() => setSelectedQueueId(queue.id)}
-                    style={[styles.queueOption, queue.id === selectedQueueId && styles.queueOptionSelected]}>
+                    style={[styles.queueOption, { backgroundColor: queue.id === selectedQueueId ? theme.primaryMuted : theme.backgroundElement, borderColor: queue.id === selectedQueueId ? theme.primary : theme.border }]}>
                     <ThemedText type="smallBold">{queue.name}</ThemedText>
-                    <ThemedText type="small">{queue.waiting} en espera</ThemedText>
+                    <View style={styles.queueMeta}>
+                      <ThemedText type="small">{queue.waiting} en espera</ThemedText>
+                      {queue.id === selectedQueueId && <StatusBadge label="Activa" tone="primary" />}
+                    </View>
                   </Pressable>
                 ))}
               </View>
@@ -197,7 +203,7 @@ export default function AdminScreen() {
           </View>
           {selectedQueue && (
             <View style={styles.queueSection}>
-              <View style={styles.walkInSection}>
+              <AppCard style={styles.walkInSection}>
                 <ThemedText type="smallBold">Turno presencial</ThemedText>
                 <ThemedText type="small">Fila activa: {selectedQueue.name}</ThemedText>
                 <View style={styles.priorityOptions}>
@@ -205,17 +211,17 @@ export default function AdminScreen() {
                     accessibilityRole="button"
                     accessibilityState={{ selected: walkInPriority === 'normal' }}
                     onPress={() => setWalkInPriority('normal')}
-                    style={[styles.priorityOption, walkInPriority === 'normal' && styles.queueOptionSelected]}>
+                    style={[styles.priorityOption, { backgroundColor: walkInPriority === 'normal' ? theme.primaryMuted : theme.backgroundElement, borderColor: walkInPriority === 'normal' ? theme.primary : theme.border }]}>
                     <ThemedText type="smallBold">Normal</ThemedText>
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityState={{ selected: walkInPriority === 'preferencial' }}
                     onPress={() => setWalkInPriority('preferencial')}
-                    style={[styles.priorityOption, walkInPriority === 'preferencial' && styles.queueOptionSelected]}>
+                    style={[styles.priorityOption, { backgroundColor: walkInPriority === 'preferencial' ? theme.primaryMuted : theme.backgroundElement, borderColor: walkInPriority === 'preferencial' ? theme.primary : theme.border }]}>
                     <ThemedText type="smallBold">Preferencial</ThemedText>
                   </Pressable>
-                </View>
+                 </View>
                 <AuthField
                   label="Referencia (opcional)"
                   value={walkInReference}
@@ -228,22 +234,23 @@ export default function AdminScreen() {
                   setWalkInReference('');
                 })} disabled={isActing} isLoading={isActing} />
                 {createdWalkInCode && <ThemedText type="smallBold">Turno creado: {createdWalkInCode}</ThemedText>}
-              </View>
+              </AppCard>
               <ThemedText type="smallBold">Atención en {selectedQueue.name}</ThemedText>
               {currentTicket ? (
-                <View style={styles.ticketCard}>
+                <AppCard style={[styles.ticketCard, { backgroundColor: theme.primaryMuted, borderColor: theme.primary }]}>
                   <ThemedText type="title">{currentTicket.visibleCode}</ThemedText>
+                  <StatusBadge label={currentTicket.state === 'llamado' ? 'Llamado' : 'En atención'} tone="primary" />
                   <ThemedText type="small">{currentTicket.state === 'llamado' ? 'Llamado' : 'En atención'} · {currentTicket.origin === 'presencial' ? 'Presencial' : 'App'} · {currentTicket.priority === 'preferencial' ? 'Preferencial' : 'Normal'}</ThemedText>
                   {currentTicket.state === 'llamado' && (
                     <>
                       <AuthButton label="Iniciar atención" onPress={() => void handleAction(() => startService(currentTicket.id))} disabled={isActing} isLoading={isActing} />
-                      <AuthButton label="Marcar ausente" onPress={() => void handleAction(() => markAbsent(currentTicket.id))} disabled={isActing} />
+                      <AuthButton label="Marcar ausente" variant="destructive" onPress={() => void handleAction(() => markAbsent(currentTicket.id))} disabled={isActing} />
                     </>
                   )}
                   {currentTicket.state === 'en_atencion' && (
                     <AuthButton label="Finalizar atención" onPress={() => void handleAction(() => finishService(currentTicket.id))} disabled={isActing} isLoading={isActing} />
                   )}
-                </View>
+                </AppCard>
               ) : (
                 <AuthButton label="Llamar siguiente" onPress={() => void handleAction(async () => {
                   const ticket = await callNextTicket(selectedQueue.id);
@@ -253,7 +260,7 @@ export default function AdminScreen() {
               {!currentTicket && selectedTickets.length > 0 && (
                 <View style={styles.ticketList}>
                   {selectedTickets.map((ticket) => (
-                    <View key={ticket.id} style={styles.ticketRow}>
+                    <View key={ticket.id} style={[styles.ticketRow, { borderBottomColor: theme.border }]}>
                       <ThemedText type="smallBold">{ticket.visibleCode}</ThemedText>
                       <ThemedText type="small">{ticket.state === 'notificado' ? 'Notificado' : 'En espera'} · {ticket.origin === 'presencial' ? 'Presencial' : 'App'} · {ticket.priority === 'preferencial' ? 'Preferencial' : 'Normal'}</ThemedText>
                     </View>
@@ -278,18 +285,18 @@ const styles = StyleSheet.create({
   scrollContent: { gap: 16, paddingVertical: 24 },
   content: { gap: 16 },
   businessDetails: { alignItems: 'center', gap: 12 },
-  qr: { backgroundColor: '#FFFFFF', padding: 16 },
-  guidance: { alignSelf: 'stretch', gap: 6, padding: 16, borderRadius: 8, backgroundColor: '#E8F0FE' },
+  qr: { padding: 16 },
+  guidance: { alignSelf: 'stretch', gap: 6, padding: 16, borderRadius: 14 },
   queueSection: { gap: 8 },
   queueOptions: { gap: 8 },
-  queueOption: { borderWidth: 1, borderColor: '#DADCE0', borderRadius: 8, padding: 12, gap: 2 },
-  queueOptionSelected: { borderColor: '#1A73E8', backgroundColor: '#E8F0FE' },
-  ticketCard: { gap: 10, borderRadius: 8, backgroundColor: '#E8F0FE', padding: 16 },
+  queueOption: { borderWidth: 1, borderRadius: 14, gap: 4, minHeight: 72, padding: 12 },
+  queueMeta: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  ticketCard: { gap: 10 },
   ticketList: { gap: 8 },
-  ticketRow: { gap: 2, borderBottomWidth: 1, borderBottomColor: '#DADCE0', paddingVertical: 8 },
-  walkInSection: { gap: 8, borderRadius: 8, backgroundColor: '#F8F9FA', padding: 12 },
-  invitationSection: { gap: 8, borderRadius: 8, backgroundColor: '#F8F9FA', padding: 12 },
-  invitationToken: { gap: 6, borderRadius: 8, backgroundColor: '#E8F0FE', padding: 12 },
+  ticketRow: { gap: 2, borderBottomWidth: 1, paddingVertical: 8 },
+  walkInSection: { gap: 8 },
+  invitationSection: { gap: 8 },
+  invitationToken: { gap: 6, borderRadius: 14, padding: 12 },
   priorityOptions: { flexDirection: 'row', gap: 8 },
-  priorityOption: { flex: 1, alignItems: 'center', borderWidth: 1, borderColor: '#DADCE0', borderRadius: 8, padding: 10 },
+  priorityOption: { flex: 1, alignItems: 'center', borderWidth: 1, borderRadius: 14, justifyContent: 'center', minHeight: 48, padding: 10 },
 });

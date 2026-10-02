@@ -84,7 +84,7 @@ Turnify is now a real commercial product rather than a university-only project. 
 - [ ] **TV2-STAFF-04 — Staff/barber screen generation.** Generate staff screens in Stitch for availability, assigned and any-available queue work, calling/serving customers, capacity visibility, and exception states.
 - [ ] **TV2-ADMIN-05 — Administrator screen generation.** Generate administrator screens in Stitch for shop setup, barber roster, service catalog, capacity/availability configuration, and operational overview appropriate to the initial ICP.
 - [ ] **TV2-REVIEW-06 — Design review.** Review the Stitch flows against product decisions, accessibility, role boundaries, walk-in speed, and operational simplicity. Capture accepted screens, defects, and explicit implementation-ready decisions.
-- [ ] **TV2-UI-07 — Base UI implementation.** Implement only the approved V2 base UI in the existing application, preserving existing architecture boundaries and keeping customer flows fast.
+- [x] **TV2-UI-07 — Base UI implementation.** Implemented the first bounded visual work unit: shared mobile tokens, typography, buttons, inputs, cards, status badges, and adaptations for the existing customer preview/ticket and staff/admin operational screens. No business behavior or backend data contract changed.
 - [ ] **TV2-DATA-08 — Service, barber, and capacity data model.** Implement the approved domain, persistence, authorization, migration, and adapter changes for services, barbers, capacity, named-barber preference, and any-available assignment; include focused tests.
 - [ ] **TV2-VERIFY-09 — Verification.** Execute focused automated checks and role-based walkthroughs for customer, staff, and administrator flows; verify queue behavior for named barber and any available barber, type safety, accessibility baseline, and regressions.
 - [ ] **TV2-DOC-10 — Documentation and closure.** Update product/technical documentation, this record, verification evidence, deferred-scope status, and work-unit commit references; preserve rollback boundaries.
@@ -106,10 +106,18 @@ Turnify is now a real commercial product rather than a university-only project. 
 - This record creation: `git diff --check` must pass before commit.
 - Implementation tasks: record the exact focused test, type-check, lint/build, runtime walkthrough, and `git diff --check` results here.
 - This documentation task has no runtime boundary; runtime verification is N/A because it writes no application code or configuration.
+- 2026-10-02 — UI base work unit:
+  - `npx vitest run` — passed: 11 test files, 74 tests.
+  - `npm --workspace turnify-mobile run typecheck` — passed.
+  - `npx expo config --type public` (from `apps/mobile`) — passed without downloads.
+  - `git diff --check` — passed.
+  - Runtime visual walkthrough/screenshots — N/A: no emulator or connected device was available in this local environment. The focused route markup and type check were inspected instead.
+  - Rollback boundary: `apps/mobile/src/constants/theme.ts`, shared mobile UI components, `preview.tsx`, `ticket.tsx`, and `admin.tsx`; this is visual-only and can be reverted without changing queue behavior or persisted data.
 
 ## Progress
 
 - 2026-10-02: Feature record created. No source code, remote service, secret, or credential access is authorized or performed by this task.
+- 2026-10-02: Completed the first bounded source work unit after the user-approved Stitch client, worker, and admin designs. The mobile theme now uses warm ivory, deep ink, teal actions, terracotta destructive states, and warm borders. Existing Spanish UI copy and the customer-facing `notificado` label were preserved. The implementation intentionally does not display services, barbers, capacity, payments, subscriptions, geolocation, or analytics because the current backend contract does not provide those facts.
 
 ## Engram Mirror
 
@@ -118,4 +126,4 @@ Turnify is now a real commercial product rather than a university-only project. 
 
 ## Next Step
 
-Complete **TV2-ARCH-01** and **TV2-DES-02** before any V2 application source changes.
+Complete **TV2-DATA-08** before exposing barber preference, any-available assignment, services, or capacity in the customer or staff UI. Then complete **TV2-VERIFY-09** with a device/emulator walkthrough and screenshots.
