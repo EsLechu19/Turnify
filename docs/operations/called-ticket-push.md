@@ -11,9 +11,9 @@ physical-device validation.
    locally verified.
 2. Obtain separate explicit authorization for each remote destination,
    operation, and credential/session before deploying or configuring anything.
-3. Configure server-only secrets and the documented Vault entries, deploy the
-   function and migration, and enable the dedicated-token cron invoker only
-   within that authorization.
+3. Configure server-only secrets and the documented Vault entries, deploy only
+   `dispatch-ticket-calls` with its scoped gateway setting, and enable the
+   dedicated-token cron invoker only within that authorization.
 4. Create and use an Android development build to validate a real
    `llamado` transition on a physical device.
 5. Record the authorized remote operation and validation evidence without
@@ -57,10 +57,16 @@ without the corresponding explicit authorization.
 | Customer token registration | Only an authenticated `cliente` can call `registrar_dispositivo` or `revocar_dispositivo`; ownership is derived from `auth.uid()`. |
 | Token storage | Provider tokens are globally unique, write-only to the mobile client, and direct `dispositivos` access is revoked from browser roles. |
 | Outbox access | `notificaciones_salientes` and `notificacion_entregas` are unavailable to `anon` and `authenticated`; the dispatcher uses `service_role`. |
-| Dispatcher invocation | The function rejects requests unless their authorization header equals `DISPATCH_TICKET_CALLS_CRON_TOKEN`. |
+| Dispatcher invocation | Gateway JWT verification is disabled only for `dispatch-ticket-calls`, because Supabase gateway JWT verification rejects the dedicated cron token before the function runs. The function still rejects every request unless its authorization header matches `DISPATCH_TICKET_CALLS_CRON_TOKEN` through a fixed-length digest comparison. |
 | Required server-only settings | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `EXPO_ACCESS_TOKEN`, and `DISPATCH_TICKET_CALLS_CRON_TOKEN` are read only from the Edge Function environment. `SUPABASE_SERVICE_ROLE_KEY` is used only for the function's server-side Supabase REST access. |
 | Scheduled invoker | `pg_cron` calls the function once per minute through `pg_net`. Migration `0011` reads only `turnify_project_url` and `turnify_dispatch_ticket_calls_cron_token` from Supabase Vault; neither value is in source or cron text. |
 | Client boundary | Mobile source contains no provider credential, service-role key, concrete token, or secret configuration. |
+
+`supabase/config.toml` scopes `verify_jwt = false` to
+`[functions.dispatch-ticket-calls]`; it does not alter gateway JWT verification
+for any other Edge Function. This is not public access: the function's mandatory
+dedicated-token validation remains the sole invocation authorization boundary and
+runs before it reads or processes the outbox.
 
 Never place a secret or device token in source, app configuration, task records,
 test fixtures, command history, issue text, or logs. When describing a remote
@@ -118,6 +124,9 @@ navigating; title and body remain display-only.
   without revealing them in the repository or validation record.
 - [ ] Confirm the two named Vault entries exist, `pg_net` is available, and the
   dedicated-token cron invocation is approved.
+- [ ] Confirm `supabase/config.toml` scopes `verify_jwt = false` only to
+  `dispatch-ticket-calls`; do not add a global function setting or disable JWT
+  verification for another function.
 
 ### Physical Android development-build walkthrough (F5-T05)
 

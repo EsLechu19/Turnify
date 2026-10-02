@@ -40,6 +40,23 @@ function environment(): Record<(typeof requiredEnvironment)[number], string> {
   return values;
 }
 
+async function digest(value: string): Promise<Uint8Array> {
+  return new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)));
+}
+
+// Gateway JWT verification is disabled only for this cron invoker. Compare
+// fixed-length digests so the dedicated secret remains its authorization boundary.
+async function hasValidCronToken(request: Request, expectedToken: string): Promise<boolean> {
+  const receivedToken = request.headers.get('authorization') ?? '';
+  const [receivedDigest, expectedDigest] = await Promise.all([digest(receivedToken), digest(`Bearer ${expectedToken}`)]);
+
+  let difference = 0;
+  for (let index = 0; index < receivedDigest.length; index += 1) {
+    difference |= receivedDigest[index] ^ expectedDigest[index];
+  }
+  return difference === 0;
+}
+
 function successfulProviderReceiptId(payload: unknown): string | null {
   if (!payload || typeof payload !== 'object') {
     throw new Error('Push provider response is malformed.');
@@ -106,7 +123,7 @@ async function finalizeNotification(url: string, serviceKey: string, notificatio
 Deno.serve(async (request) => {
   try {
     const env = environment();
-    if (request.headers.get('authorization') !== `Bearer ${env.DISPATCH_TICKET_CALLS_CRON_TOKEN}`) {
+    if (!(await hasValidCronToken(request, env.DISPATCH_TICKET_CALLS_CRON_TOKEN))) {
       return new Response('Unauthorized', { status: 401 });
     }
 

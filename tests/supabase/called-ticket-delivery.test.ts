@@ -8,6 +8,7 @@ const migration = readFileSync(join(root, 'supabase', 'migrations', '0009_called
 const schedule = readFileSync(join(root, 'supabase', 'migrations', '0010_dispatch_ticket_calls_schedule.sql'), 'utf8');
 const cronTokenRepair = readFileSync(join(root, 'supabase', 'migrations', '0011_dispatch_ticket_calls_cron_token.sql'), 'utf8');
 const functionSource = readFileSync(join(root, 'supabase', 'functions', 'dispatch-ticket-calls', 'index.ts'), 'utf8');
+const supabaseConfig = readFileSync(join(root, 'supabase', 'config.toml'), 'utf8');
 
 describe('called-ticket delivery outbox', () => {
   it('enqueues only a real customer transition into llamado', () => {
@@ -32,16 +33,24 @@ describe('called-ticket delivery outbox', () => {
     expect(functionSource).toContain('proveedor_mensaje_id: providerMessageId');
   });
 
-  it('keeps outbox access and provider credentials server-only without token logs', () => {
+  it('uses only the dedicated cron token for dispatcher authorization without token logs', () => {
     expect(migration).toContain('revoke all on table public.notificaciones_salientes, public.notificacion_entregas from anon, authenticated;');
     expect(migration).toContain('to service_role;');
     expect(functionSource).toContain("'SUPABASE_SERVICE_ROLE_KEY'");
     expect(functionSource).toContain("'EXPO_ACCESS_TOKEN'");
     expect(functionSource).toContain("'DISPATCH_TICKET_CALLS_CRON_TOKEN'");
-    expect(functionSource).toContain("request.headers.get('authorization')");
-    expect(functionSource).toContain('`Bearer ${env.DISPATCH_TICKET_CALLS_CRON_TOKEN}`');
+    expect(functionSource).toContain('async function hasValidCronToken');
+    expect(functionSource).toContain("crypto.subtle.digest('SHA-256'");
+    expect(functionSource).toContain('difference |= receivedDigest[index] ^ expectedDigest[index]');
+    expect(functionSource).toContain('await hasValidCronToken(request, env.DISPATCH_TICKET_CALLS_CRON_TOKEN)');
     expect(functionSource).not.toContain('`Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`');
     expect(functionSource).not.toMatch(/console\.log\([^\n]*(push_token|EXPO_ACCESS_TOKEN|authorization)/);
+  });
+
+  it('disables gateway JWT verification only for the dedicated-token dispatcher', () => {
+    expect(supabaseConfig).toContain('[functions.dispatch-ticket-calls]');
+    expect(supabaseConfig).toContain('verify_jwt = false');
+    expect(supabaseConfig).not.toMatch(/\[functions\.(?!dispatch-ticket-calls\])/);
   });
 
   it('replaces service-role scheduler authorization with a dedicated Vault token', () => {
