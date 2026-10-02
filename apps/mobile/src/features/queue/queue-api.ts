@@ -23,6 +23,10 @@ export type TicketState = {
   status: 'en_espera' | 'notificado' | 'llamado' | 'en_atencion' | 'finalizado' | 'cancelado' | 'ausente';
   peopleAhead: number;
   waitMinutes: number;
+  serviceName: string | null;
+  requestedBarberName: string | null;
+  estimatedBarberName: string | null;
+  assignedBarberName: string | null;
 };
 
 type BusinessSummaryPayload = {
@@ -46,6 +50,10 @@ type TicketStatePayload = {
   estado: TicketState['status'];
   personas_delante: number;
   espera_min: number;
+  servicio_nombre?: string | null;
+  barbero_solicitado_nombre?: string | null;
+  barbero_estimado_nombre?: string | null;
+  barbero_asignado_nombre?: string | null;
 };
 
 export function normalizeBusinessCode(value: string): string | null {
@@ -103,6 +111,10 @@ export async function getMyTicketState(ticketId: string): Promise<TicketState> {
     status: ticket.estado,
     peopleAhead: ticket.personas_delante,
     waitMinutes: ticket.espera_min,
+    serviceName: ticket.servicio_nombre ?? null,
+    requestedBarberName: ticket.barbero_solicitado_nombre ?? null,
+    estimatedBarberName: ticket.barbero_estimado_nombre ?? null,
+    assignedBarberName: ticket.barbero_asignado_nombre ?? null,
   };
 }
 
