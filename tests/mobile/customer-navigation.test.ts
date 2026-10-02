@@ -18,11 +18,13 @@ describe('customer navigation', () => {
   });
 
   it('denies authenticated customer routes while preserving staff-only access', () => {
-    expect(roleCanAccessAppRoute('cliente', 'preview')).toBe(false);
-    expect(roleCanAccessAppRoute('cliente', 'ticket')).toBe(false);
-    expect(roleCanAccessAppRoute('cliente', 'worker')).toBe(false);
-    expect(roleCanAccessAppRoute('cliente', 'admin')).toBe(false);
-    expect(roleCanAccessAppRoute('cliente', 'configuration')).toBe(false);
+    const customer = { role: 'cliente' as const, businessId: null };
+
+    expect(roleCanAccessAppRoute(customer, 'preview')).toBe(false);
+    expect(roleCanAccessAppRoute(customer, 'ticket')).toBe(false);
+    expect(roleCanAccessAppRoute(customer, 'worker')).toBe(false);
+    expect(roleCanAccessAppRoute(customer, 'admin')).toBe(false);
+    expect(roleCanAccessAppRoute(customer, 'configuration')).toBe(false);
   });
 
   it('does not make the protected app group a landing route', () => {
@@ -37,10 +39,12 @@ describe('customer navigation', () => {
       { key: 'history', label: 'Historial', href: '/(app)/worker-history' },
       { key: 'profile', label: 'Perfil', href: '/(app)/worker-profile' },
     ]);
-    expect(roleCanAccessAppRoute('personal', 'worker-queue')).toBe(true);
-    expect(roleCanAccessAppRoute('personal', 'history')).toBe(false);
-    expect(roleCanAccessAppRoute('cliente', 'worker-profile')).toBe(false);
-    expect(roleCanAccessAppRoute('admin', 'worker-history')).toBe(false);
+    const worker = { role: 'personal' as const, businessId: 'shop' };
+
+    expect(roleCanAccessAppRoute(worker, 'worker-queue')).toBe(true);
+    expect(roleCanAccessAppRoute(worker, 'history')).toBe(false);
+    expect(roleCanAccessAppRoute({ role: 'cliente', businessId: null }, 'worker-profile')).toBe(false);
+    expect(roleCanAccessAppRoute({ role: 'admin', businessId: 'shop' }, 'worker-history')).toBe(false);
   });
 
   it('redirects authenticated staff to their existing role-safe operational landing', () => {

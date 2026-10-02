@@ -18,12 +18,23 @@ describe('worker intent authentication', () => {
     expect(workerIntentOutcome({ role: 'admin', businessId: 'shop' })).toBe('not-worker');
     expect(workerIntentOutcome(null)).toBe('missing-profile');
     expect(roleCanAccessAppRoute(undefined, 'worker')).toBe(false);
-    expect(roleCanAccessAppRoute('admin', 'worker')).toBe(false);
+    expect(roleCanAccessAppRoute({ role: 'admin', businessId: 'shop' }, 'worker')).toBe(false);
   });
 
   it('preserves the worker lifecycle destinations for a valid personal account', () => {
-    expect(roleCanAccessAppRoute('personal', 'worker')).toBe(true);
-    expect(roleCanAccessAppRoute('personal', 'worker-queue')).toBe(true);
-    expect(roleCanAccessAppRoute('personal', 'worker-profile')).toBe(true);
+    const worker = { role: 'personal' as const, businessId: 'shop' };
+
+    expect(roleCanAccessAppRoute(worker, 'worker')).toBe(true);
+    expect(roleCanAccessAppRoute(worker, 'worker-queue')).toBe(true);
+    expect(roleCanAccessAppRoute(worker, 'worker-profile')).toBe(true);
+  });
+
+  it('blocks direct worker navigation for an unassociated personal profile', () => {
+    const unassociatedWorker = { role: 'personal' as const, businessId: null };
+
+    expect(roleCanAccessAppRoute(unassociatedWorker, 'worker')).toBe(false);
+    expect(roleCanAccessAppRoute(unassociatedWorker, 'worker-queue')).toBe(false);
+    expect(roleCanAccessAppRoute(unassociatedWorker, 'worker-history')).toBe(false);
+    expect(roleCanAccessAppRoute(unassociatedWorker, 'worker-profile')).toBe(false);
   });
 });

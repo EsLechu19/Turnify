@@ -33,9 +33,9 @@ export function appRouteNameFromSegments(segments: readonly string[]): AppRouteN
   return leaf && !leaf.startsWith('(') ? leaf as AppRouteName : 'index';
 }
 
-export function roleCanAccessAppRoute(role: AuthProfile['role'] | null | undefined, route: AppRouteName): boolean {
-  if (role === 'cliente') return customerRoutes.has(route);
-  if (role === 'personal') return workerRoutes.has(route);
-  if (role === 'admin') return adminRoutes.has(route);
+export function roleCanAccessAppRoute(profile: AuthProfile | null | undefined, route: AppRouteName): boolean {
+  if (profile?.role === 'cliente') return customerRoutes.has(route);
+  if (profile?.role === 'personal') return typeof profile.businessId === 'string' && profile.businessId.length > 0 && workerRoutes.has(route);
+  if (profile?.role === 'admin') return adminRoutes.has(route);
   return false;
 }

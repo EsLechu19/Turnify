@@ -22,7 +22,7 @@ export default function AppLayout() {
     return null;
   }
 
-  if (!profile || !roleCanAccessAppRoute(profile.role, appRouteNameFromSegments(segments))) {
+  if (!roleCanAccessAppRoute(profile, appRouteNameFromSegments(segments))) {
     return <Redirect href="/" />;
   }
 
