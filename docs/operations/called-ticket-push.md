@@ -1,9 +1,11 @@
 # Called-ticket Android push runbook
 
-This runbook covers the locally implemented called-ticket push path, its
-configuration boundaries, recovery signals, and incident history. It is a
-maintenance reference, not authorization to deploy, configure secrets, contact
-providers, or perform physical-device validation.
+This runbook covers the called-ticket push path, its configuration boundaries,
+recovery signals, and incident history. Remote delivery and background receipt
+have been verified on an Android development build; the remaining device
+validation scope is recorded below. This is a maintenance reference, not
+authorization for future deployments, secret changes, provider requests, or
+device validation.
 
 ## Quick path
 
@@ -52,16 +54,33 @@ Only a customer ticket that changes from `en_espera` or `notificado` to
 `llamado` is eligible. Proximity, no-show warning, cancellation, completion,
 unchanged status updates, and tickets without a customer do not enqueue a push.
 
+## Verified outcome
+
+After the final deployment of the function-scoped gateway repair, a newly
+created customer ticket was called and its remote notification reached an
+Android development build in the background. The confirmed chain was:
+
+1. Authenticated customer registration completed and an Android device record
+   existed.
+2. The dedicated scheduler token and function-scoped gateway configuration
+   allowed scheduler-to-function execution.
+3. Expo/FCM delivered the called-ticket notification to the Android build.
+
+This evidence confirms remote called-ticket delivery and background receipt. It
+does not prove foreground presentation, notification-tap or cold-start
+navigation, excluded-event non-delivery, or an explicit no-show regression.
+No identifiers, tokens, credentials, or raw provider data are recorded.
+
 ## Authorization and rollout gates
 
 | Gate | Required before proceeding | Current status |
 |---|---|---|
 | Local source review | Review migrations `0008` and `0009`, the Edge Function, and mobile lifecycle source. | Completed locally. |
-| Remote database and function work | Explicit authorization naming the Supabase project, deployment or migration operation, and approved credential/session. | Pending; not authorized by this work unit. |
-| Server-secret configuration | Explicit authorization for the secret-store destination, mutation, and credential/session. | Pending; no secrets were configured. |
-| Scheduled invocation | Explicit authorization to apply migration `0011`, enable `pg_net`, and configure the named Vault entries. | Source is ready locally; remote configuration is pending. |
-| Android development build | Explicit authorization naming the Expo/EAS destination, build/configuration operation, and credential/session. | Pending; no build was created. |
-| Physical-device walkthrough | A deployed path and Android development build. | F5-T05 remains pending. |
+| Remote database and function work | Explicit authorization naming the Supabase project, deployment or migration operation, and approved credential/session. | Completed for the validated deployment; future remote changes need separate authorization. |
+| Server-secret configuration | Explicit authorization for the secret-store destination, mutation, and credential/session. | Configuration supported the validated path; values are not recorded. Future changes need separate authorization. |
+| Scheduled invocation | Explicit authorization to apply migration `0011`, enable `pg_net`, and configure the named Vault entries. | Dedicated-token scheduler-to-function execution was confirmed in the validated path. |
+| Android development build | Explicit authorization naming the Expo/EAS destination, build/configuration operation, and credential/session. | Completed; an Android development build was used for the confirmed receipt. |
+| Physical-device walkthrough | A deployed path and Android development build. | F5-T05 is complete for remote delivery and background receipt; remaining device scenarios are pending. |
 
 Remote work must not be inferred from local implementation approval. Do not run
 dependency downloads, package installation, Expo/EAS configuration or builds,
@@ -146,7 +165,8 @@ build for the following walkthrough.
    delivered.
 6. On the device, test foreground presentation and, where applicable,
    background and cold-start routing. Confirm the live ticket screen remains
-   authoritative and excluded events produce no push.
+   authoritative and excluded events produce no push. Background receipt is
+   confirmed; the other scenarios remain pending.
 
 Expected checkpoints are limited to the deployed revision actually tested. This
 repository does not claim a complete physical Android validation merely because
@@ -200,11 +220,13 @@ the code and configuration are present.
 
 ### Physical Android development-build walkthrough (F5-T05)
 
-- [ ] Use an Android development build, not Expo Go, with an authenticated
+- [x] Use an Android development build, not Expo Go, with an authenticated
   customer and a registered device token.
-- [ ] Have staff call that customer's next ticket and verify one visible push.
-- [ ] Check foreground presentation, background receipt, and cold-start
-  behavior as applicable.
+- [x] Have staff call a newly created customer's ticket and verify remote push
+  receipt.
+- [x] Verify background receipt.
+- [ ] Check foreground presentation and cold-start behavior as applicable.
+- [ ] Verify notification-tap navigation to the ticket destination.
 - [ ] Confirm excluded events produce no push.
 - [ ] Confirm the ticket screen remains authoritative through live data.
 - [ ] Record pass/fail results without device tokens, personal data, secrets,
@@ -250,16 +272,14 @@ new Android build.
 
 ## Known limitations
 
-- No database migration, Edge Function deployment, Vault/secret configuration,
-  scheduler/invoker configuration, provider request, or remote validation has
-  been performed by Phase 5 local work.
-- F5-T05 physical development-build validation is pending and is not replaced
-  by Expo Go or by local source checks.
-- The local server payload now contains the strict trusted route (`type`, UUID
-  `ticketId`, UUID `queueId`), but it is not active until the approved function
-  and migration are deployed with the required Vault configuration.
-- The dispatcher processes up to 50 pending deliveries per invocation; the
-  local cron cadence is once per minute and remains inactive until deployment.
+- The validated deployment confirmed remote called-ticket delivery and
+  background receipt only. It does not replace pending foreground,
+  notification-tap/cold-start navigation, excluded-event, or explicit no-show
+  regression validation.
+- The deployed server payload contains the strict trusted route (`type`, UUID
+  `ticketId`, UUID `queueId`).
+- The dispatcher processes up to 50 pending deliveries per invocation; its
+  scheduler-to-function path was confirmed during the validated delivery.
 - `indeterminada` deliveries are intentionally not automatically retried.
 - Local tests assert source-level contracts; they do not prove a deployed
   database, deployed function, Expo provider delivery, Android permission flow,
