@@ -21,7 +21,7 @@ export interface AuthContextValue {
   isProfileLoading: boolean;
   reloadProfile(): Promise<AuthProfile | null>;
   signIn(email: string, password: string): Promise<AuthError>;
-  signUp(email: string, password: string): Promise<AuthError>;
+  signUp(email: string, password: string, metadata?: { name?: string }): Promise<AuthError>;
   signOut(): Promise<void>;
 }
 
@@ -69,8 +69,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return error ? translateAuthError(error.message) : null;
   }, []);
 
-  const signUp = useCallback<AuthContextValue['signUp']>(async (email, password) => {
-    const { error } = await getSupabase().auth.signUp({ email: email.trim(), password });
+  const signUp = useCallback<AuthContextValue['signUp']>(async (email, password, metadata) => {
+    const { error } = await getSupabase().auth.signUp({
+      email: email.trim(),
+      password,
+      options: { data: { nombre: metadata?.name?.trim() || undefined } },
+    });
     return error ? translateAuthError(error.message) : null;
   }, []);
 

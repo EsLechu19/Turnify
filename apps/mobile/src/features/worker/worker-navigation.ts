@@ -33,8 +33,9 @@ export function appRouteNameFromSegments(segments: readonly string[]): AppRouteN
   return leaf && !leaf.startsWith('(') ? leaf as AppRouteName : 'index';
 }
 
-export function roleCanAccessAppRoute(role: AuthProfile['role'], route: AppRouteName): boolean {
+export function roleCanAccessAppRoute(role: AuthProfile['role'] | null | undefined, route: AppRouteName): boolean {
   if (role === 'cliente') return customerRoutes.has(route);
   if (role === 'personal') return workerRoutes.has(route);
-  return adminRoutes.has(route);
+  if (role === 'admin') return adminRoutes.has(route);
+  return false;
 }

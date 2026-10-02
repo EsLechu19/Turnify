@@ -1,0 +1,29 @@
+import { describe, expect, it } from 'vitest';
+
+import { workerIntentOutcome, workerRegistrationRoute, workerSignInRoute } from '../../apps/mobile/src/features/public/public-route-policy';
+import { roleCanAccessAppRoute } from '../../apps/mobile/src/features/worker/worker-navigation';
+
+describe('worker intent authentication', () => {
+  it('keeps staff sign-in and registration on dedicated worker-auth routes', () => {
+    expect(workerSignInRoute).toBe('/(auth)/worker-access');
+    expect(workerRegistrationRoute).toBe('/(auth)/worker-register');
+  });
+
+  it('routes only an associated personal profile to the worker lifecycle', () => {
+    expect(workerIntentOutcome({ role: 'personal', businessId: 'shop' })).toBe('worker');
+    expect(workerIntentOutcome({ role: 'personal', businessId: null })).toBe('missing-business');
+  });
+
+  it('denies admin and missing profiles instead of treating them as workers', () => {
+    expect(workerIntentOutcome({ role: 'admin', businessId: 'shop' })).toBe('not-worker');
+    expect(workerIntentOutcome(null)).toBe('missing-profile');
+    expect(roleCanAccessAppRoute(undefined, 'worker')).toBe(false);
+    expect(roleCanAccessAppRoute('admin', 'worker')).toBe(false);
+  });
+
+  it('preserves the worker lifecycle destinations for a valid personal account', () => {
+    expect(roleCanAccessAppRoute('personal', 'worker')).toBe(true);
+    expect(roleCanAccessAppRoute('personal', 'worker-queue')).toBe(true);
+    expect(roleCanAccessAppRoute('personal', 'worker-profile')).toBe(true);
+  });
+});
