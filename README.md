@@ -10,6 +10,10 @@ Base inicial del MVP: aplicación móvil (Expo), aplicación web (Vite + React) 
 - `supabase/migrations`: migraciones de la base de datos.
 - `docs/adr`: decisiones de arquitectura.
 
+## Operations
+
+- [Called-ticket Android push runbook](docs/operations/called-ticket-push.md)
+
 ## Requisitos previos
 
 - Node.js LTS.
