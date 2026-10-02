@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
 import type { CommercialCatalog } from '@/features/queue/commercial-queue-api';
 import type { GuestDetails } from '@/features/queue/guest-ticket-details';
@@ -29,25 +29,32 @@ export function GuestFlowProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState<GuestBookingDraft | null>(null);
   const [ticketAccess, setTicketAccess] = useState<GuestTicketAccess | null>(null);
 
+  const beginDiscovery = useCallback((companyCode: string, catalog: CommercialCatalog) => {
+    setTicketAccess(null);
+    setDraft({ companyCode, catalog, serviceId: '', requestedBarberId: null, details: { name: '' } });
+  }, []);
+  const chooseService = useCallback((serviceId: string) => {
+    setDraft((current) => current ? { ...current, serviceId, requestedBarberId: null } : current);
+  }, []);
+  const chooseBarber = useCallback((requestedBarberId: string | null) => {
+    setDraft((current) => current ? { ...current, requestedBarberId } : current);
+  }, []);
+  const setDetails = useCallback((details: GuestDetails) => {
+    setDraft((current) => current ? { ...current, details } : current);
+  }, []);
+  const setTicketAccessForFlow = useCallback((access: GuestTicketAccess) => { setTicketAccess(access); }, []);
+  const reset = useCallback(() => { setDraft(null); setTicketAccess(null); }, []);
+
   const value = useMemo<GuestFlowContextValue>(() => ({
     draft,
     ticketAccess,
-    beginDiscovery(companyCode, catalog) {
-      setTicketAccess(null);
-      setDraft({ companyCode, catalog, serviceId: '', requestedBarberId: null, details: { name: '' } });
-    },
-    chooseService(serviceId) {
-      setDraft((current) => current ? { ...current, serviceId, requestedBarberId: null } : current);
-    },
-    chooseBarber(requestedBarberId) {
-      setDraft((current) => current ? { ...current, requestedBarberId } : current);
-    },
-    setDetails(details) {
-      setDraft((current) => current ? { ...current, details } : current);
-    },
-    setTicketAccess(access) { setTicketAccess(access); },
-    reset() { setDraft(null); setTicketAccess(null); },
-  }), [draft, ticketAccess]);
+    beginDiscovery,
+    chooseService,
+    chooseBarber,
+    setDetails,
+    setTicketAccess: setTicketAccessForFlow,
+    reset,
+  }), [beginDiscovery, chooseBarber, chooseService, draft, reset, setDetails, setTicketAccessForFlow, ticketAccess]);
 
   return <GuestFlowContext.Provider value={value}>{children}</GuestFlowContext.Provider>;
 }
