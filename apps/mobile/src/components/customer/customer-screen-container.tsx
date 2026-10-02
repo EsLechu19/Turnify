@@ -1,7 +1,6 @@
 import { router, type Href } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AuthScreenContainer } from '@/components/auth/auth-ui';
 import { BottomTabInset, Radius } from '@/constants/theme';
 import {
   customerNavigationItems,
@@ -20,9 +19,7 @@ export function CustomerScreenContainer({ activeNavigation, children }: Customer
 
   return (
     <View style={[styles.shell, { backgroundColor: theme.background }]}>
-      <View style={styles.content}>
-        <AuthScreenContainer>{children}</AuthScreenContainer>
-      </View>
+      <View style={styles.content}>{children}</View>
       <View style={[styles.navigation, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
         {customerNavigationItems.map((item) => {
           const active = item.key === activeNavigation;
@@ -47,7 +44,7 @@ export function CustomerScreenContainer({ activeNavigation, children }: Customer
 
 const styles = StyleSheet.create({
   shell: { flex: 1 },
-  content: { flex: 1 },
+  content: { alignSelf: 'center', flex: 1, maxWidth: 480, width: '100%' },
   navigation: {
     alignSelf: 'center',
     borderTopWidth: 1,
