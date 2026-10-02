@@ -66,9 +66,10 @@ Android development build in the background. The confirmed chain was:
    allowed scheduler-to-function execution.
 3. Expo/FCM delivered the called-ticket notification to the Android build.
 
-This evidence confirms remote called-ticket delivery and background receipt. It
-does not prove foreground presentation, notification-tap or cold-start
-navigation, excluded-event non-delivery, or an explicit no-show regression.
+This evidence also confirms foreground presentation and background
+notification-tap navigation to the correct ticket detail. It does not prove
+cold-start navigation, excluded-event non-delivery, or an explicit no-show
+regression.
 No identifiers, tokens, credentials, or raw provider data are recorded.
 
 ## Authorization and rollout gates
@@ -163,10 +164,9 @@ build for the following walkthrough.
 5. Check the minute dispatcher result. An accepted provider request must include
    an Expo ticket receipt with `status: "ok"` before delivery is recorded as
    delivered.
-6. On the device, test foreground presentation and, where applicable,
-   background and cold-start routing. Confirm the live ticket screen remains
-   authoritative and excluded events produce no push. Background receipt is
-   confirmed; the other scenarios remain pending.
+6. On the device, confirm foreground presentation and background
+   notification-tap routing to the correct ticket detail. Cold-start navigation,
+   live-ticket authority, and excluded-event non-delivery remain pending.
 
 Expected checkpoints are limited to the deployed revision actually tested. This
 repository does not claim a complete physical Android validation merely because
@@ -225,8 +225,9 @@ the code and configuration are present.
 - [x] Have staff call a newly created customer's ticket and verify remote push
   receipt.
 - [x] Verify background receipt.
-- [ ] Check foreground presentation and cold-start behavior as applicable.
-- [ ] Verify notification-tap navigation to the ticket destination.
+- [x] Confirm foreground presentation.
+- [x] Verify background notification-tap navigation to the correct ticket detail.
+- [ ] Confirm cold-start navigation to the ticket destination.
 - [ ] Confirm excluded events produce no push.
 - [ ] Confirm the ticket screen remains authoritative through live data.
 - [ ] Record pass/fail results without device tokens, personal data, secrets,
@@ -272,10 +273,10 @@ new Android build.
 
 ## Known limitations
 
-- The validated deployment confirmed remote called-ticket delivery and
-  background receipt only. It does not replace pending foreground,
-  notification-tap/cold-start navigation, excluded-event, or explicit no-show
-  regression validation.
+- The validated deployment confirmed remote called-ticket delivery, background
+  receipt, foreground presentation, and background notification-tap navigation
+  to the correct ticket detail. Cold-start navigation, excluded-event behavior,
+  and an explicit no-show regression remain pending.
 - The deployed server payload contains the strict trusted route (`type`, UUID
   `ticketId`, UUID `queueId`).
 - The dispatcher processes up to 50 pending deliveries per invocation; its
