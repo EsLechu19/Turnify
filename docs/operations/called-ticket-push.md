@@ -12,7 +12,7 @@ physical-device validation.
 2. Obtain separate explicit authorization for each remote destination,
    operation, and credential/session before deploying or configuring anything.
 3. Configure server-only secrets and the documented Vault entries, deploy the
-   function and migration, and enable the service-role-only cron invoker only
+   function and migration, and enable the dedicated-token cron invoker only
    within that authorization.
 4. Create and use an Android development build to validate a real
    `llamado` transition on a physical device.
@@ -26,7 +26,7 @@ physical-device validation.
 | Staff calls next ticket | `llamar_siguiente` transitions an eligible ticket to `llamado`. | This database transition is the only enqueue trigger. |
 | Database outbox | Migration `0009_called_ticket_delivery.sql` creates one `ticket_llamado` notification per ticket and one delivery per registered device. | Event and recipient uniqueness prevent duplicate enqueueing. |
 | Server dispatcher | `dispatch-ticket-calls` claims only `pendiente` deliveries before calling Expo. | A dispatcher retry cannot claim the same delivery twice. |
-| Scheduled invoker | Migration `0010_dispatch_ticket_calls_schedule.sql` schedules `pg_cron` every minute and uses `pg_net` to call the dispatcher with a Vault-held service-role key. | No client can invoke the outbox or receive server credentials. |
+| Scheduled invoker | Migration `0011_dispatch_ticket_calls_cron_token.sql` replaces the original schedule authorization with a dedicated Vault-held dispatcher token. | No client can invoke the outbox or receive server credentials. |
 | Provider request | The dispatcher sends the Spanish title and body plus the typed ticket route to Expo using a server-held access token. | The mobile client never supplies provider credentials. |
 | Mobile receipt | Customer-only lifecycle requests permission, registers its token when an EAS project ID is available, and installs foreground/background listeners. | Notification failures do not block the application. |
 
@@ -41,7 +41,7 @@ unchanged status updates, and tickets without a customer do not enqueue a push.
 | Local source review | Review migrations `0008` and `0009`, the Edge Function, and mobile lifecycle source. | Completed locally. |
 | Remote database and function work | Explicit authorization naming the Supabase project, deployment or migration operation, and approved credential/session. | Pending; not authorized by this work unit. |
 | Server-secret configuration | Explicit authorization for the secret-store destination, mutation, and credential/session. | Pending; no secrets were configured. |
-| Scheduled invocation | Explicit authorization to apply migration `0010`, enable `pg_net`, and configure the named Vault entries. | Source is ready locally; remote configuration is pending. |
+| Scheduled invocation | Explicit authorization to apply migration `0011`, enable `pg_net`, and configure the named Vault entries. | Source is ready locally; remote configuration is pending. |
 | Android development build | Explicit authorization naming the Expo/EAS destination, build/configuration operation, and credential/session. | Pending; no build was created. |
 | Physical-device walkthrough | A deployed path and Android development build. | F5-T05 remains pending. |
 
@@ -57,9 +57,9 @@ without the corresponding explicit authorization.
 | Customer token registration | Only an authenticated `cliente` can call `registrar_dispositivo` or `revocar_dispositivo`; ownership is derived from `auth.uid()`. |
 | Token storage | Provider tokens are globally unique, write-only to the mobile client, and direct `dispositivos` access is revoked from browser roles. |
 | Outbox access | `notificaciones_salientes` and `notificacion_entregas` are unavailable to `anon` and `authenticated`; the dispatcher uses `service_role`. |
-| Dispatcher invocation | The function rejects requests unless their authorization header equals the server service-role key. |
-| Required server-only settings | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `EXPO_ACCESS_TOKEN` are read only from the Edge Function environment. |
-| Scheduled invoker | `pg_cron` calls the function once per minute through `pg_net`. It reads only `turnify_project_url` and `turnify_service_role_key` from Supabase Vault; neither value is in source or cron text. |
+| Dispatcher invocation | The function rejects requests unless their authorization header equals `DISPATCH_TICKET_CALLS_CRON_TOKEN`. |
+| Required server-only settings | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `EXPO_ACCESS_TOKEN`, and `DISPATCH_TICKET_CALLS_CRON_TOKEN` are read only from the Edge Function environment. `SUPABASE_SERVICE_ROLE_KEY` is used only for the function's server-side Supabase REST access. |
+| Scheduled invoker | `pg_cron` calls the function once per minute through `pg_net`. Migration `0011` reads only `turnify_project_url` and `turnify_dispatch_ticket_calls_cron_token` from Supabase Vault; neither value is in source or cron text. |
 | Client boundary | Mobile source contains no provider credential, service-role key, concrete token, or secret configuration. |
 
 Never place a secret or device token in source, app configuration, task records,
@@ -68,20 +68,22 @@ operation, name only the secret variable and its approved server-side store.
 
 ### Required remote configuration
 
-Before applying migration `0010_dispatch_ticket_calls_schedule.sql`, an
+Before applying migration `0011_dispatch_ticket_calls_cron_token.sql`, an
 authorized Supabase operator must create these Vault entries without recording
 their values in this repository:
 
 | Vault name | Value | Purpose |
 |---|---|---|
 | `turnify_project_url` | Target Supabase project URL | Builds the private Edge Function endpoint. |
-| `turnify_service_role_key` | That project's service-role key | Authenticates the cron request accepted by the dispatcher. |
+| `turnify_dispatch_ticket_calls_cron_token` | Dedicated random dispatcher token | Authenticates the cron request accepted by the dispatcher. |
 
-The same service-role key must already be available to the Edge Function as
-`SUPABASE_SERVICE_ROLE_KEY`; the Expo access token remains the separate
-`EXPO_ACCESS_TOKEN` Edge Function secret. The migration enables `pg_net` and
-uses the existing `pg_cron` extension. This dashboard/secret-store step is a
-deployment prerequisite, not something source code can safely perform.
+The dedicated token must also be available to the Edge Function as
+`DISPATCH_TICKET_CALLS_CRON_TOKEN`. `SUPABASE_SERVICE_ROLE_KEY` remains an
+Edge Function-only secret for server-side Supabase REST access, while
+`EXPO_ACCESS_TOKEN` remains the separate provider secret. Migration `0010`
+was the original service-role schedule; migration `0011` overwrites that named
+cron job with dedicated-token authorization. This dashboard/secret-store step
+is a deployment prerequisite, not something source code can safely perform.
 
 ## Push payload contract
 
@@ -109,12 +111,13 @@ navigating; title and body remain display-only.
   Expo Doctor, `git diff --check`, and a focused credential/token scan.
 - [ ] Confirm migrations `0008_device_token_registration.sql` and
   `0009_called_ticket_delivery.sql` and
-  `0010_dispatch_ticket_calls_schedule.sql` are approved for the target database.
+   `0010_dispatch_ticket_calls_schedule.sql`, and
+   `0011_dispatch_ticket_calls_cron_token.sql` are approved for the target database.
 - [ ] Confirm an explicit remote authorization exists for each planned action.
 - [ ] Confirm server-only secret values are available to the approved operator
   without revealing them in the repository or validation record.
 - [ ] Confirm the two named Vault entries exist, `pg_net` is available, and the
-  service-role-only cron invocation is approved.
+  dedicated-token cron invocation is approved.
 
 ### Physical Android development-build walkthrough (F5-T05)
 

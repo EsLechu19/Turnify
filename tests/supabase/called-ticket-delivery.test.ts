@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const migration = readFileSync(join(root, 'supabase', 'migrations', '0009_called_ticket_delivery.sql'), 'utf8');
 const schedule = readFileSync(join(root, 'supabase', 'migrations', '0010_dispatch_ticket_calls_schedule.sql'), 'utf8');
+const cronTokenRepair = readFileSync(join(root, 'supabase', 'migrations', '0011_dispatch_ticket_calls_cron_token.sql'), 'utf8');
 const functionSource = readFileSync(join(root, 'supabase', 'functions', 'dispatch-ticket-calls', 'index.ts'), 'utf8');
 
 describe('called-ticket delivery outbox', () => {
@@ -36,17 +37,22 @@ describe('called-ticket delivery outbox', () => {
     expect(migration).toContain('to service_role;');
     expect(functionSource).toContain("'SUPABASE_SERVICE_ROLE_KEY'");
     expect(functionSource).toContain("'EXPO_ACCESS_TOKEN'");
+    expect(functionSource).toContain("'DISPATCH_TICKET_CALLS_CRON_TOKEN'");
     expect(functionSource).toContain("request.headers.get('authorization')");
+    expect(functionSource).toContain('`Bearer ${env.DISPATCH_TICKET_CALLS_CRON_TOKEN}`');
+    expect(functionSource).not.toContain('`Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`');
     expect(functionSource).not.toMatch(/console\.log\([^\n]*(push_token|EXPO_ACCESS_TOKEN|authorization)/);
   });
 
-  it('schedules only a Vault-authenticated server invocation', () => {
+  it('replaces service-role scheduler authorization with a dedicated Vault token', () => {
     expect(schedule).toContain('create extension if not exists pg_net;');
-    expect(schedule).toContain("'turnify_project_url'");
-    expect(schedule).toContain("'turnify_service_role_key'");
-    expect(schedule).toContain("'/functions/v1/dispatch-ticket-calls'");
-    expect(schedule).toContain("'Authorization', 'Bearer ' ||");
-    expect(schedule).not.toMatch(/(eyJ[a-zA-Z0-9_-]+\.|service_role\s*=|https:\/\/[^']+\.supabase\.co)/);
+    expect(cronTokenRepair).toContain("'turnify-dispatch-ticket-calls'");
+    expect(cronTokenRepair).toContain("'turnify_project_url'");
+    expect(cronTokenRepair).toContain("'turnify_dispatch_ticket_calls_cron_token'");
+    expect(cronTokenRepair).toContain("'/functions/v1/dispatch-ticket-calls'");
+    expect(cronTokenRepair).toContain("'Authorization', 'Bearer ' ||");
+    expect(cronTokenRepair).not.toContain('turnify_service_role_key');
+    expect(cronTokenRepair).not.toMatch(/(eyJ[a-zA-Z0-9_-]+\.|service_role\s*=|https:\/\/[^']+\.supabase\.co)/);
   });
 
   it('emits exactly the strict mobile routing contract without recipient data', () => {

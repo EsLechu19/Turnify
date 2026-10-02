@@ -1,6 +1,7 @@
 // Delivers the private called-ticket outbox. Deploy this function only after
-// configuring SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and EXPO_ACCESS_TOKEN
-// as server-side secrets. No caller supplies provider credentials or tokens.
+// configuring SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, EXPO_ACCESS_TOKEN, and
+// DISPATCH_TICKET_CALLS_CRON_TOKEN as server-side secrets. No caller supplies
+// provider credentials or tokens.
 
 type Delivery = {
   id: string;
@@ -21,7 +22,12 @@ type ExpoPushResponse = {
   data: ExpoPushTicket[];
 };
 
-const requiredEnvironment = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'EXPO_ACCESS_TOKEN'] as const;
+const requiredEnvironment = [
+  'SUPABASE_URL',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'EXPO_ACCESS_TOKEN',
+  'DISPATCH_TICKET_CALLS_CRON_TOKEN',
+] as const;
 
 function environment(): Record<(typeof requiredEnvironment)[number], string> {
   const values = Object.fromEntries(
@@ -100,7 +106,7 @@ async function finalizeNotification(url: string, serviceKey: string, notificatio
 Deno.serve(async (request) => {
   try {
     const env = environment();
-    if (request.headers.get('authorization') !== `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`) {
+    if (request.headers.get('authorization') !== `Bearer ${env.DISPATCH_TICKET_CALLS_CRON_TOKEN}`) {
       return new Response('Unauthorized', { status: 401 });
     }
 
