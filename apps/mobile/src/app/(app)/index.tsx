@@ -85,9 +85,12 @@ export default function HomeScreen() {
           </View>
         </>
       )}
+       {!isProfileLoading && profile?.role === 'personal' && profile.businessId && (
+         <AuthButton label="Mi operación" onPress={() => router.push('/(app)/worker' as Href)} />
+       )}
        {!isProfileLoading && (profile?.role === 'admin' || profile?.role === 'personal') && profile.businessId && (
          <AuthButton label="Panel de atención" onPress={() => router.push('/(app)/admin' as Href)} />
-      )}
+       )}
       <AuthButton label="Cerrar sesión" onPress={() => void signOut()} />
     </AuthScreenContainer>
   );
