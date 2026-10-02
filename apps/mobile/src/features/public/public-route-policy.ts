@@ -2,6 +2,14 @@ import type { AuthProfile } from '@/features/auth/use-auth';
 
 export const publicLaunchRoute = '/' as const;
 export const publicShopRoute = '/(public)/shop' as const;
+/** The prescribed guest booking progression after QR/code shop discovery. */
+export const publicBookingRoutes = [
+  '/(public)/shop',
+  '/(public)/service',
+  '/(public)/barber',
+  '/(public)/details',
+  '/(public)/ticket',
+] as const;
 /** Public footer entry begins the invitation-bound worker registration flow. */
 export const workerSignInRoute = '/(auth)/worker-register' as const;
 export const workerRegistrationRoute = '/(auth)/worker-register' as const;

@@ -12,6 +12,6 @@ export default function BarberScreen() {
     <ChoiceCard title="Cualquier barbero disponible" badge="Menor espera" selected={draft.requestedBarberId === null} onPress={() => chooseBarber(null)} detail="Se asignará un barbero compatible cuando llamen tu turno." />
     {barbers.map((barber) => <ChoiceCard key={barber.barberId} title={barber.name} selected={draft.requestedBarberId === barber.barberId} onPress={() => chooseBarber(barber.barberId)} detail={barber.operationalState === 'ocupado' ? 'Está atendiendo; puedes elegirlo y esperar su disponibilidad.' : 'Está en turno y es compatible con este servicio.'} />)}
     {barbers.length === 0 && <CustomerState label="No hay barberos compatibles en turno." />}
-    <CustomerButton label="Continuar" onPress={() => router.push('/(public)/details')} /><CustomerButton label="Volver" variant="secondary" onPress={() => router.back()} />
+    <CustomerButton label="Continuar" disabled={barbers.length === 0} onPress={() => router.push('/(public)/details')} /><CustomerButton label="Volver" variant="secondary" onPress={() => router.back()} />
   </CustomerPage>;
 }
