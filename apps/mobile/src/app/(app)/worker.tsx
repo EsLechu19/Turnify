@@ -1,4 +1,4 @@
-import { AppState, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, AppState, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -9,11 +9,14 @@ import { useAuth } from '@/features/auth/use-auth';
 import {
   callMyNextTicket,
   finishMyService,
+  getReassignmentCandidates,
   getWorkerBarberQueue,
   markMyTicketAbsent,
+  reassignCalledTicket,
   setWorkerAvailability,
   startMyService,
   translateWorkerBarberError,
+  type ReassignmentCandidate,
   type WorkerAvailability,
   type WorkerTicket,
 } from '@/features/queue/worker-barber-api';
@@ -34,6 +37,9 @@ export default function WorkerScreen() {
   const [availability, setAvailability] = useState<WorkerAvailability | null>(null);
   const [tickets, setTickets] = useState<WorkerTicket[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [reassignmentCandidates, setReassignmentCandidates] = useState<ReassignmentCandidate[]>([]);
+  const [isReassignmentOpen, setIsReassignmentOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isActing, setIsActing] = useState(false);
 
@@ -70,10 +76,11 @@ export default function WorkerScreen() {
   const activeTicket = tickets.find((ticket) => ticket.state === 'llamado' || ticket.state === 'en_atencion') ?? null;
   const compatibleTickets = tickets.filter((ticket) => ticket.state === 'en_espera' || ticket.state === 'notificado');
 
-  async function act(action: () => Promise<void>) {
+  async function act(action: () => Promise<void>, successMessage?: string) {
     setIsActing(true);
     setError(null);
-    try { await action(); await refresh(); } catch (reason) {
+    setNotice(null);
+    try { await action(); await refresh(); setNotice(successMessage ?? null); } catch (reason) {
       setError(translateWorkerBarberError(reason instanceof Error ? reason.message : ''));
       await refresh();
     } finally { setIsActing(false); }
@@ -94,10 +101,11 @@ export default function WorkerScreen() {
                 <AuthButton label="Salir de turno" variant="destructive" onPress={() => void act(() => setWorkerAvailability('fuera_de_turno'))} disabled={isActing || availability === 'fuera_de_turno'} />
               </View>}
             </AppCard>
-            {activeTicket ? <ActiveTicket ticket={activeTicket} isActing={isActing} act={act} /> : <CompatibleQueue tickets={compatibleTickets} availability={availability} isActing={isActing} act={act} theme={theme} />}
+            {activeTicket ? <ActiveTicket ticket={activeTicket} candidates={reassignmentCandidates} isReassignmentOpen={isReassignmentOpen} isActing={isActing} act={act} loadCandidates={() => void act(async () => { setIsReassignmentOpen(true); setReassignmentCandidates(await getReassignmentCandidates(activeTicket.ticketId)); })} reassign={(candidate) => Alert.alert('Reasignar turno', `¿Confirmas reasignar ${activeTicket.visibleCode} a ${candidate.name}?`, [{ text: 'Cancelar', style: 'cancel' }, { text: 'Confirmar', onPress: () => void act(() => reassignCalledTicket(activeTicket.ticketId, candidate.barberId), `Turno reasignado a ${candidate.name}.`) }])} /> : <CompatibleQueue tickets={compatibleTickets} availability={availability} isActing={isActing} act={act} theme={theme} />}
           </>
         )}
         <AuthErrorMessage message={error} />
+        {notice && <AppCard><ThemedText type="smallBold">{notice}</ThemedText></AppCard>}
         {error && <AuthButton label="Reintentar" variant="secondary" onPress={() => void refresh()} disabled={isActing} />}
         <AuthButton label="Actualizar" variant="secondary" onPress={() => void refresh()} disabled={isActing} />
         <AuthButton label="Volver al inicio" variant="secondary" onPress={() => router.replace('/(app)')} disabled={isActing} />
@@ -106,7 +114,7 @@ export default function WorkerScreen() {
   );
 }
 
-function ActiveTicket({ ticket, isActing, act }: { ticket: WorkerTicket; isActing: boolean; act(action: () => Promise<void>): Promise<void> }) {
+function ActiveTicket({ ticket, candidates, isReassignmentOpen, isActing, act, loadCandidates, reassign }: { ticket: WorkerTicket; candidates: ReassignmentCandidate[]; isReassignmentOpen: boolean; isActing: boolean; act(action: () => Promise<void>): Promise<void>; loadCandidates(): void; reassign(candidate: ReassignmentCandidate): void }) {
   return <AppCard style={styles.card}>
     <ThemedText type="eyebrow" themeColor="primary">Turno asignado</ThemedText>
     <ThemedText type="title">{ticket.visibleCode}</ThemedText>
@@ -114,6 +122,8 @@ function ActiveTicket({ ticket, isActing, act }: { ticket: WorkerTicket; isActin
     <TicketFacts ticket={ticket} />
     {ticket.state === 'llamado' ? <View style={styles.actions}>
       <AuthButton label="Iniciar atención" onPress={() => void act(() => startMyService(ticket.ticketId))} disabled={isActing} isLoading={isActing} />
+      <AuthButton label="Reasignar turno" variant="secondary" onPress={loadCandidates} disabled={isActing} />
+      {isReassignmentOpen && (candidates.length > 0 ? <View style={styles.queue}><ThemedText type="small">Selecciona un barbero disponible y compatible. Esta acción no se puede hacer después de iniciar la atención.</ThemedText>{candidates.map((candidate) => <AuthButton key={candidate.barberId} label={`Reasignar a ${candidate.name}`} variant="secondary" onPress={() => reassign(candidate)} disabled={isActing} />)}</View> : <ThemedText type="small">No hay otro barbero disponible y compatible para reasignar este turno.</ThemedText>)}
       <AuthButton label="Marcar ausente" variant="destructive" onPress={() => void act(() => markMyTicketAbsent(ticket.ticketId))} disabled={isActing} />
     </View> : <AuthButton label="Finalizar atención" onPress={() => void act(() => finishMyService(ticket.ticketId))} disabled={isActing} isLoading={isActing} />}
   </AppCard>;
