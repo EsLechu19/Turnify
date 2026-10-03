@@ -85,6 +85,47 @@ Turnify is now a real commercial product rather than a university-only project. 
 
 ## Stable Task IDs
 
+## Worker Membership Authorization — Delegated Work Unit
+
+### Objective
+
+Replace invitation-code Worker onboarding with independent Worker accounts and explicit, revocable Worker-to-barbershop memberships. A Worker must select an approved active shop before running any operational action.
+
+### Scope
+
+- Add an additive membership model supporting multiple shops per Worker, active/revoked state, and an explicit selected-shop context.
+- Replace invitation-code registration with full name, email, and password registration that explains administrator approval is required.
+- Authorize every Worker RPC against the authenticated Worker and selected active membership, and scope all reads/mutations to that shop.
+- Add the smallest authenticated administrator route/API needed to find an existing Worker by exact email, add the Worker to the administrator's shop, and list memberships.
+- Implement the five approved Worker operational screens from Stitch project `8407319319046947667` with truthful data, state, and navigation behavior.
+
+### Constraints
+
+- Customer access remains public/guest; do not add customer authentication or telephone collection.
+- Do not create, retain, or display invitation-code workflows.
+- Keep independent roster barbers working without Worker authentication.
+- Enforce Worker and administrator authorization in database policies/RPCs; selected shop context from the client is insufficient by itself.
+- Do not apply migrations remotely, access remote services, push, or open a PR.
+- Do not modify the unrelated existing change at `apps/mobile/expo-env.d.ts`.
+
+### Stable Task IDs and Acceptance Criteria
+
+- [ ] **TV2-WMEM-23 — Membership data and authorization.** Add active/revoked multi-shop Worker memberships plus selected-shop context. All Worker RPCs must reject an absent, revoked, or cross-shop membership and must scope operational data/mutations to the selected shop.
+- [ ] **TV2-WMEM-24 — Independent Worker authentication.** Replace invitation redemption with Worker registration using full name, email, and password. A new account receives an awaiting-approval state with account and sign-out access, and no Worker operations until approved.
+- [ ] **TV2-WMEM-25 — Administrator Worker management.** An authenticated administrator can add only an existing `personal` Worker by exact email within their shop and list shop memberships. Missing, non-Worker, and already-associated accounts return safe errors without leaking unauthorized data.
+- [ ] **TV2-WMEM-26 — Worker shop context and operations.** A Worker with multiple active memberships selects a shop before operations. Implement approved Stitch screens `a5ec91074d344e3dba256734fd854dbe`, `44f68db17d9141f6b367f864c9c1b001`, `4229827ced03431192b97fbf78dc0cb4`, `3b7e80269e4343e8b80d9a46b569590f`, and `1b42512240b44617867bbb41b7f9eed4` using only authorized truthful data.
+
+### Delivery, Trigger Evidence, and Forecast
+
+| Item | Record |
+| --- | --- |
+| Route | `delegated` |
+| Trigger evidence | User-authorized Worker flow explicitly requires independent accounts, admin email association, multi-shop context, no invitations, and the five named Stitch screens. |
+| Forecast | High: database authorization migration, Worker/auth routes, admin management, and five mobile operational screens. Deliver as coherent work-unit commits with focused tests and record each commit ID and verification result below. |
+| Checks | Focused migration/mobile tests, full `npx vitest run`, `npm --workspace turnify-mobile run typecheck`, and `git diff --check`. Runtime database/device walkthrough is N/A unless an explicitly authorized local environment is available. |
+
+- **Acceptance gate:** Guest customer flow and independent roster barbers remain unchanged; an administrator can safely associate an existing Worker by exact email; a Worker cannot operate without an active selected membership; revoked or cross-shop Worker actions fail server-side; no invitation behavior remains reachable.
+
 - [x] **TV2-ARCH-01 — Commercial queue foundation.** Migrations `0012_commercial_queue_foundation.sql` and `0013_commercial_assignment_and_eta.sql` add services, barber capabilities, on-shift operational state, immutable customer route snapshots, catalog and commercial ticket-creation RPCs, capacity-safe call-time assignment, and service-aware ETA data. A named on-shift barber remains selectable while busy; **Any available barber** chooses a deterministic compatible projected route and is assigned a free compatible barber only when called. Explicit reassignment remains worker-scope work.
 - [x] **TV2-DES-02 — Stitch designs and visual language.** Customer, worker, and administrator designs were generated in their dedicated Stitch projects. The application implements only the shared V2 visual base so far; design-specific product flows remain pending.
 - [x] **TV2-CLIENT-03 — Customer commercial flow.** Implement the customer Stitch journey first: QR/code discovery, active service catalog, named barber or **Any available barber**, confirmation, immutable ticket snapshot, live ticket with assignment/ETA, cancellation, loading, empty, closed, and error states. Adapt prices to optional PEN reference prices only; do not add payments, SMS/WhatsApp, location claims, or countdown reminders.
@@ -171,7 +212,7 @@ Turnify is now a real commercial product rather than a university-only project. 
 ## Engram Mirror
 
 - Topic: `odd/turnify-barber-v2/tasks`.
-- Status: pending. The attempted full-document mirror with `capture_prompt: false` could not be saved because Engram session registration was unavailable; retry it before starting implementation.
+- Status: pending. The required full-document mirror was attempted before source changes with `capture_prompt: false`, but Engram could not confirm session registration. The local record was read back; retry the Engram mirror when a registered session is available.
 
 ## Next Step
 

@@ -22,7 +22,7 @@ export default function WorkerAccessScreen() {
     const detail = outcome === 'missing-profile'
       ? 'No pudimos verificar tu perfil de personal. Cierra sesión e intenta de nuevo; si continúa, contacta a tu administrador.'
       : outcome === 'missing-business'
-        ? 'Tu cuenta de personal aún no está asociada a una barbería. Solicita una invitación a tu administrador.'
+        ? 'Tu cuenta de personal aún no tiene una barbería aprobada. Solicita a un administrador que agregue tu correo.'
         : 'Esta cuenta no es una cuenta de personal. No puede acceder a las operaciones de barberos.';
     return <AuthScreenContainer><View style={styles.header}><ThemedText type="subtitle">Acceso de personal no disponible</ThemedText><ThemedText type="small">{detail}</ThemedText></View>{outcome === 'not-worker' && <Link href={workerRegistrationRoute} style={styles.link}>Tengo una invitación de personal</Link>}<AuthButton label="Volver al inicio" variant="secondary" onPress={() => void signOut()} /></AuthScreenContainer>;
   }

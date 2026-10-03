@@ -21,7 +21,7 @@ export interface AuthContextValue {
   isProfileLoading: boolean;
   reloadProfile(): Promise<AuthProfile | null>;
   signIn(email: string, password: string): Promise<AuthError>;
-  signUp(email: string, password: string, metadata?: { name?: string }): Promise<AuthError>;
+  signUp(email: string, password: string, metadata?: { name?: string; workerIntent?: boolean }): Promise<AuthError>;
   signOut(): Promise<void>;
 }
 
@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await getSupabase().auth.signUp({
       email: email.trim(),
       password,
-      options: { data: { nombre: metadata?.name?.trim() || undefined } },
+      options: { data: { nombre: metadata?.name?.trim() || undefined, worker_intent: metadata?.workerIntent ? 'true' : undefined } },
     });
     return error ? translateAuthError(error.message) : null;
   }, []);
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await getSupabase()
         .from('perfiles')
-        .select('rol, empresa_id')
+        .select('rol, empresa_id, empresa_personal_actual_id')
         .eq('id', userId)
         .maybeSingle();
 
@@ -104,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const nextProfile = data
         ? {
             role: data.rol as AuthProfile['role'],
-            businessId: data.empresa_id,
+            businessId: data.rol === 'personal' ? data.empresa_personal_actual_id : data.empresa_id,
           }
         : null;
       setProfile(nextProfile);

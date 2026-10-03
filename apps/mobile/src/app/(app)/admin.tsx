@@ -7,8 +7,9 @@ import { AuthButton, AuthErrorMessage, AuthScreenContainer } from '@/components/
 import { AuthField } from '@/components/auth/auth-field';
 import { ThemedText } from '@/components/themed-text';
 import { AppCard, StatusBadge } from '@/components/ui/surface';
-import { createPersonalInvitation, getBusiness, translateInvitationError, type Business } from '@/features/business/business-api';
+import { getBusiness, type Business } from '@/features/business/business-api';
 import { useAuth } from '@/features/auth/use-auth';
+import { addWorkerByEmail, getShopWorkers } from '@/features/worker/worker-membership-api';
 import {
   callNextTicket,
   createWalkInTicket,
@@ -38,21 +39,23 @@ export default function AdminScreen() {
   const [walkInPriority, setWalkInPriority] = useState<'normal' | 'preferencial'>('normal');
   const [walkInReference, setWalkInReference] = useState('');
   const [createdWalkInCode, setCreatedWalkInCode] = useState<string | null>(null);
-  const [invitationEmail, setInvitationEmail] = useState('');
-  const [invitationToken, setInvitationToken] = useState<string | null>(null);
+  const [workerEmail, setWorkerEmail] = useState('');
+  const [workers, setWorkers] = useState<Array<{ profileId: string; name: string | null; active: boolean }>>([]);
 
   const loadBusiness = useCallback(async () => {
     if (!profile?.businessId) return;
 
     setIsLoading(true);
     try {
-      const [nextBusiness, staffQueue] = await Promise.all([
+      const [nextBusiness, staffQueue, nextWorkers] = await Promise.all([
         getBusiness(profile.businessId),
         getStaffQueue(profile.businessId),
+        profile.role === 'admin' ? getShopWorkers() : Promise.resolve([]),
       ]);
       setBusiness(nextBusiness);
       setQueues(staffQueue.queues);
       setTickets(staffQueue.tickets);
+      setWorkers(nextWorkers);
       setSelectedQueueId((current) => (
         current && staffQueue.queues.some((queue) => queue.id === current)
           ? current
@@ -120,16 +123,15 @@ export default function AdminScreen() {
     }
   }
 
-  async function handleCreateInvitation() {
+  async function handleAddWorker() {
     setIsActing(true);
     setError(null);
-    setInvitationToken(null);
     try {
-      const invitation = await createPersonalInvitation(invitationEmail);
-      setInvitationToken(invitation.token);
-      setInvitationEmail('');
+      await addWorkerByEmail(workerEmail);
+      setWorkerEmail('');
+      await loadBusiness();
     } catch (reason) {
-      setError(translateInvitationError(reason instanceof Error ? reason.message : ''));
+      setError(reason instanceof Error ? reason.message : 'No pudimos agregar al personal.');
     } finally {
       setIsActing(false);
     }
@@ -157,23 +159,17 @@ export default function AdminScreen() {
                    <ThemedText type="small">Pueden escanear este QR o ingresar el código de 8 caracteres en Turnify para ver tus filas.</ThemedText>
                  </View>
                 </AppCard>
-                <AppCard style={styles.invitationSection}>
-                 <ThemedText type="smallBold">Invitar personal</ThemedText>
-                 <AuthField
-                   label="Correo (opcional)"
-                   value={invitationEmail}
-                   onChangeText={setInvitationEmail}
+                 <AppCard style={styles.invitationSection}>
+                  <ThemedText type="smallBold">Agregar personal</ThemedText>
+                  <AuthField
+                    label="Correo exacto"
+                    value={workerEmail}
+                    onChangeText={setWorkerEmail}
                    placeholder="personal@empresa.com"
                    keyboardType="email-address"
                  />
-                 <AuthButton label="Crear invitación" onPress={() => void handleCreateInvitation()} disabled={isActing} isLoading={isActing} />
-                  {invitationToken && (
-                    <View style={[styles.invitationToken, { backgroundColor: theme.primaryMuted }]}>
-                     <ThemedText type="smallBold">Código de invitación (se muestra una sola vez)</ThemedText>
-                     <ThemedText type="title">{invitationToken}</ThemedText>
-                     <ThemedText type="small">Compártelo solo por un medio privado. El código vence; no lo publiques ni lo reenvíes.</ThemedText>
-                   </View>
-                  )}
+                  <AuthButton label="Agregar por correo" onPress={() => void handleAddWorker()} disabled={isActing || !workerEmail.trim()} isLoading={isActing} />
+                  {workers.map((worker) => <ThemedText key={worker.profileId} type="small">{worker.name || 'Personal'} · {worker.active ? 'Activo' : 'Revocado'}</ThemedText>)}
                 </AppCard>
                <AuthButton label="Configurar empresa y filas" onPress={() => router.push('/(app)/configuration')} disabled={isActing} />
              </>
