@@ -6,6 +6,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { normalizeBusinessCode } from '@/features/queue/queue-api';
 import { getGuestTicketState, type GuestTicketState } from '@/features/queue/public-guest-ticket-api';
+import { createGuestTicketHomeChannelName, subscribeToGuestTicketHomeChanges } from '@/features/queue/public-ticket-home-realtime';
 import { useGuestFlow } from '@/features/public/guest-flow-session';
 import { activeGuestTicketRoute, isActiveGuestTicketStatus, publicShopRoute, workerSignInRoute } from '@/features/public/public-route-policy';
 import { getSupabase } from '@/lib/supabase';
@@ -63,9 +64,11 @@ export default function PublicWelcomeScreen() {
     }
     let mounted = true;
     const refresh = async () => { if (mounted) await refreshActiveTicket(); };
-    const channel = getSupabase().channel(`guest-ticket-home:${ticketAccess.ticketId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets', filter: `id=eq.${ticketAccess.ticketId}` }, () => { void refresh(); })
-      .subscribe(() => { void refresh(); });
+    const channel = subscribeToGuestTicketHomeChanges(
+      getSupabase().channel(createGuestTicketHomeChannelName(ticketAccess.ticketId)),
+      ticketAccess.ticketId,
+      () => { void refresh(); },
+    );
     const appStateSubscription = AppState.addEventListener('change', (state) => { if (state === 'active') void refresh(); });
     void refresh();
     return () => { mounted = false; appStateSubscription.remove(); void getSupabase().removeChannel(channel); };

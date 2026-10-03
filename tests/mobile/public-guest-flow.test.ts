@@ -49,10 +49,12 @@ describe('public guest flow contracts', () => {
 
   it('renders the active home dashboard from protected ticket state without capability persistence', () => {
     const home = readFileSync('apps/mobile/src/app/index.tsx', 'utf8');
+    const realtime = readFileSync('apps/mobile/src/features/queue/public-ticket-home-realtime.ts', 'utf8');
     const session = readFileSync('apps/mobile/src/features/public/guest-flow-session.tsx', 'utf8');
 
     expect(home).toContain('getGuestTicketState(ticketAccess)');
-    expect(home).toContain('guest-ticket-home:');
+    expect(home).toContain('createGuestTicketHomeChannelName(ticketAccess.ticketId)');
+    expect(realtime).toContain('guest-ticket-home:');
     expect(home).toContain('Ver mi turno');
     expect(home).toContain("activeGuestTicketRoute(activeTicket?.status ?? 'en_espera')");
     expect(session).not.toMatch(/AsyncStorage|SecureStore|capability.*params/i);
