@@ -6,6 +6,7 @@ export type TicketStatusPresentation = {
   tone: 'primary' | 'destructive';
   showsQueueProgress: boolean;
   isActiveTurn: boolean;
+  isCompletedTurn: boolean;
 };
 
 export function presentTicketStatus(status: TicketState['status']): TicketStatusPresentation {
@@ -17,6 +18,7 @@ export function presentTicketStatus(status: TicketState['status']): TicketStatus
         tone: 'primary',
         showsQueueProgress: true,
         isActiveTurn: false,
+        isCompletedTurn: false,
       };
     case 'notificado':
       return {
@@ -25,6 +27,7 @@ export function presentTicketStatus(status: TicketState['status']): TicketStatus
         tone: 'primary',
         showsQueueProgress: true,
         isActiveTurn: false,
+        isCompletedTurn: false,
       };
     case 'llamado':
       return {
@@ -33,6 +36,7 @@ export function presentTicketStatus(status: TicketState['status']): TicketStatus
         tone: 'primary',
         showsQueueProgress: false,
         isActiveTurn: true,
+        isCompletedTurn: false,
       };
     case 'en_atencion':
       return {
@@ -41,6 +45,7 @@ export function presentTicketStatus(status: TicketState['status']): TicketStatus
         tone: 'primary',
         showsQueueProgress: false,
         isActiveTurn: false,
+        isCompletedTurn: false,
       };
     case 'finalizado':
       return {
@@ -49,6 +54,7 @@ export function presentTicketStatus(status: TicketState['status']): TicketStatus
         tone: 'primary',
         showsQueueProgress: false,
         isActiveTurn: false,
+        isCompletedTurn: true,
       };
     case 'cancelado':
       return {
@@ -57,6 +63,7 @@ export function presentTicketStatus(status: TicketState['status']): TicketStatus
         tone: 'destructive',
         showsQueueProgress: false,
         isActiveTurn: false,
+        isCompletedTurn: false,
       };
     case 'ausente':
       return {
@@ -65,6 +72,7 @@ export function presentTicketStatus(status: TicketState['status']): TicketStatus
         tone: 'destructive',
         showsQueueProgress: false,
         isActiveTurn: false,
+        isCompletedTurn: false,
       };
   }
 }

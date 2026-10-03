@@ -38,6 +38,16 @@ describe('commercial ticket presentation', () => {
     expect(presentTicketStatus('ausente').isActiveTurn).toBe(false);
   });
 
+  it('reserves the completed-ticket presentation for finalizado tickets', () => {
+    expect(presentTicketStatus('finalizado').isCompletedTurn).toBe(true);
+    expect(presentTicketStatus('en_espera').isCompletedTurn).toBe(false);
+    expect(presentTicketStatus('notificado').isCompletedTurn).toBe(false);
+    expect(presentTicketStatus('llamado').isCompletedTurn).toBe(false);
+    expect(presentTicketStatus('en_atencion').isCompletedTurn).toBe(false);
+    expect(presentTicketStatus('cancelado').isCompletedTurn).toBe(false);
+    expect(presentTicketStatus('ausente').isCompletedTurn).toBe(false);
+  });
+
   it('retains cancellation only for the contract-permitted waiting states', () => {
     expect(canCancelTicket('en_espera')).toBe(true);
     expect(canCancelTicket('notificado')).toBe(true);
