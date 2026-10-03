@@ -36,11 +36,21 @@ describe('Worker authenticated access flow', () => {
     expect(registration).not.toContain('registerAsWorker');
   });
 
-  it('keeps the approved Worker destination and denies customer/admin Worker routes', () => {
+  it('uses Worker Shops as the awaiting destination and denies unselected live routes', () => {
     expect(source('../../apps/mobile/src/app/(auth)/worker-access.tsx')).toContain('Redirect href="/(app)/worker"');
+    expect(source('../../apps/mobile/src/app/(auth)/worker-access.tsx')).toContain('Redirect href="/(app)/worker-shops"');
+    expect(source('../../apps/mobile/src/app/(auth)/worker-register.tsx')).toContain('Redirect href="/(app)/worker-shops"');
     expect(roleCanAccessAppRoute({ role: 'admin', businessId: 'shop' }, 'worker')).toBe(false);
     expect(roleCanAccessAppRoute({ role: 'cliente', businessId: null }, 'worker')).toBe(false);
     expect(source('../../apps/mobile/src/app/(app)/worker-profile.tsx')).toContain('selectWorkerShop(shop.businessId).then(reloadProfile)');
+  });
+
+  it('permits an unselected personal account only to Worker Shops', () => {
+    const worker = { role: 'personal' as const, businessId: null };
+    expect(roleCanAccessAppRoute(worker, 'worker-shops')).toBe(true);
+    expect(roleCanAccessAppRoute(worker, 'worker')).toBe(false);
+    expect(source('../../apps/mobile/src/app/(app)/worker-shops.tsx')).toContain('requestWorkerInvitation(code)');
+    expect(source('../../apps/mobile/src/app/(app)/worker-shops.tsx')).toContain("router.replace('/(app)/worker')");
   });
 
   it('avoids unsupported station, queue-total, and static-progress dashboard claims', () => {

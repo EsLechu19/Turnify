@@ -9,10 +9,6 @@ import { useAuth } from '@/features/auth/use-auth';
 import { workerRegistrationRoute } from '@/features/public/public-route-policy';
 import { resolveWorkerAccessState, validateWorkerCredentials } from '@/features/worker/worker-access-state';
 
-function AwaitingAssignment({ signOut }: { signOut(): Promise<void> }) {
-  return <AuthScreenContainer><View style={styles.header}><ThemedText type="subtitle">Tu acceso está en espera</ThemedText><ThemedText type="small">Un administrador local debe agregar exactamente este correo a una barbería aprobada. Cuando lo haga, vuelve a iniciar sesión.</ThemedText></View><AuthButton label="Cerrar sesión" variant="secondary" onPress={() => void signOut()} /></AuthScreenContainer>;
-}
-
 export default function WorkerAccessScreen() {
   const { signIn, signOut, session, profile, isProfileLoading, isSupabaseConfigured } = useAuth();
   const [email, setEmail] = useState('');
@@ -24,7 +20,7 @@ export default function WorkerAccessScreen() {
 
   if (session && accessState === 'resolving') return null;
   if (session && accessState === 'approved') return <Redirect href="/(app)/worker" />;
-  if (session && accessState === 'awaiting-assignment') return <AwaitingAssignment signOut={signOut} />;
+  if (session && accessState === 'awaiting-assignment') return <Redirect href="/(app)/worker-shops" />;
   if (session) return <AuthScreenContainer><View style={styles.header}><ThemedText type="subtitle">Acceso de personal no disponible</ThemedText><ThemedText type="small">Esta cuenta no está autorizada para las operaciones de personal. Usa una cuenta de personal aprobada o consulta con tu administrador.</ThemedText></View><AuthButton label="Cerrar sesión" variant="secondary" onPress={() => void signOut()} /></AuthScreenContainer>;
 
   async function handleSubmit() {

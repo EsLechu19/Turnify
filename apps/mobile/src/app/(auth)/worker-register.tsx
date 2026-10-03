@@ -8,10 +8,6 @@ import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/features/auth/use-auth';
 import { resolveWorkerAccessState, validateWorkerRegistration } from '@/features/worker/worker-access-state';
 
-function AwaitingAssignment({ signOut }: { signOut(): Promise<void> }) {
-  return <AuthScreenContainer><View style={styles.header}><ThemedText type="subtitle">Tu cuenta está lista</ThemedText><ThemedText type="small">Tu acceso operativo está en espera. Un administrador local debe agregar exactamente este correo a una barbería aprobada.</ThemedText></View><AuthButton label="Cerrar sesión" variant="secondary" onPress={() => void signOut()} /></AuthScreenContainer>;
-}
-
 export default function WorkerRegisterScreen() {
   const { signUp, signOut, session, profile, isProfileLoading, isSupabaseConfigured } = useAuth();
   const [name, setName] = useState(''); const [email, setEmail] = useState(''); const [password, setPassword] = useState('');
@@ -20,7 +16,7 @@ export default function WorkerRegisterScreen() {
 
   if (session && accessState === 'resolving') return null;
   if (session && accessState === 'approved') return <Redirect href="/(app)/worker" />;
-  if (session && accessState === 'awaiting-assignment') return <AwaitingAssignment signOut={signOut} />;
+  if (session && accessState === 'awaiting-assignment') return <Redirect href="/(app)/worker-shops" />;
   if (session) return <AuthScreenContainer><View style={styles.header}><ThemedText type="subtitle">Registro no disponible</ThemedText><ThemedText type="small">Esta sesión no corresponde a una cuenta de personal autorizada.</ThemedText></View><AuthButton label="Cerrar sesión" variant="secondary" onPress={() => void signOut()} /></AuthScreenContainer>;
   if (awaitingConfirmation) return <AuthScreenContainer><View style={styles.header}><ThemedText type="subtitle">Confirma tu correo</ThemedText><ThemedText type="small">Revisa tu correo y confirma la cuenta antes de iniciar sesión. La confirmación no habilita operaciones: un administrador todavía debe asignarte a una barbería.</ThemedText></View><Link href="/(auth)/worker-access" style={styles.link}>Ir al acceso de personal</Link></AuthScreenContainer>;
 

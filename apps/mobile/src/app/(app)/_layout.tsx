@@ -23,7 +23,7 @@ export default function AppLayout() {
   }
 
   if (!roleCanAccessAppRoute(profile, appRouteNameFromSegments(segments))) {
-    return <Redirect href="/" />;
+    return <Redirect href={profile?.role === 'personal' ? '/(app)/worker-shops' : '/'} />;
   }
 
   return <Stack screenOptions={{ headerShown: false }} />;

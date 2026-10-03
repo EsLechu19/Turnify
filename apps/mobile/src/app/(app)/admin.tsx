@@ -9,7 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { AppCard, StatusBadge } from '@/components/ui/surface';
 import { getBusiness, type Business } from '@/features/business/business-api';
 import { useAuth } from '@/features/auth/use-auth';
-import { addWorkerByEmail, getShopWorkers } from '@/features/worker/worker-membership-api';
+import { generateWorkerInvitationCode, getShopWorkerRequests, getShopWorkers, resolveWorkerRequest, type ShopWorkerRequest } from '@/features/worker/worker-membership-api';
 import {
   callNextTicket,
   createWalkInTicket,
@@ -41,21 +41,25 @@ export default function AdminScreen() {
   const [createdWalkInCode, setCreatedWalkInCode] = useState<string | null>(null);
   const [workerEmail, setWorkerEmail] = useState('');
   const [workers, setWorkers] = useState<Array<{ profileId: string; name: string | null; active: boolean }>>([]);
+  const [workerRequests, setWorkerRequests] = useState<ShopWorkerRequest[]>([]);
+  const [generatedWorkerCode, setGeneratedWorkerCode] = useState<string | null>(null);
 
   const loadBusiness = useCallback(async () => {
     if (!profile?.businessId) return;
 
     setIsLoading(true);
     try {
-      const [nextBusiness, staffQueue, nextWorkers] = await Promise.all([
+      const [nextBusiness, staffQueue, nextWorkers, nextRequests] = await Promise.all([
         getBusiness(profile.businessId),
         getStaffQueue(profile.businessId),
         profile.role === 'admin' ? getShopWorkers() : Promise.resolve([]),
+        profile.role === 'admin' ? getShopWorkerRequests() : Promise.resolve([]),
       ]);
       setBusiness(nextBusiness);
       setQueues(staffQueue.queues);
       setTickets(staffQueue.tickets);
       setWorkers(nextWorkers);
+      setWorkerRequests(nextRequests);
       setSelectedQueueId((current) => (
         current && staffQueue.queues.some((queue) => queue.id === current)
           ? current
@@ -123,18 +127,21 @@ export default function AdminScreen() {
     }
   }
 
-  async function handleAddWorker() {
+  async function handleGenerateWorkerCode() {
     setIsActing(true);
     setError(null);
     try {
-      await addWorkerByEmail(workerEmail);
+      setGeneratedWorkerCode(await generateWorkerInvitationCode(workerEmail));
       setWorkerEmail('');
-      await loadBusiness();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'No pudimos agregar al personal.');
+      setError(reason instanceof Error ? reason.message : 'No pudimos generar el código.');
     } finally {
       setIsActing(false);
     }
+  }
+
+  async function handleWorkerRequest(requestId: string, approve: boolean) {
+    await handleAction(() => resolveWorkerRequest(requestId, approve));
   }
 
   return (
@@ -160,7 +167,7 @@ export default function AdminScreen() {
                  </View>
                 </AppCard>
                  <AppCard style={styles.invitationSection}>
-                  <ThemedText type="smallBold">Agregar personal</ThemedText>
+                  <ThemedText type="smallBold">Invitar personal</ThemedText>
                   <AuthField
                     label="Correo exacto"
                     value={workerEmail}
@@ -168,7 +175,11 @@ export default function AdminScreen() {
                    placeholder="personal@empresa.com"
                    keyboardType="email-address"
                  />
-                  <AuthButton label="Agregar por correo" onPress={() => void handleAddWorker()} disabled={isActing || !workerEmail.trim()} isLoading={isActing} />
+                  <AuthButton label="Generar código" onPress={() => void handleGenerateWorkerCode()} disabled={isActing || !workerEmail.trim()} isLoading={isActing} />
+                  {generatedWorkerCode && <View style={[styles.invitationToken, { backgroundColor: theme.primaryMuted }]}><ThemedText type="smallBold">Código generado (se muestra una sola vez)</ThemedText><ThemedText selectable type="title">{generatedWorkerCode}</ThemedText><ThemedText type="small">Cópialo y compártelo manualmente con la persona indicada. No se enviará un correo automático.</ThemedText><AuthButton label="Ocultar código" variant="secondary" onPress={() => setGeneratedWorkerCode(null)} /></View>}
+                  <ThemedText type="smallBold">Solicitudes pendientes</ThemedText>
+                  {workerRequests.length === 0 ? <ThemedText type="small">No hay solicitudes pendientes.</ThemedText> : workerRequests.map((request) => <View key={request.requestId} style={styles.requestRow}><ThemedText type="small">{request.name || 'Personal'} · Solicitud pendiente</ThemedText><View style={styles.requestActions}><AuthButton label="Aprobar" onPress={() => void handleWorkerRequest(request.requestId, true)} disabled={isActing} /><AuthButton label="Rechazar" variant="destructive" onPress={() => void handleWorkerRequest(request.requestId, false)} disabled={isActing} /></View></View>)}
+                  <ThemedText type="smallBold">Personal activo</ThemedText>
                   {workers.map((worker) => <ThemedText key={worker.profileId} type="small">{worker.name || 'Personal'} · {worker.active ? 'Activo' : 'Revocado'}</ThemedText>)}
                 </AppCard>
                <AuthButton label="Configurar empresa y filas" onPress={() => router.push('/(app)/configuration')} disabled={isActing} />
@@ -293,6 +304,8 @@ const styles = StyleSheet.create({
   walkInSection: { gap: 8 },
   invitationSection: { gap: 8 },
   invitationToken: { gap: 6, borderRadius: 14, padding: 12 },
+  requestRow: { gap: 8, paddingVertical: 4 },
+  requestActions: { flexDirection: 'row', gap: 8 },
   priorityOptions: { flexDirection: 'row', gap: 8 },
   priorityOption: { flex: 1, alignItems: 'center', borderWidth: 1, borderRadius: 14, justifyContent: 'center', minHeight: 48, padding: 10 },
 });

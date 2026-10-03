@@ -11,7 +11,7 @@ describe('worker intent authentication', () => {
 
   it('routes only an associated personal profile to the worker lifecycle', () => {
     expect(workerIntentOutcome({ role: 'personal', businessId: 'shop' })).toBe('worker');
-    expect(workerIntentOutcome({ role: 'personal', businessId: null })).toBe('missing-business');
+    expect(workerIntentOutcome({ role: 'personal', businessId: null })).toBe('worker-shops');
   });
 
   it('denies admin and missing profiles instead of treating them as workers', () => {

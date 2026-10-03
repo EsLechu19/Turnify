@@ -14,19 +14,20 @@ export const publicBookingRoutes = [
 export const workerSignInRoute = '/(auth)/worker-access' as const;
 export const workerRegistrationRoute = '/(auth)/worker-register' as const;
 
-export function staffLanding(profile: AuthProfile | null): '/(app)/worker' | '/(app)/admin' | '/' {
+export function staffLanding(profile: AuthProfile | null): '/(app)/worker' | '/(app)/worker-shops' | '/(app)/admin' | '/' {
   if (profile?.role === 'personal' && profile.businessId) return '/(app)/worker';
+  if (profile?.role === 'personal') return '/(app)/worker-shops';
   if (profile?.role === 'admin' && profile.businessId) return '/(app)/admin';
   return '/';
 }
 
-export type WorkerIntentOutcome = 'worker' | 'missing-profile' | 'not-worker' | 'missing-business';
+export type WorkerIntentOutcome = 'worker' | 'worker-shops' | 'missing-profile' | 'not-worker';
 
 /** Resolves the dedicated worker entry without treating another role as staff. */
 export function workerIntentOutcome(profile: AuthProfile | null): WorkerIntentOutcome {
   if (!profile) return 'missing-profile';
   if (profile.role !== 'personal') return 'not-worker';
-  return profile.businessId ? 'worker' : 'missing-business';
+  return profile.businessId ? 'worker' : 'worker-shops';
 }
 
 export function canUseGuestTicket(access: { ticketId: string; capability: string } | null): boolean {
