@@ -56,4 +56,27 @@ describe('GuestFlowProvider discovery actions', () => {
     expect(identifiedShop.draft?.catalog.name).toBe('Barbería Central');
     expect(identifiedShop.beginDiscovery).toBe(discoveryAction);
   });
+
+  it('preserves active ticket access when discovery is attempted after home navigation', async () => {
+    const { GuestFlowProvider } = await import('../../apps/mobile/src/features/public/guest-flow-session');
+    const render = () => {
+      cursor = 0;
+      return (GuestFlowProvider({ children: null }) as unknown as { props: { value: {
+        hasActiveTicketAccess: boolean;
+        ticketAccess: { ticketId: string; capability: string } | null;
+        setTicketAccess(access: { ticketId: string; visibleCode: string; capability: string }): void;
+        beginDiscovery(companyCode: string, catalog: { name: string }): boolean;
+        endGuestTicketSession(): void;
+      } } }).props.value;
+    };
+    render().setTicketAccess({ ticketId: 'ticket-1', visibleCode: 'A-1', capability: 'private-capability' });
+    const active = render();
+
+    expect(active.hasActiveTicketAccess).toBe(true);
+    expect(active.beginDiscovery('OTHER', { name: 'Other shop' })).toBe(false);
+    expect(render().ticketAccess?.ticketId).toBe('ticket-1');
+
+    active.endGuestTicketSession();
+    expect(render().hasActiveTicketAccess).toBe(false);
+  });
 });

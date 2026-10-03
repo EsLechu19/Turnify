@@ -15,12 +15,13 @@ export type GuestBookingDraft = {
 type GuestFlowContextValue = {
   draft: GuestBookingDraft | null;
   ticketAccess: GuestTicketAccess | null;
-  beginDiscovery(companyCode: string, catalog: CommercialCatalog): void;
+  beginDiscovery(companyCode: string, catalog: CommercialCatalog): boolean;
   chooseService(serviceId: string): void;
   chooseBarber(requestedBarberId: string | null): void;
   setDetails(details: GuestDetails): void;
   setTicketAccess(access: GuestTicketAccess): void;
-  reset(): void;
+  hasActiveTicketAccess: boolean;
+  endGuestTicketSession(): void;
 };
 
 const GuestFlowContext = createContext<GuestFlowContextValue | undefined>(undefined);
@@ -30,9 +31,10 @@ export function GuestFlowProvider({ children }: { children: ReactNode }) {
   const [ticketAccess, setTicketAccess] = useState<GuestTicketAccess | null>(null);
 
   const beginDiscovery = useCallback((companyCode: string, catalog: CommercialCatalog) => {
-    setTicketAccess(null);
+    if (ticketAccess) return false;
     setDraft({ companyCode, catalog, serviceId: '', requestedBarberId: null, details: { name: '' } });
-  }, []);
+    return true;
+  }, [ticketAccess]);
   const chooseService = useCallback((serviceId: string) => {
     setDraft((current) => current ? { ...current, serviceId, requestedBarberId: null } : current);
   }, []);
@@ -42,8 +44,8 @@ export function GuestFlowProvider({ children }: { children: ReactNode }) {
   const setDetails = useCallback((details: GuestDetails) => {
     setDraft((current) => current ? { ...current, details } : current);
   }, []);
-  const setTicketAccessForFlow = useCallback((access: GuestTicketAccess) => { setTicketAccess(access); }, []);
-  const reset = useCallback(() => { setDraft(null); setTicketAccess(null); }, []);
+  const setTicketAccessForFlow = useCallback((access: GuestTicketAccess) => { setDraft(null); setTicketAccess(access); }, []);
+  const endGuestTicketSession = useCallback(() => { setDraft(null); setTicketAccess(null); }, []);
 
   const value = useMemo<GuestFlowContextValue>(() => ({
     draft,
@@ -53,8 +55,9 @@ export function GuestFlowProvider({ children }: { children: ReactNode }) {
     chooseBarber,
     setDetails,
     setTicketAccess: setTicketAccessForFlow,
-    reset,
-  }), [beginDiscovery, chooseBarber, chooseService, draft, reset, setDetails, setTicketAccessForFlow, ticketAccess]);
+    hasActiveTicketAccess: ticketAccess !== null,
+    endGuestTicketSession,
+  }), [beginDiscovery, chooseBarber, chooseService, draft, endGuestTicketSession, setDetails, setTicketAccessForFlow, ticketAccess]);
 
   return <GuestFlowContext.Provider value={value}>{children}</GuestFlowContext.Provider>;
 }

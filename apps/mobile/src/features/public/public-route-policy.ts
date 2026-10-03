@@ -32,3 +32,18 @@ export function workerIntentOutcome(profile: AuthProfile | null): WorkerIntentOu
 export function canUseGuestTicket(access: { ticketId: string; capability: string } | null): boolean {
   return Boolean(access?.ticketId && access.capability);
 }
+
+export type GuestTicketStatus = 'en_espera' | 'notificado' | 'llamado' | 'en_atencion' | 'finalizado' | 'cancelado' | 'ausente';
+
+export function isActiveGuestTicketStatus(status: GuestTicketStatus): boolean {
+  return status === 'en_espera' || status === 'notificado' || status === 'llamado' || status === 'en_atencion';
+}
+
+export function isTerminalGuestTicketStatus(status: GuestTicketStatus): boolean {
+  return !isActiveGuestTicketStatus(status);
+}
+
+/** Called tickets retain their existing alert presentation on the live ticket route. */
+export function activeGuestTicketRoute(_status: GuestTicketStatus): '/(public)/ticket' {
+  return '/(public)/ticket';
+}

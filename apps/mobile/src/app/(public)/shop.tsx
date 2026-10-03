@@ -35,12 +35,16 @@ export default function ShopScreen() {
   const insets = useSafeAreaInsets();
   const { code: rawCode } = useLocalSearchParams<{ code?: string }>();
   const code = normalizeBusinessCode(rawCode ?? '');
-  const { beginDiscovery, draft } = useGuestFlow();
+  const { beginDiscovery, draft, hasActiveTicketAccess } = useGuestFlow();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    if (hasActiveTicketAccess) {
+      router.replace('/');
+      return;
+    }
     let active = true;
     async function discover() {
       if (!code) {
@@ -63,13 +67,15 @@ export default function ShopScreen() {
 
     void discover();
     return () => { active = false; };
-  }, [attempt, beginDiscovery, code]);
+  }, [attempt, beginDiscovery, code, hasActiveTicketAccess]);
 
   const retryDiscovery = useCallback(() => setAttempt((current) => current + 1), []);
   const returnHome = useCallback(() => router.replace('/'), []);
   const catalog = draft?.companyCode === code ? draft.catalog : null;
   const canShowCatalog = catalog !== null && !isLoading && error === null;
   const availableBarbers = catalog?.barbers.filter((barber) => barber.operationalState === 'disponible').length ?? 0;
+
+  if (hasActiveTicketAccess) return null;
 
   return (
     <View style={[styles.shell, { paddingTop: insets.top }]}>

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { parseTurnifyQr } from '@/features/queue/queue-api';
+import { useGuestFlow } from '@/features/public/guest-flow-session';
 import { publicLaunchRoute, publicShopRoute } from '@/features/public/public-route-policy';
 
 function ScannerIcon({ name, color = '#00686C', size = 22 }: { name: 'arrow-left' | 'camera' | 'lock' | 'refresh'; color?: string; size?: number }) {
@@ -50,9 +51,16 @@ function Reticle() {
 
 export default function PublicScanScreen() {
   const insets = useSafeAreaInsets();
+  const { hasActiveTicketAccess } = useGuestFlow();
   const [permission, requestPermission] = useCameraPermissions();
   const [error, setError] = useState<string | null>(null);
   const [hasScanned, setHasScanned] = useState(false);
+
+  useEffect(() => {
+    if (hasActiveTicketAccess) router.replace(publicLaunchRoute);
+  }, [hasActiveTicketAccess]);
+
+  if (hasActiveTicketAccess) return null;
 
   function returnHome() {
     router.replace(publicLaunchRoute);

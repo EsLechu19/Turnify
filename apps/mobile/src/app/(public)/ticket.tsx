@@ -8,7 +8,7 @@ import { CalledGuestTicket } from '@/components/customer/called-guest-ticket';
 import { CompletedGuestTicket } from '@/components/customer/completed-guest-ticket';
 import { CustomerButton, CustomerPage, CustomerState } from '@/components/customer/customer-ui';
 import { useGuestFlow } from '@/features/public/guest-flow-session';
-import { canUseGuestTicket } from '@/features/public/public-route-policy';
+import { canUseGuestTicket, isTerminalGuestTicketStatus } from '@/features/public/public-route-policy';
 import { cancelGuestTicket, getGuestTicketState, respondToCalledGuestTicket, type GuestTicketState } from '@/features/queue/public-guest-ticket-api';
 import { translateQueueError } from '@/features/queue/queue-api';
 import { canCancelTicket, presentTicketStatus, ticketPosition } from '@/features/queue/ticket-presentation';
@@ -60,7 +60,7 @@ function QueueTimeline({ peopleAhead, status }: { peopleAhead: number; status: '
 }
 
 export default function GuestTicketScreen() {
-  const { ticketAccess, reset } = useGuestFlow();
+  const { ticketAccess, endGuestTicketSession } = useGuestFlow();
   const [ticket, setTicket] = useState<GuestTicketState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,15 +69,16 @@ export default function GuestTicketScreen() {
   const [isConfirmingCancel, setIsConfirmingCancel] = useState(false);
 
   const returnHome = useCallback(() => {
-    reset();
     router.replace('/');
-  }, [reset]);
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!ticketAccess) return false;
     setIsLoading(true);
     try {
-      setTicket(await getGuestTicketState(ticketAccess));
+      const nextTicket = await getGuestTicketState(ticketAccess);
+      setTicket(nextTicket);
+      if (isTerminalGuestTicketStatus(nextTicket.status)) endGuestTicketSession();
       setError(null);
       return true;
     } catch (reason) {
@@ -86,7 +87,7 @@ export default function GuestTicketScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [ticketAccess]);
+  }, [endGuestTicketSession, ticketAccess]);
 
   useFocusEffect(useCallback(() => {
     let isActive = true;
@@ -144,16 +145,16 @@ export default function GuestTicketScreen() {
     }
   }
 
-  if (!canUseGuestTicket(ticketAccess)) {
-    return <SafeAreaView edges={['top']} style={styles.safeArea}><CustomerPage><CustomerState label="No hay un turno disponible en esta sesión." detail="Por privacidad, necesitas conservar el acceso del turno en este dispositivo." action={returnHome} /></CustomerPage></SafeAreaView>;
-  }
-
   if (ticket && status?.isActiveTurn) {
     return <SafeAreaView edges={['top']} style={styles.safeArea}><CustomerPage><CalledGuestTicket ticket={ticket} error={error} isResponding={isResponding} onRespond={(response) => void respond(response)} onRetry={() => void refresh()} /></CustomerPage></SafeAreaView>;
   }
 
   if (ticket && status?.isCompletedTurn) {
     return <SafeAreaView edges={['top']} style={styles.safeArea}><CustomerPage><CompletedGuestTicket ticket={ticket} error={error} onRetry={() => void refresh()} onReturn={returnHome} /></CustomerPage></SafeAreaView>;
+  }
+
+  if (!canUseGuestTicket(ticketAccess)) {
+    return <SafeAreaView edges={['top']} style={styles.safeArea}><CustomerPage><CustomerState label="No hay un turno disponible en esta sesión." detail="Por privacidad, necesitas conservar el acceso del turno en este dispositivo." action={returnHome} /></CustomerPage></SafeAreaView>;
   }
 
   return <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>

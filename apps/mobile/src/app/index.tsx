@@ -1,11 +1,14 @@
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, AppState, Easing, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { normalizeBusinessCode } from '@/features/queue/queue-api';
-import { publicShopRoute, workerSignInRoute } from '@/features/public/public-route-policy';
+import { getGuestTicketState, type GuestTicketState } from '@/features/queue/public-guest-ticket-api';
+import { useGuestFlow } from '@/features/public/guest-flow-session';
+import { activeGuestTicketRoute, isActiveGuestTicketStatus, publicShopRoute, workerSignInRoute } from '@/features/public/public-route-policy';
+import { getSupabase } from '@/lib/supabase';
 
 type LaunchIconName = 'arrow' | 'code' | 'scan' | 'shield' | 'storefront' | 'ticket';
 
@@ -35,7 +38,38 @@ export default function PublicWelcomeScreen() {
   const [showCodeDrawer, setShowCodeDrawer] = useState(false);
   const [isDrawerMounted, setIsDrawerMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { ticketAccess, hasActiveTicketAccess, endGuestTicketSession } = useGuestFlow();
+  const [activeTicket, setActiveTicket] = useState<GuestTicketState | null>(null);
   const drawerProgress = useRef(new Animated.Value(0)).current;
+
+  const refreshActiveTicket = useCallback(async () => {
+    if (!ticketAccess) return;
+    try {
+      const ticket = await getGuestTicketState(ticketAccess);
+      if (isActiveGuestTicketStatus(ticket.status)) setActiveTicket(ticket);
+      else {
+        setActiveTicket(null);
+        endGuestTicketSession();
+      }
+    } catch {
+      // Capability failures remain private and never enter route or UI state.
+    }
+  }, [endGuestTicketSession, ticketAccess]);
+
+  useEffect(() => {
+    if (!ticketAccess) {
+      setActiveTicket(null);
+      return;
+    }
+    let mounted = true;
+    const refresh = async () => { if (mounted) await refreshActiveTicket(); };
+    const channel = getSupabase().channel(`guest-ticket-home:${ticketAccess.ticketId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets', filter: `id=eq.${ticketAccess.ticketId}` }, () => { void refresh(); })
+      .subscribe(() => { void refresh(); });
+    const appStateSubscription = AppState.addEventListener('change', (state) => { if (state === 'active') void refresh(); });
+    void refresh();
+    return () => { mounted = false; appStateSubscription.remove(); void getSupabase().removeChannel(channel); };
+  }, [refreshActiveTicket, ticketAccess]);
 
   useEffect(() => {
     if (showCodeDrawer) setIsDrawerMounted(true);
@@ -64,6 +98,20 @@ export default function PublicWelcomeScreen() {
   function toggleCodeDrawer() {
     setError(null);
     setShowCodeDrawer((current) => !current);
+  }
+
+  if (hasActiveTicketAccess) {
+    const barberName = activeTicket?.assignedBarberName ?? activeTicket?.requestedBarberName;
+    return <ScrollView contentContainerStyle={[styles.page, { paddingBottom: Math.max(insets.bottom, 20) + 20, paddingTop: Math.max(insets.top, 12) + 12 }]} style={styles.shell}>
+      <View style={styles.brand} accessibilityLabel="Turnify"><View style={styles.brandMark}><View style={styles.brandMarkInner} /></View><Text style={styles.brandName}>turnify</Text></View>
+      <View style={styles.activeCard}>
+        <Text style={styles.activeEyebrow}>TU TURNO SIGUE ACTIVO</Text>
+        <Text style={styles.activeTitle}>{activeTicket ? `Turno ${activeTicket.visibleCode}` : 'Recuperando tu turno…'}</Text>
+        {activeTicket && <><Text style={styles.activeStatus}>{activeTicket.status === 'llamado' ? 'Te están llamando ahora' : 'Tu lugar en la fila está reservado'}</Text><View style={styles.activeMetrics}><Text style={styles.activeMetric}>{activeTicket.peopleAhead} delante</Text><Text style={styles.activeMetric}>{activeTicket.waitMinutes} min estimados</Text></View>{(activeTicket.serviceName || barberName) && <Text style={styles.activeDetail}>{[activeTicket.serviceName, barberName].filter(Boolean).join(' · ')}</Text>}</>}
+        <Pressable accessibilityLabel="Ver mi turno" accessibilityRole="button" onPress={() => router.push(activeGuestTicketRoute(activeTicket?.status ?? 'en_espera'))} style={({ pressed }) => [styles.primaryButton, styles.activeButton, pressed && styles.pressed]}><Text style={styles.primaryButtonLabel}>Ver mi turno</Text><LaunchIcon name="arrow" color="#FFFFFF" size={20} /></Pressable>
+      </View>
+      <View style={styles.activeNotice}><Text style={styles.activeNoticeTitle}>No puedes iniciar otro turno todavía</Text><Text style={styles.activeNoticeDetail}>Cuando este turno termine, podrás escanear o ingresar otro código.</Text></View>
+    </ScrollView>;
   }
 
   return (
@@ -119,6 +167,7 @@ export default function PublicWelcomeScreen() {
 
 const styles = StyleSheet.create({
   shell: { backgroundColor: '#F7F9FF', flex: 1 },
+  activeCard: { backgroundColor: '#E8F1FF', borderColor: '#BFD6F7', borderRadius: 12, borderWidth: 1, gap: 12, padding: 20 }, activeEyebrow: { color: '#00686C', fontSize: 11, fontWeight: '800', letterSpacing: 1 }, activeTitle: { color: '#111D27', fontSize: 30, fontWeight: '800' }, activeStatus: { color: '#3D5781', fontSize: 16, lineHeight: 22 }, activeMetrics: { flexDirection: 'row', gap: 12 }, activeMetric: { color: '#00686C', fontSize: 13, fontWeight: '700' }, activeDetail: { color: '#60707D', fontSize: 14 }, activeButton: { marginTop: 4 }, activeNotice: { backgroundColor: '#FFFFFF', borderRadius: 12, gap: 6, padding: 18 }, activeNoticeTitle: { color: '#111D27', fontSize: 16, fontWeight: '800' }, activeNoticeDetail: { color: '#60707D', fontSize: 14, lineHeight: 20 },
   page: { alignSelf: 'center', gap: 16, maxWidth: 480, paddingHorizontal: 20, width: '100%' },
   brand: { alignItems: 'center', gap: 6 },
   brandMark: { alignItems: 'center', backgroundColor: '#00686C', borderRadius: 12, height: 42, justifyContent: 'center', width: 42 },
