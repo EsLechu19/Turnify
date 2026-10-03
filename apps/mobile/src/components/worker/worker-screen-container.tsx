@@ -16,6 +16,7 @@ export function WorkerScreenContainer({ activeNavigation, children }: WorkerScre
 
   return (
     <View style={[styles.shell, { backgroundColor: theme.background }]}>
+      <View style={styles.topRule} />
       <View style={styles.content}>{children}</View>
       <View style={[styles.navigation, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
         {workerNavigationItems.map((item) => {
@@ -29,7 +30,7 @@ export function WorkerScreenContainer({ activeNavigation, children }: WorkerScre
               onPress={() => router.replace(item.href as Href)}
               style={({ pressed }) => [styles.navigationItem, { opacity: pressed ? 0.72 : 1 }]}
             >
-              <View style={[styles.indicator, { backgroundColor: active ? theme.primary : 'transparent' }]} />
+              <Text style={[styles.navigationIcon, { color: active ? theme.primary : theme.textSecondary }]}>{navigationIcons[item.key]}</Text>
               <Text style={[styles.navigationLabel, { color: active ? theme.primary : theme.textSecondary }]}>{item.label}</Text>
             </Pressable>
           );
@@ -40,22 +41,24 @@ export function WorkerScreenContainer({ activeNavigation, children }: WorkerScre
 }
 
 export const workerScreenStyles = StyleSheet.create({
-  page: { gap: 20, paddingBottom: 32, paddingHorizontal: 16, paddingTop: 20 },
-  card: { borderRadius: Radius.medium, borderWidth: 1, gap: 12, padding: 16 },
+  page: { gap: 20, paddingBottom: 32, paddingHorizontal: 16, paddingTop: 16 },
+  card: { borderRadius: 8, borderWidth: 1, gap: 12, padding: 16 },
   eyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1.1, lineHeight: 14, textTransform: 'uppercase' },
-  title: { fontSize: 26, fontWeight: '700', letterSpacing: -0.5, lineHeight: 34 },
+  title: { fontSize: 26, fontWeight: '700', letterSpacing: -0.6, lineHeight: 34 },
   detail: { fontSize: 14, lineHeight: 20 },
   sectionTitle: { fontSize: 18, fontWeight: '700', letterSpacing: -0.2, lineHeight: 24 },
 });
 
 const styles = StyleSheet.create({
-  shell: { flex: 1 },
+  shell: { flex: 1 }, topRule: { backgroundColor: '#0E1E2E', height: 3 },
   content: { alignSelf: 'center', flex: 1, maxWidth: 640, width: '100%' },
   navigation: {
     alignSelf: 'center', borderTopWidth: 1, flexDirection: 'row', maxWidth: 640,
     minHeight: 64 + BottomTabInset, paddingBottom: BottomTabInset, paddingHorizontal: 8, width: '100%',
   },
-  navigationItem: { alignItems: 'center', flex: 1, justifyContent: 'center', minHeight: 56, paddingHorizontal: 2 },
-  indicator: { borderRadius: Radius.small, height: 3, marginBottom: 6, width: 24 },
+  navigationItem: { alignItems: 'center', flex: 1, justifyContent: 'center', minHeight: 64, paddingHorizontal: 2 },
+  navigationIcon: { fontSize: 19, lineHeight: 22, marginBottom: 2 },
   navigationLabel: { fontSize: 11, fontWeight: '600', lineHeight: 16 },
 });
+
+const navigationIcons: Record<WorkerNavigationKey, string> = { live: '◉', queue: '≡', history: '↶', profile: '◌' };

@@ -91,15 +91,15 @@ export default function WorkerScreen() {
     <WorkerScreenContainer activeNavigation="live">
       <ScrollView contentContainerStyle={[workerScreenStyles.page, { backgroundColor: theme.background }]}>
         <View style={styles.heading}>
-          <ThemedText type="eyebrow" themeColor="primary">Operación</ThemedText>
-          <ThemedText type="subtitle">En vivo</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">Gestiona solo los turnos que puedes atender.</ThemedText>
+          <View style={styles.liveRow}><View style={styles.liveDot} /><ThemedText type="eyebrow" themeColor="primary">En vivo</ThemedText><ThemedText type="small" themeColor="textSecondary">Operación de tu estación</ThemedText></View>
+          <ThemedText type="subtitle">Tu cola de trabajo</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">Solo se muestran turnos que puedes atender.</ThemedText>
         </View>
         {isLoading ? <AppCard accessibilityRole="progressbar" style={styles.stateCard}><ThemedText type="smallBold">Actualizando operación…</ThemedText><ThemedText type="small">Estamos consultando tu disponibilidad y cola compatible.</ThemedText></AppCard> : (
           <>
             <AppCard style={styles.availabilityCard}>
               <View style={styles.cardHeader}>
-                <View style={styles.cardCopy}><ThemedText type="eyebrow" themeColor="primary">Disponibilidad</ThemedText><ThemedText type="smallBold">{availability ? availabilityLabel[availability] : 'No disponible'}</ThemedText></View>
+                <View style={styles.cardCopy}><ThemedText type="eyebrow" themeColor="primary">Estado de estación</ThemedText><ThemedText type="smallBold">{availability ? availabilityLabel[availability] : 'No disponible'}</ThemedText></View>
                 <StatusBadge label={availability ? availabilityLabel[availability] : 'No disponible'} tone={availability === 'fuera_de_turno' ? 'destructive' : availability === 'ocupado' ? 'success' : 'primary'} />
               </View>
               {availability === 'ocupado' && <ThemedText type="small">Finaliza o marca ausente tu turno activo para actualizar tu disponibilidad.</ThemedText>}
@@ -123,15 +123,17 @@ export default function WorkerScreen() {
 }
 
 function ActiveTicket({ ticket, candidates, isReassignmentOpen, isActing, act, loadCandidates, reassign }: { ticket: WorkerTicket; candidates: ReassignmentCandidate[]; isReassignmentOpen: boolean; isActing: boolean; act(action: () => Promise<void>, successMessage?: string): Promise<void>; loadCandidates(): void; reassign(candidate: ReassignmentCandidate): void }) {
-  return <AppCard style={styles.activeCard}>
-    <View style={styles.cardHeader}><View style={styles.cardCopy}><ThemedText type="eyebrow" themeColor="primary">Turno asignado</ThemedText><ThemedText type="title">{ticket.visibleCode}</ThemedText></View><StatusBadge label={ticket.state === 'llamado' ? 'Llamado' : 'En atención'} tone="success" /></View>
+  const isCalled = ticket.state === 'llamado';
+  return <AppCard style={[styles.activeCard, isCalled ? styles.calledCard : styles.serviceCard]}>
+    <View style={styles.cardHeader}><View style={styles.cardCopy}><ThemedText type="eyebrow" themeColor="primary">{isCalled ? 'Turno llamado' : 'Atención en curso'}</ThemedText><ThemedText type="title">{ticket.visibleCode}</ThemedText></View><StatusBadge label={isCalled ? 'Llamado' : 'En atención'} tone="success" /></View>
     <TicketFacts ticket={ticket} />
-    {ticket.state === 'llamado' ? <View style={styles.actions}>
+    {isCalled ? <View style={styles.actions}>
+      <View style={styles.tolerance}><ThemedText type="eyebrow" themeColor="primary">Esperando al cliente</ThemedText><ThemedText type="small">Confirma que se encuentra listo antes de iniciar la atención.</ThemedText></View>
       <AuthButton label="Iniciar atención" onPress={() => void act(() => startMyService(ticket.ticketId))} disabled={isActing} isLoading={isActing} />
       <AuthButton label="Reasignar turno" variant="secondary" onPress={loadCandidates} disabled={isActing} />
       {isReassignmentOpen && (candidates.length > 0 ? <View style={styles.queue}><ThemedText type="small">Selecciona un barbero disponible y compatible. Esta acción no se puede hacer después de iniciar la atención.</ThemedText>{candidates.map((candidate) => <AuthButton key={candidate.barberId} label={`Reasignar a ${candidate.name}`} variant="secondary" onPress={() => reassign(candidate)} disabled={isActing} />)}</View> : <ThemedText type="small">No hay otro barbero disponible y compatible para reasignar este turno.</ThemedText>)}
       <AuthButton label="Marcar ausente" variant="destructive" onPress={() => void act(() => markMyTicketAbsent(ticket.ticketId))} disabled={isActing} />
-    </View> : <AuthButton label="Finalizar atención" onPress={() => void act(() => finishMyService(ticket.ticketId))} disabled={isActing} isLoading={isActing} />}
+    </View> : <><View style={styles.timerPanel}><ThemedText type="eyebrow">Servicio activo</ThemedText><ThemedText type="title">EN CURSO</ThemedText><ThemedText type="small">Finaliza cuando la atención haya concluido.</ThemedText></View><AuthButton label="Finalizar atención" onPress={() => void act(() => finishMyService(ticket.ticketId))} disabled={isActing} isLoading={isActing} /></>}
   </AppCard>;
 }
 
@@ -145,4 +147,4 @@ function TicketFacts({ ticket }: { ticket: WorkerTicket }) {
   return <View style={styles.facts}><ThemedText type="small">{ticket.queueName}</ThemedText>{ticket.serviceName && <ThemedText type="small">Servicio: {ticket.serviceName}</ThemedText>}{ticket.requestedBarberName && <ThemedText type="small">Solicitó: {ticket.requestedBarberName}</ThemedText>}{ticket.assignedBarberName && <ThemedText type="small">Asignado: {ticket.assignedBarberName}</ThemedText>}</View>;
 }
 
-const styles = StyleSheet.create({ heading: { gap: 6 }, availabilityCard: { gap: 14 }, activeCard: { gap: 16 }, cardHeader: { alignItems: 'flex-start', flexDirection: 'row', gap: 12, justifyContent: 'space-between' }, cardCopy: { flex: 1, gap: 4 }, actions: { gap: 8 }, queue: { gap: 12 }, queueHeader: { gap: 4 }, ticket: { borderWidth: 1, borderRadius: 14, gap: 10, padding: 16 }, facts: { gap: 3 }, stateCard: { gap: 8 }, notice: { gap: 0 } });
+const styles = StyleSheet.create({ heading: { gap: 6 }, liveRow: { alignItems: 'center', flexDirection: 'row', gap: 7 }, liveDot: { backgroundColor: '#0D7A75', borderRadius: 5, height: 9, width: 9 }, availabilityCard: { gap: 14 }, activeCard: { gap: 16 }, calledCard: { borderColor: '#0D7A75', borderWidth: 1 }, serviceCard: { borderColor: '#0E1E2E', borderWidth: 1 }, cardHeader: { alignItems: 'flex-start', flexDirection: 'row', gap: 12, justifyContent: 'space-between' }, cardCopy: { flex: 1, gap: 4 }, actions: { gap: 8 }, tolerance: { backgroundColor: '#F2EDE9', borderRadius: 8, gap: 4, padding: 12 }, timerPanel: { backgroundColor: '#E1F2F1', borderRadius: 8, gap: 4, padding: 16 }, queue: { gap: 12 }, queueHeader: { gap: 4 }, ticket: { borderWidth: 1, borderRadius: 8, gap: 10, padding: 16 }, facts: { gap: 3 }, stateCard: { gap: 8 }, notice: { gap: 0 } });
