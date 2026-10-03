@@ -116,6 +116,7 @@ export default function WorkerScreen() {
         {error && <AuthButton label="Reintentar" variant="secondary" onPress={() => void refresh()} disabled={isActing} />}
         <AuthButton label="Actualizar" variant="secondary" onPress={() => void refresh()} disabled={isActing} />
         <AuthButton label="Ver cola compatible" variant="secondary" onPress={() => router.replace('/(app)/worker-queue')} disabled={isActing} />
+        <AuthButton label="Agregar cliente presencial" variant="secondary" onPress={() => router.push('/(app)/worker-walk-in')} disabled={isActing} />
       </ScrollView>
     </WorkerScreenContainer>
   );

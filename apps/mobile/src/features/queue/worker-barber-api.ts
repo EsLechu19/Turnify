@@ -19,6 +19,8 @@ export type ReassignmentCandidate = {
   name: string;
 };
 
+export type WorkerHistoryEntry = { ticketId: string; visibleCode: string; queueName: string; serviceName: string | null; state: 'finalizado' | 'ausente'; completedAt: string | null };
+
 type WorkerQueuePayload = {
   estado: WorkerAvailability;
   tickets: Array<{
@@ -92,6 +94,24 @@ export function reassignCalledTicket(ticketId: string, targetBarberId: string): 
     p_ticket_id: ticketId,
     p_barbero_destino_id: targetBarberId,
   });
+}
+
+export async function createMyWalkInTicket(queueId: string, referenceName: string): Promise<string> {
+  const { data, error } = await getSupabase().rpc('crear_mi_ticket_presencial', { p_fila_id: queueId, p_prioridad: 'normal', p_nombre_ref: referenceName.trim() || null });
+  if (error) throw new Error(error.message);
+  return (data as { codigo_visible: string }).codigo_visible;
+}
+
+export async function getWorkerHistory(): Promise<WorkerHistoryEntry[]> {
+  const { data, error } = await getSupabase().rpc('mi_historial_barbero');
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((entry: { ticket_id: string; codigo_visible: string; fila_nombre: string; servicio_nombre: string | null; estado: 'finalizado' | 'ausente'; finalizado_en: string | null }) => ({ ticketId: entry.ticket_id, visibleCode: entry.codigo_visible, queueName: entry.fila_nombre, serviceName: entry.servicio_nombre, state: entry.estado, completedAt: entry.finalizado_en }));
+}
+
+export async function getWorkerQueues(): Promise<Array<{ queueId: string; name: string }>> {
+  const { data, error } = await getSupabase().rpc('mis_filas_barbero');
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((queue: { fila_id: string; nombre: string }) => ({ queueId: queue.fila_id, name: queue.nombre }));
 }
 
 export function translateWorkerBarberError(message: string): string {

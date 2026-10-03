@@ -22,10 +22,11 @@ export type AppRouteName =
   | 'worker'
   | 'worker-queue'
   | 'worker-history'
-  | 'worker-profile';
+  | 'worker-profile'
+  | 'worker-walk-in';
 
 const customerRoutes = new Set<AppRouteName>();
-const workerRoutes = new Set<AppRouteName>(['worker', 'worker-queue', 'worker-history', 'worker-profile']);
+const workerRoutes = new Set<AppRouteName>(['worker', 'worker-queue', 'worker-history', 'worker-profile', 'worker-walk-in']);
 const adminRoutes = new Set<AppRouteName>(['admin', 'configuration']);
 
 export function appRouteNameFromSegments(segments: readonly string[]): AppRouteName {
