@@ -9,7 +9,7 @@ import { CompletedGuestTicket } from '@/components/customer/completed-guest-tick
 import { CustomerButton, CustomerPage, CustomerState } from '@/components/customer/customer-ui';
 import { useGuestFlow } from '@/features/public/guest-flow-session';
 import { canUseGuestTicket } from '@/features/public/public-route-policy';
-import { cancelGuestTicket, getGuestTicketState, type GuestTicketState } from '@/features/queue/public-guest-ticket-api';
+import { cancelGuestTicket, getGuestTicketState, respondToCalledGuestTicket, type GuestTicketState } from '@/features/queue/public-guest-ticket-api';
 import { translateQueueError } from '@/features/queue/queue-api';
 import { canCancelTicket, presentTicketStatus, ticketPosition } from '@/features/queue/ticket-presentation';
 import { getSupabase } from '@/lib/supabase';
@@ -65,6 +65,7 @@ export default function GuestTicketScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isResponding, setIsResponding] = useState(false);
   const [isConfirmingCancel, setIsConfirmingCancel] = useState(false);
 
   const returnHome = useCallback(() => {
@@ -130,12 +131,25 @@ export default function GuestTicketScreen() {
     }
   }
 
+  async function respond(response: NonNullable<GuestTicketState['customerResponse']>) {
+    if (!ticketAccess || ticket?.status !== 'llamado') return;
+    setIsResponding(true);
+    try {
+      await respondToCalledGuestTicket(ticketAccess, response);
+      await refresh();
+    } catch (reason) {
+      setError(translateQueueError(reason instanceof Error ? reason.message : ''));
+    } finally {
+      setIsResponding(false);
+    }
+  }
+
   if (!canUseGuestTicket(ticketAccess)) {
     return <SafeAreaView edges={['top']} style={styles.safeArea}><CustomerPage><CustomerState label="No hay un turno disponible en esta sesión." detail="Por privacidad, necesitas conservar el acceso del turno en este dispositivo." action={returnHome} /></CustomerPage></SafeAreaView>;
   }
 
   if (ticket && status?.isActiveTurn) {
-    return <SafeAreaView edges={['top']} style={styles.safeArea}><CustomerPage><CalledGuestTicket ticket={ticket} error={error} onRetry={() => void refresh()} /></CustomerPage></SafeAreaView>;
+    return <SafeAreaView edges={['top']} style={styles.safeArea}><CustomerPage><CalledGuestTicket ticket={ticket} error={error} isResponding={isResponding} onRespond={(response) => void respond(response)} onRetry={() => void refresh()} /></CustomerPage></SafeAreaView>;
   }
 
   if (ticket && status?.isCompletedTurn) {

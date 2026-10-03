@@ -12,6 +12,9 @@ export type WorkerTicket = {
   serviceName: string | null;
   requestedBarberName: string | null;
   assignedBarberName: string | null;
+  calledDeadlineAt: string | null;
+  customerResponse: 'presente' | 'llega_en_2_min' | null;
+  customerResponseAt: string | null;
 };
 
 export type ReassignmentCandidate = {
@@ -32,6 +35,9 @@ type WorkerQueuePayload = {
     servicio_nombre: string | null;
     barbero_solicitado_nombre: string | null;
     barbero_asignado_nombre: string | null;
+    llamado_vencimiento_en: string | null;
+    respuesta_cliente: WorkerTicket['customerResponse'];
+    respuesta_cliente_en: string | null;
   }>;
 };
 
@@ -51,6 +57,9 @@ export async function getWorkerBarberQueue(): Promise<{ availability: WorkerAvai
       serviceName: ticket.servicio_nombre,
       requestedBarberName: ticket.barbero_solicitado_nombre,
       assignedBarberName: ticket.barbero_asignado_nombre,
+      calledDeadlineAt: ticket.llamado_vencimiento_en,
+      customerResponse: ticket.respuesta_cliente,
+      customerResponseAt: ticket.respuesta_cliente_en,
     })),
   };
 }

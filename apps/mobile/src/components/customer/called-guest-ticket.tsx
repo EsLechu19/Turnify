@@ -1,40 +1,33 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CustomerCard, CustomerHeading, CustomerState } from '@/components/customer/customer-ui';
 import type { GuestTicketState } from '@/features/queue/public-guest-ticket-api';
-import { useTheme } from '@/hooks/use-theme';
 
-export function CalledGuestTicket({ ticket, error, onRetry }: { ticket: GuestTicketState; error: string | null; onRetry: () => void }) {
-  const theme = useTheme();
+const colors = { ink: '#111D27', muted: '#60707D', teal: '#00686C', low: '#EDF4FF', terracotta: '#B75C45', terracottaLow: '#FBE9E3', white: '#FFFFFF', border: '#DCE3F2' };
 
+function remainingSeconds(deadline: string | null): number { return deadline ? Math.max(0, Math.ceil((new Date(deadline).getTime() - Date.now()) / 1000)) : 0; }
+function formatRemaining(seconds: number): string { return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`; }
+
+export function CalledGuestTicket({ ticket, error, isResponding, onRespond, onRetry }: { ticket: GuestTicketState; error: string | null; isResponding: boolean; onRespond: (response: NonNullable<GuestTicketState['customerResponse']>) => void; onRetry: () => void }) {
+  const [seconds, setSeconds] = useState(() => remainingSeconds(ticket.calledDeadlineAt));
+  useEffect(() => { const update = () => setSeconds(remainingSeconds(ticket.calledDeadlineAt)); update(); const interval = setInterval(update, 1000); return () => clearInterval(interval); }, [ticket.calledDeadlineAt]);
+  const responseLabel = ticket.customerResponse === 'presente' ? 'Confirmaste: ya estás aquí' : ticket.customerResponse === 'llega_en_2_min' ? 'Confirmaste: llegas en 2 minutos' : null;
+  const canRespond = seconds > 0 && !ticket.customerResponse;
   return <>
     <CustomerHeading eyebrow="Aviso de llamado" title="¡Es tu turno!" detail="Acércate al personal para continuar con tu turno." />
     {error && <CustomerState label={error} action={onRetry} />}
-    <View style={[styles.alert, { backgroundColor: theme.primary }]}>
-      <Text style={[styles.alertEyebrow, { color: theme.background }]}>AVISO DE LLAMADO</Text>
-      <Text style={[styles.alertTitle, { color: theme.background }]}>TE ESTAMOS ESPERANDO</Text>
-      <View style={[styles.livePill, { backgroundColor: theme.backgroundElement }]}><Text style={{ color: theme.primary, fontSize: 12, fontWeight: '800' }}>LLAMANDO</Text></View>
-    </View>
-    <CustomerCard style={styles.codeCard}>
-      <Text style={[styles.label, { color: theme.textSecondary }]}>CÓDIGO DE ATENCIÓN</Text>
-      <Text style={[styles.code, { color: theme.text }]}>{ticket.visibleCode}</Text>
-    </CustomerCard>
-    {(ticket.serviceName || ticket.assignedBarberName) && <CustomerCard>
-      <Text style={[styles.label, { color: theme.textSecondary }]}>DETALLES DE ASIGNACIÓN</Text>
-      {ticket.assignedBarberName && <View style={[styles.fact, { borderBottomColor: theme.border }]}><Text style={{ color: theme.textSecondary }}>Barbero asignado</Text><Text style={[styles.factValue, { color: theme.text }]}>{ticket.assignedBarberName}</Text></View>}
-      {ticket.serviceName && <View style={styles.fact}><Text style={{ color: theme.textSecondary }}>Servicio</Text><Text style={[styles.factValue, { color: theme.text }]}>{ticket.serviceName}</Text></View>}
-    </CustomerCard>}
+    <View style={styles.alert}><Text style={styles.alertEyebrow}>AVISO DE LLAMADO</Text><Text style={styles.alertTitle}>TE ESTAMOS ESPERANDO</Text><View style={styles.livePill}><Text style={styles.livePillText}>LLAMANDO</Text></View></View>
+    <CustomerCard style={styles.codeCard}><Text style={styles.label}>CÓDIGO DE ATENCIÓN</Text><Text accessibilityLabel={`Código de turno ${ticket.visibleCode}`} style={styles.code}>{ticket.visibleCode}</Text><View style={styles.countdown}><Text style={styles.countdownLabel}>TOLERANCIA RESTANTE</Text><Text accessibilityLabel={`${formatRemaining(seconds)} de tolerancia restante`} style={styles.countdownValue}>{formatRemaining(seconds)}</Text></View></CustomerCard>
+    {(ticket.serviceName || ticket.assignedBarberName) && <CustomerCard style={styles.facts}><Text style={styles.label}>DETALLES DE ASIGNACIÓN</Text>{ticket.assignedBarberName && <View style={styles.fact}><Text style={styles.factLabel}>Barbero asignado</Text><Text style={styles.factValue}>{ticket.assignedBarberName}</Text></View>}{ticket.serviceName && <View style={styles.fact}><Text style={styles.factLabel}>Servicio</Text><Text style={styles.factValue}>{ticket.serviceName}</Text></View>}</CustomerCard>}
+    <View style={styles.warning}><Text style={styles.warningTitle}>Tolerancia de llegada</Text><Text style={styles.warningDetail}>Responde solo para informar al personal. Ninguna respuesta cambia ni agrega tiempo a tu tolerancia.</Text></View>
+    {responseLabel ? <View accessibilityRole="alert" style={styles.response}><Text style={styles.responseText}>{responseLabel}</Text><Text style={styles.responseDetail}>El personal decide cuándo iniciar la atención.</Text></View> : canRespond ? <View style={styles.actions}><Pressable accessibilityLabel="Confirmar que ya estoy aquí" accessibilityRole="button" disabled={isResponding} onPress={() => onRespond('presente')} style={({ pressed }) => [styles.primaryAction, (pressed || isResponding) && styles.pressed]}><Text style={styles.primaryActionText}>{isResponding ? 'Enviando…' : 'Ya estoy aquí'}</Text></Pressable><Pressable accessibilityLabel="Informar que llego en 2 minutos" accessibilityRole="button" disabled={isResponding} onPress={() => onRespond('llega_en_2_min')} style={({ pressed }) => [styles.secondaryAction, (pressed || isResponding) && styles.pressed]}><Text style={styles.secondaryActionText}>Llego en 2 minutos</Text></Pressable></View> : <View accessibilityRole="alert" style={styles.expired}><Text style={styles.expiredText}>La tolerancia terminó. Espera la actualización del turno.</Text></View>}
   </>;
 }
 
 const styles = StyleSheet.create({
-  alert: { borderRadius: 16, gap: 4, overflow: 'hidden', padding: 20 },
-  alertEyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
-  alertTitle: { fontSize: 24, fontWeight: '800', letterSpacing: -.4 },
-  livePill: { alignSelf: 'flex-start', borderRadius: 999, marginTop: 10, paddingHorizontal: 10, paddingVertical: 6 },
-  codeCard: { alignItems: 'center', gap: 4, paddingVertical: 24 },
-  label: { fontSize: 11, fontWeight: '800', letterSpacing: 1 },
-  code: { fontSize: 56, fontWeight: '800', letterSpacing: -1, lineHeight: 64 },
-  fact: { flexDirection: 'row', gap: 12, justifyContent: 'space-between', paddingVertical: 12 },
-  factValue: { flex: 1, fontWeight: '700', textAlign: 'right' },
+  alert: { backgroundColor: colors.teal, borderRadius: 12, gap: 5, padding: 20 }, alertEyebrow: { color: '#D9F2F0', fontSize: 11, fontWeight: '800', letterSpacing: 1.1 }, alertTitle: { color: colors.white, fontSize: 24, fontWeight: '800', letterSpacing: -.4 }, livePill: { alignSelf: 'flex-start', backgroundColor: colors.white, borderRadius: 999, marginTop: 9, paddingHorizontal: 10, paddingVertical: 6 }, livePillText: { color: colors.teal, fontSize: 11, fontWeight: '800', letterSpacing: .6 },
+  codeCard: { alignItems: 'center', gap: 4, paddingVertical: 20 }, label: { color: colors.muted, fontSize: 10, fontWeight: '800', letterSpacing: 1 }, code: { color: colors.ink, fontSize: 52, fontWeight: '800', letterSpacing: -1, lineHeight: 60 }, countdown: { alignItems: 'center', backgroundColor: colors.low, borderRadius: 8, marginTop: 8, paddingHorizontal: 18, paddingVertical: 10 }, countdownLabel: { color: colors.teal, fontSize: 10, fontWeight: '800', letterSpacing: .8 }, countdownValue: { color: colors.ink, fontSize: 27, fontWeight: '800', letterSpacing: -.8, marginTop: 2 },
+  facts: { gap: 4 }, fact: { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: 12, justifyContent: 'space-between', paddingTop: 12 }, factLabel: { color: colors.muted, flex: 1, fontSize: 13 }, factValue: { color: colors.ink, flex: 1, fontSize: 13, fontWeight: '700', textAlign: 'right' },
+  warning: { backgroundColor: colors.terracottaLow, borderRadius: 12, gap: 4, padding: 16 }, warningTitle: { color: colors.terracotta, fontSize: 14, fontWeight: '800' }, warningDetail: { color: '#6D3B30', fontSize: 13, lineHeight: 19 }, actions: { gap: 10 }, primaryAction: { alignItems: 'center', backgroundColor: colors.teal, borderRadius: 8, justifyContent: 'center', minHeight: 52, paddingHorizontal: 16 }, primaryActionText: { color: colors.white, fontSize: 15, fontWeight: '800' }, secondaryAction: { alignItems: 'center', backgroundColor: colors.white, borderColor: colors.teal, borderRadius: 8, borderWidth: 1, justifyContent: 'center', minHeight: 52, paddingHorizontal: 16 }, secondaryActionText: { color: colors.teal, fontSize: 15, fontWeight: '800' }, response: { backgroundColor: colors.low, borderRadius: 12, gap: 3, padding: 16 }, responseText: { color: colors.teal, fontSize: 14, fontWeight: '800' }, responseDetail: { color: colors.muted, fontSize: 13, lineHeight: 19 }, expired: { backgroundColor: colors.terracottaLow, borderRadius: 12, padding: 14 }, expiredText: { color: '#6D3B30', fontSize: 13, fontWeight: '700' }, pressed: { opacity: .68 },
 });
