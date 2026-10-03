@@ -1,57 +1,16 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { WorkerScreenContainer, workerScreenStyles } from '@/components/worker/worker-screen-container';
+import { WorkerButton, WorkerPill, WorkerText, workerColors, workerUiStyles } from '@/components/worker/worker-ui';
+import { WorkerScreenContainer } from '@/components/worker/worker-screen-container';
 import { callMyNextTicket, getWorkerBarberQueue, translateWorkerBarberError, type WorkerTicket } from '@/features/queue/worker-barber-api';
-import { useTheme } from '@/hooks/use-theme';
 
 export default function WorkerQueueScreen() {
-  const theme = useTheme();
-  const [tickets, setTickets] = useState<WorkerTicket[]>([]);
-  const [availability, setAvailability] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isCalling, setIsCalling] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const queue = await getWorkerBarberQueue();
-      setAvailability(queue.availability);
-      setTickets(queue.tickets.filter((ticket) => ticket.state === 'en_espera' || ticket.state === 'notificado'));
-      setError(null);
-    } catch (reason) {
-      setError(translateWorkerBarberError(reason instanceof Error ? reason.message : ''));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
-
-  async function call(ticket: WorkerTicket) {
-    setIsCalling(ticket.ticketId);
-    try {
-      await callMyNextTicket(ticket.queueId);
-      await refresh();
-    } catch (reason) {
-      setError(translateWorkerBarberError(reason instanceof Error ? reason.message : ''));
-    } finally {
-      setIsCalling(null);
-    }
-  }
-
-  return <WorkerScreenContainer activeNavigation="queue"><ScrollView contentContainerStyle={[workerScreenStyles.page, { backgroundColor: theme.background }]}>
-    <View style={{ gap: 6 }}><Text style={[workerScreenStyles.eyebrow, { color: theme.primary }]}>Operación</Text><Text style={[workerScreenStyles.title, { color: theme.text }]}>Cola compatible</Text><Text style={[workerScreenStyles.detail, { color: theme.textSecondary }]}>Solo se muestran turnos que puedes atender y llamar.</Text></View>
-    {isLoading && <View accessibilityRole="progressbar" style={[workerScreenStyles.card, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}><ActivityIndicator color={theme.primary} /><Text style={{ color: theme.textSecondary }}>Actualizando cola compatible…</Text></View>}
-    {error && <Pressable accessibilityRole="button" accessibilityLabel="Reintentar actualizar la cola" onPress={() => void refresh()} style={[workerScreenStyles.card, { borderColor: theme.destructive, backgroundColor: theme.destructiveMuted }]}><Text style={{ color: theme.destructive, fontWeight: '700' }}>No pudimos actualizar la cola</Text><Text style={{ color: theme.destructive }}>{error}</Text><Text style={{ color: theme.destructive, fontWeight: '700' }}>Reintentar</Text></Pressable>}
-    {!isLoading && !error && availability === 'fuera_de_turno' && <QueueState label="Estás fuera de turno" detail="Marca tu disponibilidad en En vivo para llamar turnos." theme={theme} />}
-    {!isLoading && !error && availability !== 'fuera_de_turno' && tickets.length === 0 && <QueueState label="No hay turnos compatibles" detail="Los nuevos turnos compatibles aparecerán aquí." theme={theme} />}
-    {tickets.map((ticket) => <Pressable key={ticket.ticketId} accessibilityRole="button" accessibilityLabel={`Llamar turno ${ticket.visibleCode}`} disabled={availability !== 'disponible' || isCalling !== null} onPress={() => void call(ticket)} style={({ pressed }) => [workerScreenStyles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.border, opacity: pressed || availability !== 'disponible' ? .72 : 1 }]}><View style={{ alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: theme.text, fontSize: 24, fontWeight: '700', letterSpacing: -.4 }}>{ticket.visibleCode}</Text><Text style={{ color: ticket.state === 'notificado' ? theme.primary : theme.textSecondary, fontSize: 11, fontWeight: '700', letterSpacing: 1 }}>{ticket.state === 'notificado' ? 'NOTIFICADO' : 'EN ESPERA'}</Text></View><Text style={{ color: theme.textSecondary }}>{ticket.queueName}</Text>{ticket.serviceName && <Text style={{ color: theme.text }}>Servicio: {ticket.serviceName}</Text>}{ticket.requestedBarberName && <Text style={{ color: theme.textSecondary }}>Solicitó: {ticket.requestedBarberName}</Text>}<Text style={{ color: theme.primary, fontWeight: '700' }}>{isCalling === ticket.ticketId ? 'Llamando…' : availability === 'disponible' ? 'Llamar turno' : 'Marca tu disponibilidad para llamar'}</Text></Pressable>)}
-  </ScrollView></WorkerScreenContainer>;
+  const [tickets, setTickets] = useState<WorkerTicket[]>([]); const [availability, setAvailability] = useState<string | null>(null); const [error, setError] = useState<string | null>(null); const [isLoading, setIsLoading] = useState(true); const [isCalling, setIsCalling] = useState<string | null>(null);
+  const refresh = useCallback(async () => { setIsLoading(true); try { const queue = await getWorkerBarberQueue(); setAvailability(queue.availability); setTickets(queue.tickets.filter((ticket) => ticket.state === 'en_espera' || ticket.state === 'notificado')); setError(null); } catch (reason) { setError(translateWorkerBarberError(reason instanceof Error ? reason.message : '')); } finally { setIsLoading(false); } }, []); useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
+  async function call(ticket: WorkerTicket) { setIsCalling(ticket.ticketId); try { await callMyNextTicket(ticket.queueId); await refresh(); } catch (reason) { setError(translateWorkerBarberError(reason instanceof Error ? reason.message : '')); } finally { setIsCalling(null); } }
+  return <WorkerScreenContainer activeNavigation="queue"><ScrollView contentContainerStyle={workerUiStyles.page}><View style={styles.heading}><WorkerText variant="eyebrow" color={workerColors.teal}>Operación en vivo</WorkerText><WorkerText variant="title">Cola compatible</WorkerText><WorkerText color={workerColors.muted}>Solo aparecen turnos que puedes atender.</WorkerText></View><View style={styles.summary}><WorkerText variant="label">{tickets.length} turnos disponibles</WorkerText><WorkerPill label={availability === 'disponible' ? 'LISTO PARA LLAMAR' : availability === 'fuera_de_turno' ? 'FUERA DE TURNO' : 'OCUPADO'} tone={availability === 'disponible' ? 'teal' : 'neutral'} /></View>{isLoading && <View accessibilityRole="progressbar" style={workerUiStyles.card}><ActivityIndicator color={workerColors.teal} /><WorkerText color={workerColors.muted}>Actualizando cola compatible…</WorkerText></View>}{error && <View style={[workerUiStyles.card, { backgroundColor: workerColors.errorContainer }]}><WorkerText variant="label" color={workerColors.error}>No pudimos actualizar la cola</WorkerText><WorkerText color={workerColors.error}>{error}</WorkerText><WorkerButton label="Reintentar" tone="secondary" onPress={() => void refresh()} /></View>}{!isLoading && !error && availability === 'fuera_de_turno' && <Empty label="Estás fuera de turno" detail="Marca tu disponibilidad en En vivo para llamar turnos." />}{!isLoading && !error && availability !== 'fuera_de_turno' && tickets.length === 0 && <Empty label="No hay turnos compatibles" detail="Los nuevos turnos compatibles aparecerán aquí." />}{tickets.map((ticket) => <Pressable key={ticket.ticketId} accessibilityRole="button" accessibilityLabel={`Llamar turno ${ticket.visibleCode}`} disabled={availability !== 'disponible' || isCalling !== null} onPress={() => void call(ticket)} style={({ pressed }) => [workerUiStyles.card, styles.ticket, { opacity: pressed || availability !== 'disponible' ? .65 : 1 }]}><View style={workerUiStyles.split}><WorkerText variant="metric">{ticket.visibleCode}</WorkerText><WorkerPill label={ticket.state === 'notificado' ? 'NOTIFICADO' : 'EN ESPERA'} tone={ticket.state === 'notificado' ? 'teal' : 'neutral'} /></View><WorkerText variant="headline">{ticket.serviceName || ticket.queueName}</WorkerText><WorkerText color={workerColors.muted}>{ticket.queueName}</WorkerText>{ticket.requestedBarberName && <WorkerText color={workerColors.muted}>Solicitó: {ticket.requestedBarberName}</WorkerText>}<WorkerText variant="label" color={workerColors.teal}>{isCalling === ticket.ticketId ? 'Llamando…' : availability === 'disponible' ? 'Llamar turno' : 'Marca disponibilidad para llamar'}</WorkerText></Pressable>)}</ScrollView></WorkerScreenContainer>;
 }
-
-function QueueState({ label, detail, theme }: { label: string; detail: string; theme: ReturnType<typeof useTheme> }) {
-  return <View style={[workerScreenStyles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}><Text style={{ color: theme.text, fontSize: 18, fontWeight: '700' }}>{label}</Text><Text style={{ color: theme.textSecondary }}>{detail}</Text></View>;
-}
+function Empty({ label, detail }: { label: string; detail: string }) { return <View style={workerUiStyles.card}><WorkerText variant="headline">{label}</WorkerText><WorkerText color={workerColors.muted}>{detail}</WorkerText></View>; }
+const styles = StyleSheet.create({ heading: { gap: 6 }, summary: { alignItems: 'center', backgroundColor: workerColors.low, borderRadius: 12, flexDirection: 'row', justifyContent: 'space-between', padding: 12 }, ticket: { gap: 8 } });

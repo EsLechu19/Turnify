@@ -2,149 +2,50 @@ import { Alert, AppState, Pressable, ScrollView, StyleSheet, View } from 'react-
 import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 
-import { AuthButton, AuthErrorMessage } from '@/components/auth/auth-ui';
-import { WorkerScreenContainer, workerScreenStyles } from '@/components/worker/worker-screen-container';
-import { ThemedText } from '@/components/themed-text';
-import { AppCard, StatusBadge } from '@/components/ui/surface';
+import { AuthErrorMessage } from '@/components/auth/auth-ui';
+import { WorkerButton, WorkerIcon, WorkerPill, WorkerText, workerColors, workerUiStyles } from '@/components/worker/worker-ui';
+import { WorkerScreenContainer } from '@/components/worker/worker-screen-container';
 import { useAuth } from '@/features/auth/use-auth';
-import {
-  callMyNextTicket,
-  finishMyService,
-  getReassignmentCandidates,
-  getWorkerBarberQueue,
-  markMyTicketAbsent,
-  reassignCalledTicket,
-  setWorkerAvailability,
-  startMyService,
-  translateWorkerBarberError,
-  type ReassignmentCandidate,
-  type WorkerAvailability,
-  type WorkerTicket,
-} from '@/features/queue/worker-barber-api';
-import { useTheme } from '@/hooks/use-theme';
+import { callMyNextTicket, finishMyService, getReassignmentCandidates, getWorkerBarberQueue, markMyTicketAbsent, reassignCalledTicket, setWorkerAvailability, startMyService, translateWorkerBarberError, type ReassignmentCandidate, type WorkerAvailability, type WorkerTicket } from '@/features/queue/worker-barber-api';
 import { getSupabase } from '@/lib/supabase';
 
 let workerSubscriptionId = 0;
-
-const availabilityLabel: Record<WorkerAvailability, string> = {
-  disponible: 'Disponible',
-  ocupado: 'Con turno activo',
-  fuera_de_turno: 'Fuera de turno',
-};
+const availabilityLabel: Record<WorkerAvailability, string> = { disponible: 'Disponible', ocupado: 'Con turno activo', fuera_de_turno: 'Fuera de turno' };
 
 export default function WorkerScreen() {
-  const theme = useTheme();
   const { profile, isProfileLoading } = useAuth();
   const [availability, setAvailability] = useState<WorkerAvailability | null>(null);
-  const [tickets, setTickets] = useState<WorkerTicket[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [reassignmentCandidates, setReassignmentCandidates] = useState<ReassignmentCandidate[]>([]);
-  const [isReassignmentOpen, setIsReassignmentOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isActing, setIsActing] = useState(false);
-
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const next = await getWorkerBarberQueue();
-      setAvailability(next.availability);
-      setTickets(next.tickets);
-      setError(null);
-    } catch (reason) {
-      setError(translateWorkerBarberError(reason instanceof Error ? reason.message : ''));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
+  const [tickets, setTickets] = useState<WorkerTicket[]>([]); const [error, setError] = useState<string | null>(null); const [notice, setNotice] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<ReassignmentCandidate[]>([]); const [showCandidates, setShowCandidates] = useState(false); const [isLoading, setIsLoading] = useState(true); const [isActing, setIsActing] = useState(false);
+  const refresh = useCallback(async () => { setIsLoading(true); try { const next = await getWorkerBarberQueue(); setAvailability(next.availability); setTickets(next.tickets); setError(null); } catch (reason) { setError(translateWorkerBarberError(reason instanceof Error ? reason.message : '')); } finally { setIsLoading(false); } }, []);
   useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
-
-  useEffect(() => {
-    if (!profile?.businessId) return;
-    const supabase = getSupabase();
-    const channel = supabase
-      .channel(`worker-barber:${profile.businessId}:${++workerSubscriptionId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets', filter: `empresa_id=eq.${profile.businessId}` }, () => void refresh())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'barbero_operaciones', filter: `empresa_id=eq.${profile.businessId}` }, () => void refresh())
-      .subscribe();
-    const appState = AppState.addEventListener('change', (state) => { if (state === 'active') void refresh(); });
-    return () => { appState.remove(); void supabase.removeChannel(channel); };
-  }, [profile?.businessId, refresh]);
-
+  useEffect(() => { if (!profile?.businessId) return; const supabase = getSupabase(); const channel = supabase.channel(`worker-barber:${profile.businessId}:${++workerSubscriptionId}`).on('postgres_changes', { event: '*', schema: 'public', table: 'tickets', filter: `empresa_id=eq.${profile.businessId}` }, () => void refresh()).on('postgres_changes', { event: '*', schema: 'public', table: 'barbero_operaciones', filter: `empresa_id=eq.${profile.businessId}` }, () => void refresh()).subscribe(); const appState = AppState.addEventListener('change', (state) => { if (state === 'active') void refresh(); }); return () => { appState.remove(); void supabase.removeChannel(channel); }; }, [profile?.businessId, refresh]);
   if (!isProfileLoading && (profile?.role !== 'personal' || !profile.businessId)) return <Redirect href="/(app)" />;
-
-  const activeTicket = tickets.find((ticket) => ticket.state === 'llamado' || ticket.state === 'en_atencion') ?? null;
-  const compatibleTickets = tickets.filter((ticket) => ticket.state === 'en_espera' || ticket.state === 'notificado');
-
-  async function act(action: () => Promise<void>, successMessage?: string) {
-    setIsActing(true);
-    setError(null);
-    setNotice(null);
-    try { await action(); await refresh(); setNotice(successMessage ?? null); } catch (reason) {
-      setError(translateWorkerBarberError(reason instanceof Error ? reason.message : ''));
-      await refresh();
-    } finally { setIsActing(false); }
-  }
-
-  return (
-    <WorkerScreenContainer activeNavigation="live">
-      <ScrollView contentContainerStyle={[workerScreenStyles.page, { backgroundColor: theme.background }]}>
-        <View style={styles.heading}>
-          <View style={styles.liveRow}><View style={styles.liveDot} /><ThemedText type="eyebrow" themeColor="primary">En vivo</ThemedText><ThemedText type="small" themeColor="textSecondary">Operación de tu estación</ThemedText></View>
-          <ThemedText type="subtitle">Tu cola de trabajo</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">Solo se muestran turnos que puedes atender.</ThemedText>
-        </View>
-        {isLoading ? <AppCard accessibilityRole="progressbar" style={styles.stateCard}><ThemedText type="smallBold">Actualizando operación…</ThemedText><ThemedText type="small">Estamos consultando tu disponibilidad y cola compatible.</ThemedText></AppCard> : (
-          <>
-            <AppCard style={styles.availabilityCard}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardCopy}><ThemedText type="eyebrow" themeColor="primary">Estado de estación</ThemedText><ThemedText type="smallBold">{availability ? availabilityLabel[availability] : 'No disponible'}</ThemedText></View>
-                <StatusBadge label={availability ? availabilityLabel[availability] : 'No disponible'} tone={availability === 'fuera_de_turno' ? 'destructive' : availability === 'ocupado' ? 'success' : 'primary'} />
-              </View>
-              {availability === 'ocupado' && <ThemedText type="small">Finaliza o marca ausente tu turno activo para actualizar tu disponibilidad.</ThemedText>}
-              {availability !== 'ocupado' && <View style={styles.actions}>
-                <AuthButton label="Estoy disponible" variant="secondary" onPress={() => void act(() => setWorkerAvailability('disponible'), 'Ya puedes llamar turnos compatibles.')} disabled={isActing || availability === 'disponible'} />
-                <AuthButton label="Salir de turno" variant="destructive" onPress={() => void act(() => setWorkerAvailability('fuera_de_turno'), 'Tu estado ahora es fuera de turno.')} disabled={isActing || availability === 'fuera_de_turno'} />
-              </View>}
-            </AppCard>
-            {activeTicket ? <ActiveTicket ticket={activeTicket} candidates={reassignmentCandidates} isReassignmentOpen={isReassignmentOpen} isActing={isActing} act={act} loadCandidates={() => void act(async () => { setIsReassignmentOpen(true); setReassignmentCandidates(await getReassignmentCandidates(activeTicket.ticketId)); })} reassign={(candidate) => Alert.alert('Reasignar turno', `¿Confirmas reasignar ${activeTicket.visibleCode} a ${candidate.name}?`, [{ text: 'Cancelar', style: 'cancel' }, { text: 'Confirmar', onPress: () => void act(() => reassignCalledTicket(activeTicket.ticketId, candidate.barberId), `Turno reasignado a ${candidate.name}.`) }])} /> : <CompatibleQueue tickets={compatibleTickets} availability={availability} isActing={isActing} act={act} theme={theme} />}
-          </>
-        )}
-        <AuthErrorMessage message={error} />
-        {notice && <AppCard accessibilityRole="alert" style={styles.notice}><ThemedText type="smallBold" themeColor="primary">{notice}</ThemedText></AppCard>}
-        {error && <AuthButton label="Reintentar" variant="secondary" onPress={() => void refresh()} disabled={isActing} />}
-        <AuthButton label="Actualizar" variant="secondary" onPress={() => void refresh()} disabled={isActing} />
-        <AuthButton label="Ver cola compatible" variant="secondary" onPress={() => router.replace('/(app)/worker-queue')} disabled={isActing} />
-        <AuthButton label="Agregar cliente presencial" variant="secondary" onPress={() => router.push('/(app)/worker-walk-in')} disabled={isActing} />
-      </ScrollView>
-    </WorkerScreenContainer>
-  );
+  const activeTicket = tickets.find((ticket) => ticket.state === 'llamado' || ticket.state === 'en_atencion') ?? null; const compatibleTickets = tickets.filter((ticket) => ticket.state === 'en_espera' || ticket.state === 'notificado');
+  async function act(action: () => Promise<void>, success?: string) { setIsActing(true); setError(null); setNotice(null); try { await action(); await refresh(); setNotice(success ?? null); } catch (reason) { setError(translateWorkerBarberError(reason instanceof Error ? reason.message : '')); await refresh(); } finally { setIsActing(false); } }
+  return <WorkerScreenContainer activeNavigation="live"><ScrollView contentContainerStyle={workerUiStyles.page}>
+    {activeTicket ? <LifecycleScreen ticket={activeTicket} candidates={candidates} showCandidates={showCandidates} isActing={isActing} act={act} openCandidates={() => void act(async () => { setShowCandidates(true); setCandidates(await getReassignmentCandidates(activeTicket.ticketId)); })} reassign={(candidate) => Alert.alert('Reasignar turno', `¿Confirmas reasignar ${activeTicket.visibleCode} a ${candidate.name}?`, [{ text: 'Cancelar', style: 'cancel' }, { text: 'Confirmar', onPress: () => void act(() => reassignCalledTicket(activeTicket.ticketId, candidate.barberId), `Turno reasignado a ${candidate.name}.`) }])} /> : <LiveQueue availability={availability} tickets={compatibleTickets} isLoading={isLoading} isActing={isActing} act={act} />}
+    <AuthErrorMessage message={error} />{notice && <View accessibilityRole="alert" style={workerUiStyles.card}><WorkerText variant="label" color={workerColors.teal}>{notice}</WorkerText></View>}{error && <WorkerButton label="Reintentar" tone="secondary" disabled={isActing} onPress={() => void refresh()} />}
+  </ScrollView></WorkerScreenContainer>;
 }
 
-function ActiveTicket({ ticket, candidates, isReassignmentOpen, isActing, act, loadCandidates, reassign }: { ticket: WorkerTicket; candidates: ReassignmentCandidate[]; isReassignmentOpen: boolean; isActing: boolean; act(action: () => Promise<void>, successMessage?: string): Promise<void>; loadCandidates(): void; reassign(candidate: ReassignmentCandidate): void }) {
-  const isCalled = ticket.state === 'llamado';
-  return <AppCard style={[styles.activeCard, isCalled ? styles.calledCard : styles.serviceCard]}>
-    <View style={styles.cardHeader}><View style={styles.cardCopy}><ThemedText type="eyebrow" themeColor="primary">{isCalled ? 'Turno llamado' : 'Atención en curso'}</ThemedText><ThemedText type="title">{ticket.visibleCode}</ThemedText></View><StatusBadge label={isCalled ? 'Llamado' : 'En atención'} tone="success" /></View>
-    <TicketFacts ticket={ticket} />
-    {isCalled ? <View style={styles.actions}>
-      <View style={styles.tolerance}><ThemedText type="eyebrow" themeColor="primary">Esperando al cliente</ThemedText><ThemedText type="small">Confirma que se encuentra listo antes de iniciar la atención.</ThemedText></View>
-      <AuthButton label="Iniciar atención" onPress={() => void act(() => startMyService(ticket.ticketId))} disabled={isActing} isLoading={isActing} />
-      <AuthButton label="Reasignar turno" variant="secondary" onPress={loadCandidates} disabled={isActing} />
-      {isReassignmentOpen && (candidates.length > 0 ? <View style={styles.queue}><ThemedText type="small">Selecciona un barbero disponible y compatible. Esta acción no se puede hacer después de iniciar la atención.</ThemedText>{candidates.map((candidate) => <AuthButton key={candidate.barberId} label={`Reasignar a ${candidate.name}`} variant="secondary" onPress={() => reassign(candidate)} disabled={isActing} />)}</View> : <ThemedText type="small">No hay otro barbero disponible y compatible para reasignar este turno.</ThemedText>)}
-      <AuthButton label="Marcar ausente" variant="destructive" onPress={() => void act(() => markMyTicketAbsent(ticket.ticketId))} disabled={isActing} />
-    </View> : <><View style={styles.timerPanel}><ThemedText type="eyebrow">Servicio activo</ThemedText><ThemedText type="title">EN CURSO</ThemedText><ThemedText type="small">Finaliza cuando la atención haya concluido.</ThemedText></View><AuthButton label="Finalizar atención" onPress={() => void act(() => finishMyService(ticket.ticketId))} disabled={isActing} isLoading={isActing} /></>}
-  </AppCard>;
+function LiveQueue({ availability, tickets, isLoading, isActing, act }: { availability: WorkerAvailability | null; tickets: WorkerTicket[]; isLoading: boolean; isActing: boolean; act(action: () => Promise<void>, success?: string): Promise<void> }) {
+  const next = tickets[0];
+  return <><View style={styles.liveHeader}><View><WorkerText variant="eyebrow" color={workerColors.teal}>En vivo · Operación</WorkerText><WorkerText variant="title">Tu estación</WorkerText></View><WorkerPill label={`${tickets.length} EN COLA`} tone="teal" /></View>
+    <View style={[workerUiStyles.card, styles.statusCard]}><View><WorkerText variant="eyebrow" color={workerColors.muted}>Estado actual</WorkerText><WorkerText variant="headline">{availability ? availabilityLabel[availability] : 'Sin disponibilidad'}</WorkerText></View><WorkerPill label={availability === 'ocupado' ? 'OCUPADO' : availability === 'disponible' ? 'ACTIVO' : 'FUERA DE TURNO'} tone={availability === 'disponible' ? 'teal' : 'neutral'} />
+      {availability !== 'ocupado' && <View style={styles.availabilityActions}><WorkerButton label="Estoy disponible" tone="secondary" disabled={isActing || availability === 'disponible'} onPress={() => void act(() => setWorkerAvailability('disponible'), 'Ya puedes llamar turnos compatibles.')} /><WorkerButton label="Salir de turno" tone="danger" disabled={isActing || availability === 'fuera_de_turno'} onPress={() => void act(() => setWorkerAvailability('fuera_de_turno'), 'Tu estado ahora es fuera de turno.')} /></View>}</View>
+    {isLoading ? <View accessibilityRole="progressbar" style={workerUiStyles.card}><WorkerText variant="headline">Actualizando operación…</WorkerText><WorkerText color={workerColors.muted}>Consultando tu disponibilidad y cola compatible.</WorkerText></View> : next ? <Pressable accessibilityRole="button" accessibilityLabel={`Llamar turno ${next.visibleCode}`} disabled={isActing || availability !== 'disponible'} onPress={() => void act(() => callMyNextTicket(next.queueId), `Llamaste el turno ${next.visibleCode}.`)} style={({ pressed }) => [styles.nextCallout, { opacity: pressed || availability !== 'disponible' ? .65 : 1 }]}><WorkerText variant="eyebrow" color={workerColors.teal}>Siguiente turno</WorkerText><View style={workerUiStyles.split}><WorkerText variant="metric">{next.visibleCode}</WorkerText><WorkerIcon name="live" color={workerColors.teal} size={30} /></View><TicketDetail ticket={next} /><WorkerText variant="label" color={workerColors.teal}>{availability === 'disponible' ? 'Llamar ahora' : 'Marca disponibilidad para llamar'}</WorkerText></Pressable> : <View style={workerUiStyles.card}><WorkerText variant="headline">{availability === 'fuera_de_turno' ? 'Estás fuera de turno' : 'No hay turnos compatibles'}</WorkerText><WorkerText color={workerColors.muted}>{availability === 'fuera_de_turno' ? 'Marca tu disponibilidad para atender.' : 'Los nuevos turnos compatibles aparecerán aquí.'}</WorkerText></View>}
+    <View style={styles.sectionHeading}><WorkerText variant="headline">Cola compatible</WorkerText><WorkerText color={workerColors.muted}>Turnos que puedes atender</WorkerText></View>{tickets.slice(1).map((ticket) => <View key={ticket.ticketId} style={[workerUiStyles.card, styles.queueCard]}><View style={workerUiStyles.split}><WorkerText variant="headline">{ticket.visibleCode}</WorkerText><WorkerPill label={ticket.state === 'notificado' ? 'NOTIFICADO' : 'EN ESPERA'} /></View><TicketDetail ticket={ticket} /></View>)}
+    <WorkerButton label="Agregar cliente presencial" onPress={() => router.push('/(app)/worker-walk-in')} />
+  </>;
 }
 
-function CompatibleQueue({ tickets, availability, isActing, act, theme }: { tickets: WorkerTicket[]; availability: WorkerAvailability | null; isActing: boolean; act(action: () => Promise<void>, successMessage?: string): Promise<void>; theme: ReturnType<typeof useTheme> }) {
-  if (availability === 'fuera_de_turno') return <AppCard style={styles.stateCard}><ThemedText type="smallBold">Estás fuera de turno</ThemedText><ThemedText type="small">Marca tu disponibilidad para ver y llamar turnos compatibles.</ThemedText></AppCard>;
-  if (tickets.length === 0) return <AppCard style={styles.stateCard}><ThemedText type="smallBold">No hay turnos compatibles</ThemedText><ThemedText type="small">Los turnos solicitados para otro barbero y los servicios no compatibles no aparecen aquí.</ThemedText></AppCard>;
-  return <View style={styles.queue}><View style={styles.queueHeader}><ThemedText type="eyebrow" themeColor="primary">Siguiente atención</ThemedText><ThemedText type="smallBold">Cola compatible</ThemedText></View>{tickets.map((ticket) => <Pressable key={ticket.ticketId} style={({ pressed }) => [styles.ticket, { backgroundColor: theme.backgroundElement, borderColor: theme.border, opacity: pressed || isActing || availability !== 'disponible' ? .72 : 1 }]} accessibilityRole="button" accessibilityLabel={`Llamar turno ${ticket.visibleCode}`} onPress={() => void act(() => callMyNextTicket(ticket.queueId), `Llamaste el turno ${ticket.visibleCode}.`)} disabled={isActing || availability !== 'disponible'}><View style={styles.cardHeader}><ThemedText type="title">{ticket.visibleCode}</ThemedText><StatusBadge label={ticket.state === 'notificado' ? 'Notificado' : 'En espera'} /></View><TicketFacts ticket={ticket} /><ThemedText type="smallBold" themeColor="primary">{availability === 'disponible' ? 'Llamar turno' : 'Marca tu disponibilidad para llamar'}</ThemedText></Pressable>)}</View>;
+function LifecycleScreen({ ticket, candidates, showCandidates, isActing, act, openCandidates, reassign }: { ticket: WorkerTicket; candidates: ReassignmentCandidate[]; showCandidates: boolean; isActing: boolean; act(action: () => Promise<void>, success?: string): Promise<void>; openCandidates(): void; reassign(candidate: ReassignmentCandidate): void }) {
+  const called = ticket.state === 'llamado';
+  return <>{called ? <View style={styles.calledTop}><Pressable accessibilityRole="button" accessibilityLabel="Volver a la cola" onPress={() => router.replace('/(app)/worker-queue')}><WorkerIcon name="back" /></Pressable><WorkerPill label="TURNO LLAMADO" tone="teal" /></View> : <View style={styles.serviceBanner}><WorkerIcon name="live" color={workerColors.teal} /><WorkerText variant="label" color={workerColors.teal}>ATENCIÓN EN CURSO</WorkerText></View>}
+    <View style={[styles.ticketHero, !called && styles.serviceHero]}><WorkerText variant="eyebrow" color={called ? workerColors.teal : workerColors.tealContainer}>{called ? 'Listo para iniciar' : 'Servicio activo'}</WorkerText><WorkerText variant="metric" color={called ? workerColors.ink : '#FFFFFF'}>{ticket.visibleCode}</WorkerText><TicketDetail ticket={ticket} inverted={!called} /></View>
+    {called ? <><View style={[workerUiStyles.card, styles.tolerance]}><WorkerText variant="eyebrow" color={workerColors.teal}>Tolerancia de llegada</WorkerText><WorkerText variant="headline">Esperando confirmación</WorkerText><WorkerText color={workerColors.muted}>Inicia la atención cuando el cliente esté listo. No hay un cronómetro disponible.</WorkerText><View style={styles.progressTrack}><View style={styles.progressFill} /></View></View><WorkerButton label="Iniciar atención" disabled={isActing} onPress={() => void act(() => startMyService(ticket.ticketId))} /><WorkerButton label="Reasignar turno" tone="secondary" disabled={isActing} onPress={openCandidates} />{showCandidates && <View style={workerUiStyles.card}><WorkerText variant="label">Barberos compatibles disponibles</WorkerText>{candidates.length ? candidates.map((candidate) => <WorkerButton key={candidate.barberId} label={`Reasignar a ${candidate.name}`} tone="secondary" disabled={isActing} onPress={() => reassign(candidate)} />) : <WorkerText color={workerColors.muted}>No hay otro barbero disponible y compatible.</WorkerText>}</View>}<WorkerButton label="Marcar ausente" tone="danger" disabled={isActing} onPress={() => void act(() => markMyTicketAbsent(ticket.ticketId))} /><WorkerButton label="Volver a la cola" tone="secondary" onPress={() => router.replace('/(app)/worker-queue')} /></> : <><View style={styles.elapsedModule}><WorkerText variant="eyebrow" color={workerColors.tealContainer}>Progreso de atención</WorkerText><WorkerText variant="headline" color="#FFFFFF">Atendiendo este turno</WorkerText><WorkerText color="#D9E4E2">La duración no está disponible en la operación actual.</WorkerText><View style={styles.darkTrack}><View style={styles.darkFill} /></View></View><WorkerButton label="Finalizar atención" disabled={isActing} onPress={() => void act(() => finishMyService(ticket.ticketId))} /><WorkerButton label="Volver a la cola" tone="secondary" onPress={() => router.replace('/(app)/worker-queue')} /></>}</>;
 }
 
-function TicketFacts({ ticket }: { ticket: WorkerTicket }) {
-  return <View style={styles.facts}><ThemedText type="small">{ticket.queueName}</ThemedText>{ticket.serviceName && <ThemedText type="small">Servicio: {ticket.serviceName}</ThemedText>}{ticket.requestedBarberName && <ThemedText type="small">Solicitó: {ticket.requestedBarberName}</ThemedText>}{ticket.assignedBarberName && <ThemedText type="small">Asignado: {ticket.assignedBarberName}</ThemedText>}</View>;
-}
-
-const styles = StyleSheet.create({ heading: { gap: 6 }, liveRow: { alignItems: 'center', flexDirection: 'row', gap: 7 }, liveDot: { backgroundColor: '#0D7A75', borderRadius: 5, height: 9, width: 9 }, availabilityCard: { gap: 14 }, activeCard: { gap: 16 }, calledCard: { borderColor: '#0D7A75', borderWidth: 1 }, serviceCard: { borderColor: '#0E1E2E', borderWidth: 1 }, cardHeader: { alignItems: 'flex-start', flexDirection: 'row', gap: 12, justifyContent: 'space-between' }, cardCopy: { flex: 1, gap: 4 }, actions: { gap: 8 }, tolerance: { backgroundColor: '#F2EDE9', borderRadius: 8, gap: 4, padding: 12 }, timerPanel: { backgroundColor: '#E1F2F1', borderRadius: 8, gap: 4, padding: 16 }, queue: { gap: 12 }, queueHeader: { gap: 4 }, ticket: { borderWidth: 1, borderRadius: 8, gap: 10, padding: 16 }, facts: { gap: 3 }, stateCard: { gap: 8 }, notice: { gap: 0 } });
+function TicketDetail({ ticket, inverted = false }: { ticket: WorkerTicket; inverted?: boolean }) { const color = inverted ? '#FFFFFF' : workerColors.body; const muted = inverted ? '#D9E4E2' : workerColors.muted; return <View style={styles.ticketDetails}><WorkerText color={color}>{ticket.serviceName || ticket.queueName}</WorkerText><WorkerText variant="label" color={muted}>{ticket.queueName}</WorkerText>{ticket.requestedBarberName && <WorkerText color={muted}>Solicitó: {ticket.requestedBarberName}</WorkerText>}{ticket.assignedBarberName && <WorkerText color={muted}>Asignado: {ticket.assignedBarberName}</WorkerText>}</View>; }
+const styles = StyleSheet.create({ liveHeader: { gap: 10 }, statusCard: { gap: 16 }, availabilityActions: { flexDirection: 'row', gap: 8 }, nextCallout: { backgroundColor: workerColors.tealContainer, borderRadius: 12, gap: 12, padding: 20 }, sectionHeading: { gap: 2, marginTop: 4 }, queueCard: { gap: 10 }, ticketDetails: { gap: 3 }, calledTop: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }, serviceBanner: { alignItems: 'center', backgroundColor: workerColors.tealContainer, borderRadius: 8, flexDirection: 'row', gap: 8, padding: 12 }, ticketHero: { backgroundColor: workerColors.card, borderColor: workerColors.outline, borderRadius: 12, borderWidth: 1, gap: 10, padding: 20 }, serviceHero: { backgroundColor: workerColors.ink, borderColor: workerColors.ink }, tolerance: { backgroundColor: workerColors.low }, progressTrack: { backgroundColor: workerColors.high, borderRadius: 99, height: 8 }, progressFill: { backgroundColor: workerColors.teal, borderRadius: 99, height: 8, width: '35%' }, elapsedModule: { backgroundColor: workerColors.ink, borderRadius: 12, gap: 12, padding: 20 }, darkTrack: { backgroundColor: '#385064', borderRadius: 99, height: 8 }, darkFill: { backgroundColor: workerColors.tealContainer, borderRadius: 99, height: 8, width: '50%' } });

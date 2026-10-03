@@ -1,9 +1,9 @@
 import { router, type Href } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { BottomTabInset, Radius } from '@/constants/theme';
+import { BottomTabInset } from '@/constants/theme';
 import { workerNavigationItems, type WorkerNavigationKey } from '@/features/worker/worker-navigation';
-import { useTheme } from '@/hooks/use-theme';
+import { WorkerIcon, WorkerText, workerColors } from '@/components/worker/worker-ui';
 
 type WorkerScreenContainerProps = {
   activeNavigation: WorkerNavigationKey;
@@ -12,13 +12,11 @@ type WorkerScreenContainerProps = {
 
 /** Persistent worker frame for assignment-safe operational destinations. */
 export function WorkerScreenContainer({ activeNavigation, children }: WorkerScreenContainerProps) {
-  const theme = useTheme();
-
   return (
-    <View style={[styles.shell, { backgroundColor: theme.background }]}>
-      <View style={styles.topRule} />
+    <View style={styles.shell}>
+      <View style={styles.header}><WorkerText variant="headline">Turnify</WorkerText><WorkerText variant="label" color={workerColors.muted}>Operación de barbero</WorkerText></View>
       <View style={styles.content}>{children}</View>
-      <View style={[styles.navigation, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+      <View style={styles.navigation}>
         {workerNavigationItems.map((item) => {
           const active = item.key === activeNavigation;
           return (
@@ -30,8 +28,8 @@ export function WorkerScreenContainer({ activeNavigation, children }: WorkerScre
               onPress={() => router.replace(item.href as Href)}
               style={({ pressed }) => [styles.navigationItem, { opacity: pressed ? 0.72 : 1 }]}
             >
-              <Text style={[styles.navigationIcon, { color: active ? theme.primary : theme.textSecondary }]}>{navigationIcons[item.key]}</Text>
-              <Text style={[styles.navigationLabel, { color: active ? theme.primary : theme.textSecondary }]}>{item.label}</Text>
+              <WorkerIcon name={navigationIcons[item.key]} color={active ? workerColors.teal : workerColors.muted} size={20} />
+              <WorkerText variant="eyebrow" color={active ? workerColors.teal : workerColors.muted} style={styles.navigationLabel}>{item.label}</WorkerText>
             </Pressable>
           );
         })}
@@ -50,15 +48,14 @@ export const workerScreenStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  shell: { flex: 1 }, topRule: { backgroundColor: '#0E1E2E', height: 3 },
+  shell: { backgroundColor: workerColors.background, flex: 1 }, header: { alignItems: 'center', backgroundColor: '#FEF8F4EE', borderBottomColor: workerColors.outline, borderBottomWidth: 1, flexDirection: 'row', gap: 12, justifyContent: 'space-between', minHeight: 60, paddingHorizontal: 16, shadowColor: '#0E1E2E', shadowOpacity: .05, shadowRadius: 8 },
   content: { alignSelf: 'center', flex: 1, maxWidth: 640, width: '100%' },
   navigation: {
-    alignSelf: 'center', borderTopWidth: 1, flexDirection: 'row', maxWidth: 640,
+    alignSelf: 'center', backgroundColor: '#FEF8F4EE', borderColor: workerColors.outline, borderTopWidth: 1, flexDirection: 'row', maxWidth: 640,
     minHeight: 64 + BottomTabInset, paddingBottom: BottomTabInset, paddingHorizontal: 8, width: '100%',
   },
   navigationItem: { alignItems: 'center', flex: 1, justifyContent: 'center', minHeight: 64, paddingHorizontal: 2 },
-  navigationIcon: { fontSize: 19, lineHeight: 22, marginBottom: 2 },
-  navigationLabel: { fontSize: 11, fontWeight: '600', lineHeight: 16 },
+  navigationLabel: { marginTop: 3 },
 });
 
-const navigationIcons: Record<WorkerNavigationKey, string> = { live: '◉', queue: '≡', history: '↶', profile: '◌' };
+const navigationIcons: Record<WorkerNavigationKey, 'live' | 'queue' | 'history' | 'profile'> = { live: 'live', queue: 'queue', history: 'history', profile: 'profile' };
