@@ -3,8 +3,8 @@ import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } fro
 import Svg, { Path } from 'react-native-svg';
 
 export const workerColors = {
-  background: '#FEF8F4', card: '#FFFFFF', low: '#F8F3EF', container: '#F2EDE9', high: '#ECE7E3', outline: '#C4C6CC',
-  ink: '#0E1E2E', primary: '#000308', body: '#1D1B19', muted: '#44474C', teal: '#006A65', tealContainer: '#96EFE8', error: '#BA1A1A', errorContainer: '#FFDAD6',
+  background: '#F7F9FF', card: '#FFFFFF', low: '#EDF4FF', container: '#EDF4FF', high: '#EDF4FF', outline: '#C4D4E5',
+  ink: '#111D27', primary: '#111D27', body: '#111D27', muted: '#516170', teal: '#00686C', tealContainer: '#D7F0F1', error: '#BA1A1A', errorContainer: '#FFDAD6',
 } as const;
 
 const bodyFont = 'Work Sans';

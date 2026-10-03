@@ -254,6 +254,46 @@ Replace invitation-code Worker onboarding with independent Worker accounts and e
 - 2026-10-02 — UI base work unit:
   - `npx vitest run` — passed: 11 test files, 74 tests.
   - `npm --workspace turnify-mobile run typecheck` — passed.
+
+## TV2-WORKER-40 — Authenticated Worker access completion
+
+### Objective
+
+Complete the public-to-authenticated Worker access journey: the public staff entry opens Worker sign-in, Worker registration captures explicit Worker intent, and only an approved Worker with an active selected membership reaches operations.
+
+### Membership authorization invariant
+
+- Authentication and a `personal` role alone never authorize operations.
+- The client may route to Worker operations only after the profile resolves to `personal` with an active server-selected shop context.
+- Operational RPCs keep deriving authorization and shop scope on the server; no client shop ID is added to them.
+- Registration never creates a membership. A local administrator must add the Worker by their exact email before operations become available.
+
+### Acceptance criteria
+
+- [x] `Acceso para personal` routes to `/(auth)/worker-access`.
+- [x] Worker sign-in validates credentials, safely reports errors, supports password visibility, links to registration, and routes only approved Workers to `/(app)/worker`.
+- [x] Worker registration validates name/email/password, sends `workerIntent: true`, distinguishes confirmation-required registration, and renders awaiting assignment for a live unassigned session.
+- [x] Unassigned Workers receive a respectful waiting state with sign-out and exact-email administrator guidance; admin and customer accounts are denied.
+- [x] The existing Worker profile remains reachable for approved Workers and shop selection continues to refresh the profile/data context.
+- [x] Worker dashboard copy uses only `mi_cola_barbero` fields and avoids unsupported stations, customer identity/contact, progress, or fabricated operational claims.
+- [x] Focused auth/navigation/dashboard assertions, full Vitest, mobile typecheck, and `git diff --check` are recorded before completion.
+
+### Delivery
+
+| Item | Record |
+| --- | --- |
+| Route | `delegated` |
+| Trigger | User-authorized complete authenticated Worker access flow with server-owned membership authorization. |
+| Rollback boundary | Worker auth screens, access-state helper/policy, dashboard wording, focused tests, and this record can be reverted together without changing database authorization or public guest routes. |
+| Engram mirror | Pending attempt before source edits; the local record remains authoritative if the session writer is unavailable. |
+
+### Completion evidence
+
+- Focused worker access tests: `npx vitest run tests/mobile/worker-intent-auth.test.ts tests/mobile/worker-access-flow.test.ts` — passed, 2 files and 11 tests.
+- Full suite: `npx vitest run` — passed, 29 files and 148 tests.
+- `npm --workspace turnify-mobile run typecheck` — blocked only by seven pre-existing invalid `/(app)` typed-route references in admin, configuration, history, profile, and register-business; no Worker access file is reported.
+- `git diff --check` — passed.
+- Runtime device/database walkthrough — N/A: no authorized local device or environment was available. No remote service, migration, push, or PR was performed.
   - `npx expo config --type public` (from `apps/mobile`) — passed without downloads.
   - `git diff --check` — passed.
   - Runtime visual walkthrough/screenshots — N/A: no emulator or connected device was available in this local environment. The focused route markup and type check were inspected instead.

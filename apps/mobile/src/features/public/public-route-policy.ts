@@ -10,8 +10,8 @@ export const publicBookingRoutes = [
   '/(public)/details',
   '/(public)/ticket',
 ] as const;
-/** Public footer entry begins the invitation-bound worker registration flow. */
-export const workerSignInRoute = '/(auth)/worker-register' as const;
+/** Public footer entry begins the authenticated Worker sign-in flow. */
+export const workerSignInRoute = '/(auth)/worker-access' as const;
 export const workerRegistrationRoute = '/(auth)/worker-register' as const;
 
 export function staffLanding(profile: AuthProfile | null): '/(app)/worker' | '/(app)/admin' | '/' {
