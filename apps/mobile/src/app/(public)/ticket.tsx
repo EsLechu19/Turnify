@@ -146,7 +146,7 @@ export default function GuestTicketScreen() {
   }
 
   if (ticket && status?.isActiveTurn) {
-    return <SafeAreaView edges={['top']} style={styles.safeArea}><CustomerPage><CalledGuestTicket ticket={ticket} error={error} isResponding={isResponding} onRespond={(response) => void respond(response)} onRetry={() => void refresh()} /></CustomerPage></SafeAreaView>;
+    return <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}><TicketHeader isLoading={isLoading} onBack={returnHome} onRefresh={() => void refresh()} /><CustomerPage><CalledGuestTicket ticket={ticket} error={error} isResponding={isResponding} onRespond={(response) => void respond(response)} onRetry={() => void refresh()} /></CustomerPage></SafeAreaView>;
   }
 
   if (ticket && status?.isCompletedTurn) {

@@ -21,6 +21,10 @@ describe('called-ticket customer response mobile contract', () => {
 
   it('renders real response actions and a countdown derived from the server deadline without promising extra time', () => {
     expect(calledScreen).toContain('remainingSeconds(ticket.calledDeadlineAt)');
+    expect(calledScreen).toContain('Aviso de llamado');
+    expect(calledScreen).toContain('¡ES TU TURNO!');
+    expect(calledScreen).toContain('Vence a las {formatDeadline(ticket.calledDeadlineAt)}');
+    expect(calledScreen).toContain('width: `${decay * 100}%`');
     expect(calledScreen).toContain('Ya estoy aquí');
     expect(calledScreen).toContain('Llego en 2 minutos');
     expect(calledScreen).toContain('Ninguna respuesta cambia ni agrega tiempo a tu tolerancia.');
@@ -29,6 +33,7 @@ describe('called-ticket customer response mobile contract', () => {
   });
 
   it('submits then refreshes the called state while preserving the existing realtime ticket refresh', () => {
+    expect(ticketRoute).toContain("edges={['top', 'bottom']} style={styles.safeArea}><TicketHeader");
     expect(ticketRoute).toContain('await respondToCalledGuestTicket(ticketAccess, response);');
     expect(ticketRoute).toContain('await refresh();');
     expect(ticketRoute).toContain("table: 'tickets'");
