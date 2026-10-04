@@ -22,10 +22,12 @@ Turnify es un MVP de gestión de filas: las personas toman un turno desde la apl
 
 ### Fundación
 
-- Aplicación móvil con Expo SDK 57 y Expo Router.
-- Workspace web preparado con Vite, React y TypeScript; el dashboard corresponde a la Fase 6 pendiente.
-- Tipos compartidos, migraciones Supabase y decisiones de arquitectura.
-- Límites de seguridad: las credenciales de proveedores permanecen del lado del servidor; la aplicación móvil no contiene secretos ni tokens de dispositivos.
+La base se cerró antes de la Fase 3 mediante las tareas **T1–T8** de `turnify-mvp-base` y las validaciones vivas **V1–V4** de `turnify-live-validation`.
+
+- **Decisiones de producto y plataforma:** aplicación móvil Android-first con Expo SDK 57 y Expo Router; workspace web con Vite, React y TypeScript preparado, pero sin dashboard implementado. Supabase (Postgres, Auth y Realtime) es el backend integral del MVP; la aplicación móvil usa solo la anon key y los secretos de proveedores permanecen en el servidor.
+- **Dominio puro de filas:** la máquina de estados cubre `en_espera`, `notificado`, `llamado`, `en_atencion`, `finalizado`, `cancelado` y `ausente`; la cola ordena por llegada dentro de cada prioridad e intercala preferenciales según `preferencial_cada`. El ETA se deriva de las personas delante, el promedio y los puestos; el barrido de ausencias respeta la ventana de gracia. El dominio no importa Expo, React Native ni Supabase.
+- **Contrato Supabase:** las migraciones base definieron el esquema en español, índices y RLS; las RPC y triggers concentran las escrituras de turnos y las transiciones. RLS protege el aislamiento por empresa y cliente, mientras que las reglas temporales —ausencias y cierre— se ejecutan en el servidor mediante `pg_cron`, no en el cliente.
+- **Validación en vivo:** V1 comprobó RLS con usuarios reales; V2, concurrencia y la restricción de un turno activo; V3, los dos schedules de `pg_cron`, ausencias y cierre; V4, el recálculo del promedio, la publicación de Realtime y la limpieza de datos de prueba. Los hallazgos de extensiones y `search_path` quedaron corregidos en migraciones posteriores.
 
 ### Fase 3 — Cliente
 
