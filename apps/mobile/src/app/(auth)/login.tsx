@@ -1,3 +1,4 @@
+import { Link } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -67,6 +68,14 @@ export default function LoginScreen() {
         isLoading={isLoading}
       />
 
+      <View style={styles.footerLinks}>
+        <Link href="/(auth)/worker-access" style={styles.link}>
+          Ir al acceso para personal
+        </Link>
+        <Link href="/" style={styles.secondaryLink}>
+          Volver al inicio
+        </Link>
+      </View>
     </AuthScreenContainer>
   );
 }
@@ -77,5 +86,22 @@ const styles = StyleSheet.create({
   },
   notice: {
     marginBottom: 4,
+  },
+  footerLinks: {
+    gap: 8,
+    marginTop: 4,
+  },
+  link: {
+    color: '#00686C',
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  secondaryLink: {
+    color: '#526075',
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+    textDecorationLine: 'underline',
   },
 });

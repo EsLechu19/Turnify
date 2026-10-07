@@ -31,7 +31,28 @@ export default function WorkerAccessScreen() {
     setIsLoading(false);
   }
 
-  return <AuthScreenContainer><View style={styles.header}><ThemedText type="subtitle">Ingresar como personal</ThemedText><ThemedText type="small">Accede con el correo y la contraseña de tu cuenta aprobada.</ThemedText></View>{!isSupabaseConfigured && <ThemedText type="small">Falta configurar Supabase para iniciar sesión.</ThemedText>}<AuthField label="Correo" value={email} onChangeText={setEmail} placeholder="tu@correo.com" keyboardType="email-address" textContentType="emailAddress" editable={!isLoading} /><AuthField label="Contraseña" value={password} onChangeText={setPassword} placeholder="Tu contraseña" secureTextEntry textContentType="password" passwordVisibility={{ isVisible: isPasswordVisible, onToggle: () => setIsPasswordVisible((visible) => !visible) }} onSubmitEditing={() => void handleSubmit()} editable={!isLoading} /><AuthErrorMessage message={error} /><AuthButton label="Entrar como personal" onPress={() => void handleSubmit()} disabled={isLoading || !isSupabaseConfigured} isLoading={isLoading} /><Link href={workerRegistrationRoute} style={styles.link}>¿No tienes una cuenta? Regístrate como personal</Link></AuthScreenContainer>;
+  return (
+    <AuthScreenContainer>
+      <View style={styles.header}>
+        <ThemedText type="subtitle">Ingresar como personal</ThemedText>
+        <ThemedText type="small">Accede con el correo y la contraseña de tu cuenta aprobada.</ThemedText>
+      </View>
+      {!isSupabaseConfigured && <ThemedText type="small">Falta configurar Supabase para iniciar sesión.</ThemedText>}
+      <AuthField label="Correo" value={email} onChangeText={setEmail} placeholder="tu@correo.com" keyboardType="email-address" textContentType="emailAddress" editable={!isLoading} />
+      <AuthField label="Contraseña" value={password} onChangeText={setPassword} placeholder="Tu contraseña" secureTextEntry textContentType="password" passwordVisibility={{ isVisible: isPasswordVisible, onToggle: () => setIsPasswordVisible((visible) => !visible) }} onSubmitEditing={() => void handleSubmit()} editable={!isLoading} />
+      <AuthErrorMessage message={error} />
+      <AuthButton label="Entrar como personal" onPress={() => void handleSubmit()} disabled={isLoading || !isSupabaseConfigured} isLoading={isLoading} />
+      <View style={styles.footerLinks}>
+        <Link href={workerRegistrationRoute} style={styles.link}>¿No tienes una cuenta? Regístrate como personal</Link>
+        <Link href="/" style={styles.secondaryLink}>Volver al inicio</Link>
+      </View>
+    </AuthScreenContainer>
+  );
 }
 
-const styles = StyleSheet.create({ header: { gap: 4 }, link: { color: '#00686C', fontSize: 14, fontWeight: '600', lineHeight: 20 } });
+const styles = StyleSheet.create({
+  header: { gap: 4 },
+  footerLinks: { gap: 8, marginTop: 4 },
+  link: { color: '#00686C', fontSize: 14, fontWeight: '600', lineHeight: 20 },
+  secondaryLink: { color: '#526075', fontSize: 14, fontWeight: '600', lineHeight: 20, textDecorationLine: 'underline' },
+});

@@ -106,7 +106,7 @@ export default function AdminScreen() {
   }, [loadBusiness, profile?.businessId]);
 
   if (!isProfileLoading && (!profile?.businessId || (profile.role !== 'admin' && profile.role !== 'personal'))) {
-    return <Redirect href="/(app)" />;
+    return <Redirect href="/" />;
   }
 
   const selectedQueue = queues.find((queue) => queue.id === selectedQueueId) ?? null;
@@ -282,7 +282,7 @@ export default function AdminScreen() {
       )}
       <AuthErrorMessage message={error} />
       {error && <AuthButton label="Reintentar" onPress={() => void loadBusiness()} />}
-      <AuthButton label="Volver al inicio" onPress={() => router.replace('/(app)')} />
+      <AuthButton label="Volver al inicio" onPress={() => router.replace('/')} />
       </ScrollView>
     </AuthScreenContainer>
   );

@@ -73,7 +73,7 @@ export default function ConfigurationScreen() {
   );
 
   if (!isProfileLoading && (profile?.role !== 'admin' || !businessId)) {
-    return <Redirect href="/(app)" />;
+    return <Redirect href="/" />;
   }
 
   function updateQueueDraft(id: string, patch: Partial<QueueDraft>) {

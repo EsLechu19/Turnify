@@ -52,7 +52,9 @@ export default function RegisterScreen() {
     <AuthScreenContainer>
       <View style={styles.header}>
         <ThemedText type="subtitle">Crear cuenta</ThemedText>
-        <ThemedText type="small">Regístrate para tomar turnos.</ThemedText>
+        <ThemedText type="small">
+          Para tomar un turno como cliente no necesitas una cuenta. Si eres personal de una barbería, regístrate como personal.
+        </ThemedText>
       </View>
 
       <AuthField
@@ -89,9 +91,15 @@ export default function RegisterScreen() {
       />
 
       <ThemedView style={styles.footer}>
-        <Text style={styles.footerText}>¿Ya tienes cuenta?</Text>
-        <Link href="/(auth)/login" style={styles.link}>
-          Inicia sesión
+        <Text style={styles.footerText}>¿Eres personal de barbería?</Text>
+        <Link href="/(auth)/worker-register" style={styles.link}>
+          Regístrate como personal
+        </Link>
+      </ThemedView>
+
+      <ThemedView style={styles.footer}>
+        <Link href="/" style={styles.secondaryLink}>
+          Volver al inicio (Clientes)
         </Link>
       </ThemedView>
     </AuthScreenContainer>
@@ -114,7 +122,14 @@ const styles = StyleSheet.create({
   link: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#3c87f7',
-    fontWeight: 600,
+    color: '#00686C',
+    fontWeight: '600',
+  },
+  secondaryLink: {
+    color: '#526075',
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+    textDecorationLine: 'underline',
   },
 });

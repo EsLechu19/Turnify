@@ -29,7 +29,29 @@ export default function WorkerRegisterScreen() {
     setIsLoading(false);
   }
 
-  return <AuthScreenContainer><View style={styles.header}><ThemedText type="subtitle">Registro de personal</ThemedText><ThemedText type="small">Crea tu cuenta. Un administrador deberá aprobar tu acceso a una barbería antes de habilitar operaciones.</ThemedText></View>{!isSupabaseConfigured && <ThemedText type="small">Falta configurar Supabase para crear la cuenta.</ThemedText>}<AuthField label="Nombre" value={name} onChangeText={setName} placeholder="Tu nombre" textContentType="name" editable={!isLoading} /><AuthField label="Correo" value={email} onChangeText={setEmail} placeholder="tu@correo.com" keyboardType="email-address" textContentType="emailAddress" editable={!isLoading} /><AuthField label="Contraseña" value={password} onChangeText={setPassword} placeholder="Mínimo 6 caracteres" secureTextEntry textContentType="newPassword" passwordVisibility={{ isVisible: isPasswordVisible, onToggle: () => setIsPasswordVisible((visible) => !visible) }} editable={!isLoading} /><AuthErrorMessage message={error} /><AuthButton label="Crear cuenta de personal" onPress={() => void register()} disabled={isLoading || !isSupabaseConfigured} isLoading={isLoading} /><Link href="/(auth)/worker-access" style={styles.link}>Ya tengo una cuenta</Link></AuthScreenContainer>;
+  return (
+    <AuthScreenContainer>
+      <View style={styles.header}>
+        <ThemedText type="subtitle">Registro de personal</ThemedText>
+        <ThemedText type="small">Crea tu cuenta. Un administrador deberá aprobar tu acceso a una barbería antes de habilitar operaciones.</ThemedText>
+      </View>
+      {!isSupabaseConfigured && <ThemedText type="small">Falta configurar Supabase para crear la cuenta.</ThemedText>}
+      <AuthField label="Nombre" value={name} onChangeText={setName} placeholder="Tu nombre" textContentType="name" editable={!isLoading} />
+      <AuthField label="Correo" value={email} onChangeText={setEmail} placeholder="tu@correo.com" keyboardType="email-address" textContentType="emailAddress" editable={!isLoading} />
+      <AuthField label="Contraseña" value={password} onChangeText={setPassword} placeholder="Mínimo 6 caracteres" secureTextEntry textContentType="newPassword" passwordVisibility={{ isVisible: isPasswordVisible, onToggle: () => setIsPasswordVisible((visible) => !visible) }} editable={!isLoading} />
+      <AuthErrorMessage message={error} />
+      <AuthButton label="Crear cuenta de personal" onPress={() => void register()} disabled={isLoading || !isSupabaseConfigured} isLoading={isLoading} />
+      <View style={styles.footerLinks}>
+        <Link href="/(auth)/worker-access" style={styles.link}>Ya tengo una cuenta</Link>
+        <Link href="/" style={styles.secondaryLink}>Volver al inicio</Link>
+      </View>
+    </AuthScreenContainer>
+  );
 }
 
-const styles = StyleSheet.create({ header: { gap: 4 }, link: { color: '#00686C', fontSize: 14, fontWeight: '600', lineHeight: 20 } });
+const styles = StyleSheet.create({
+  header: { gap: 4 },
+  footerLinks: { gap: 8, marginTop: 4 },
+  link: { color: '#00686C', fontSize: 14, fontWeight: '600', lineHeight: 20 },
+  secondaryLink: { color: '#526075', fontSize: 14, fontWeight: '600', lineHeight: 20, textDecorationLine: 'underline' },
+});

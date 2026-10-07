@@ -19,7 +19,7 @@ export default function RegisterBusinessScreen() {
   const [isSaving, setIsSaving] = useState(false);
 
   if (!isProfileLoading && (profile?.role !== 'cliente' || profile.businessId)) {
-    return <Redirect href="/(app)" />;
+    return <Redirect href="/" />;
   }
 
   async function handleSubmit() {
@@ -53,7 +53,7 @@ export default function RegisterBusinessScreen() {
         <AuthField label="Dirección (opcional)" value={address} onChangeText={setAddress} placeholder="Dirección de atención" />
         <AuthErrorMessage message={error} />
         <AuthButton label="Registrar empresa" onPress={() => void handleSubmit()} disabled={isSaving} isLoading={isSaving} />
-        <AuthButton label="Volver al inicio" onPress={() => router.replace('/(app)')} disabled={isSaving} />
+        <AuthButton label="Volver al inicio" onPress={() => router.replace('/')} disabled={isSaving} />
       </ScrollView>
     </AuthScreenContainer>
   );
