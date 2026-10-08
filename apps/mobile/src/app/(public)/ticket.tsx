@@ -149,8 +149,21 @@ export default function GuestTicketScreen() {
     return <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}><TicketHeader isLoading={isLoading} onBack={returnHome} onRefresh={() => void refresh()} /><CustomerPage><CalledGuestTicket ticket={ticket} error={error} isResponding={isResponding} onRespond={(response) => void respond(response)} onRetry={() => void refresh()} /></CustomerPage></SafeAreaView>;
   }
 
+  async function rate(rating: number, comment?: string) {
+    if (!ticketAccess || ticket?.status !== 'finalizado') return;
+    setIsResponding(true);
+    try {
+      await import('@/features/queue/public-guest-ticket-api').then((api) => api.rateGuestTicket(ticketAccess, rating, comment));
+      await refresh();
+    } catch (reason) {
+      setError(translateQueueError(reason instanceof Error ? reason.message : ''));
+    } finally {
+      setIsResponding(false);
+    }
+  }
+
   if (ticket && status?.isCompletedTurn) {
-    return <SafeAreaView edges={['top']} style={styles.safeArea}><CustomerPage><CompletedGuestTicket ticket={ticket} error={error} onRetry={() => void refresh()} onReturn={returnHome} /></CustomerPage></SafeAreaView>;
+    return <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}><CustomerPage><CompletedGuestTicket ticket={ticket} error={error} isRating={isResponding} onRate={(r, c) => void rate(r, c)} onRetry={() => void refresh()} onReturn={returnHome} /></CustomerPage></SafeAreaView>;
   }
 
   if (!canUseGuestTicket(ticketAccess)) {

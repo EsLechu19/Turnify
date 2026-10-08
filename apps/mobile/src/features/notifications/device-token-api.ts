@@ -1,4 +1,5 @@
 import { getSupabase } from '@/lib/supabase';
+import type { GuestTicketAccess } from '@/features/queue/public-guest-ticket-api';
 
 export type DevicePlatform = 'android' | 'ios';
 
@@ -38,5 +39,36 @@ export async function revokeDeviceToken(token: string): Promise<void> {
 
   if (error) {
     throw new Error('Unable to revoke this device from notifications.');
+  }
+}
+
+/**
+ * Registers the device for a public guest ticket.
+ */
+export async function registerGuestDeviceToken(access: GuestTicketAccess, token: string, platform: DevicePlatform): Promise<void> {
+  const { error } = await getSupabase().rpc('registrar_dispositivo_invitado', {
+    p_ticket_id: access.ticketId,
+    p_capacidad: access.capability,
+    p_push_token: normalizeToken(token),
+    p_plataforma: platform,
+  });
+
+  if (error) {
+    throw new Error('Unable to register this device for the guest ticket notifications.');
+  }
+}
+
+/**
+ * Removes the provided token from the guest ticket.
+ */
+export async function revokeGuestDeviceToken(access: GuestTicketAccess, token: string): Promise<void> {
+  const { error } = await getSupabase().rpc('revocar_dispositivo_invitado', {
+    p_ticket_id: access.ticketId,
+    p_capacidad: access.capability,
+    p_push_token: normalizeToken(token),
+  });
+
+  if (error) {
+    throw new Error('Unable to revoke notification access for the guest ticket.');
   }
 }

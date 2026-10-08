@@ -27,7 +27,7 @@ describe('called-ticket customer response mobile contract', () => {
     expect(calledScreen).toContain('width: `${decay * 100}%`');
     expect(calledScreen).toContain('Ya estoy aquí');
     expect(calledScreen).toContain('Llego en 2 minutos');
-    expect(calledScreen).toContain('Ninguna respuesta cambia ni agrega tiempo a tu tolerancia.');
+    expect(calledScreen).toContain('Confirmar tu llegada no adelanta la atención');
     expect(calledScreen).toContain("onRespond('presente')");
     expect(calledScreen).toContain("onRespond('llega_en_2_min')");
   });

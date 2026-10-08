@@ -39,7 +39,7 @@ export default function PublicWelcomeScreen() {
   const [showCodeDrawer, setShowCodeDrawer] = useState(false);
   const [isDrawerMounted, setIsDrawerMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { ticketAccess, hasActiveTicketAccess, endGuestTicketSession } = useGuestFlow();
+  const { ticketAccess, hasActiveTicketAccess, endGuestTicketSession, isRestoringTicket } = useGuestFlow();
   const [activeTicket, setActiveTicket] = useState<GuestTicketState | null>(null);
   const drawerProgress = useRef(new Animated.Value(0)).current;
 
@@ -58,6 +58,7 @@ export default function PublicWelcomeScreen() {
   }, [endGuestTicketSession, ticketAccess]);
 
   useEffect(() => {
+    if (isRestoringTicket) return;
     if (!ticketAccess) {
       setActiveTicket(null);
       return;
@@ -101,6 +102,10 @@ export default function PublicWelcomeScreen() {
   function toggleCodeDrawer() {
     setError(null);
     setShowCodeDrawer((current) => !current);
+  }
+
+  if (isRestoringTicket) {
+    return null; // Or a splash screen equivalent
   }
 
   if (hasActiveTicketAccess) {

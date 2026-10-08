@@ -22,6 +22,7 @@ vi.mock('react', () => ({
   createContext: () => ({ Provider: 'GuestFlowProvider' }),
   useCallback: <T>(callback: T, dependencies: readonly unknown[]) => cached(() => callback, dependencies),
   useContext: () => undefined,
+  useEffect: (effect: () => void | (() => void), dependencies?: readonly unknown[]) => cached(() => effect(), dependencies || []),
   useMemo: <T>(factory: () => T, dependencies: readonly unknown[]) => cached(factory, dependencies),
   useState: <T,>(initialValue: T) => {
     const index = cursor++;
@@ -30,6 +31,14 @@ vi.mock('react', () => ({
       slots[index] = typeof next === 'function' ? (next as (current: T) => T)(slots[index] as T) : next;
     }] as const;
   },
+}));
+
+vi.mock('@/lib/secure-storage', () => ({
+  secureStorage: {
+    getItem: vi.fn().mockResolvedValue(null),
+    setItem: vi.fn().mockResolvedValue(undefined),
+    removeItem: vi.fn().mockResolvedValue(undefined),
+  }
 }));
 
 describe('GuestFlowProvider discovery actions', () => {

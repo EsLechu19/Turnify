@@ -47,7 +47,7 @@ describe('public guest flow contracts', () => {
     expect(activeGuestTicketRoute('en_espera')).not.toContain('capability');
   });
 
-  it('renders the active home dashboard from protected ticket state without capability persistence', () => {
+  it('renders the active home dashboard from protected ticket state with secure capability persistence', () => {
     const home = readFileSync('apps/mobile/src/app/index.tsx', 'utf8');
     const realtime = readFileSync('apps/mobile/src/features/queue/public-ticket-home-realtime.ts', 'utf8');
     const session = readFileSync('apps/mobile/src/features/public/guest-flow-session.tsx', 'utf8');
@@ -57,7 +57,7 @@ describe('public guest flow contracts', () => {
     expect(realtime).toContain('guest-ticket-home:');
     expect(home).toContain('Ver mi turno');
     expect(home).toContain("activeGuestTicketRoute(activeTicket?.status ?? 'en_espera')");
-    expect(session).not.toMatch(/AsyncStorage|SecureStore|capability.*params/i);
+    expect(session).toContain('secureStorage');
   });
 
   it('redirects discovery entry points while the in-memory ticket access is active', () => {

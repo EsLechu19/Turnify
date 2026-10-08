@@ -4,13 +4,14 @@ import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
-import { registerDeviceToken, revokeDeviceToken, type DevicePlatform } from '@/features/notifications/device-token-api';
+import { registerDeviceToken, revokeDeviceToken, registerGuestDeviceToken, revokeGuestDeviceToken, type DevicePlatform } from '@/features/notifications/device-token-api';
 import {
   registerTokenAfterPermission,
   reportNotificationRegistrationDiagnostic,
 } from '@/features/notifications/notification-registration';
 import { ticketTargetFromNotificationData } from '@/features/notifications/notification-routing';
 import { useAuth } from '@/features/auth/use-auth';
+import { useGuestFlow } from '@/features/public/guest-flow-session';
 import { initializeNotificationFoundation } from '@/lib/notifications';
 
 function configuredProjectId(): string | null {
@@ -18,23 +19,17 @@ function configuredProjectId(): string | null {
   return typeof projectId === 'string' && projectId.trim() ? projectId.trim() : null;
 }
 
-function routeNotification(response: Notifications.NotificationResponse): void {
-  const target = ticketTargetFromNotificationData(response.notification.request.content.data);
-  if (!target) return;
-
-  router.push(
-    `/(app)/ticket?ticketId=${encodeURIComponent(target.ticketId)}&queueId=${encodeURIComponent(target.queueId)}` as Href,
-  );
-}
-
-/** Registers customer-only notification behavior after authentication is ready. */
+/** Registers notification behavior for authenticated customers or public guests. */
 export function useNotificationLifecycle(): void {
   const { session, profile, isProfileLoading } = useAuth();
+  const { ticketAccess } = useGuestFlow();
+
   const isEligibleCustomer = Boolean(session && profile?.role === 'cliente' && !isProfileLoading);
+  const isEligibleGuest = Boolean(ticketAccess);
 
   useEffect(() => {
     if (isProfileLoading || (Platform.OS !== 'android' && Platform.OS !== 'ios')) return;
-    if (!isEligibleCustomer) {
+    if (!isEligibleCustomer && !isEligibleGuest) {
       reportNotificationRegistrationDiagnostic('missing_authenticated_customer_profile');
       return;
     }
@@ -48,6 +43,7 @@ export function useNotificationLifecycle(): void {
 
     let active = true;
     let registeredToken: string | null = null;
+    let registeredGuestAccess = ticketAccess;
 
     async function registerCurrentDevice(): Promise<void> {
       await registerTokenAfterPermission({
@@ -61,11 +57,20 @@ export function useNotificationLifecycle(): void {
         registerToken: async (token) => {
           if (!active) return;
 
-          await registerDeviceToken(token, Platform.OS as DevicePlatform);
+          if (isEligibleCustomer) {
+            await registerDeviceToken(token, Platform.OS as DevicePlatform);
+          } else if (ticketAccess) {
+            await registerGuestDeviceToken(ticketAccess, token, Platform.OS as DevicePlatform);
+          }
+
           if (active) {
             registeredToken = token;
           } else {
-            void revokeDeviceToken(token).catch(() => undefined);
+            if (isEligibleCustomer) {
+              void revokeDeviceToken(token).catch(() => undefined);
+            } else if (registeredGuestAccess) {
+              void revokeGuestDeviceToken(registeredGuestAccess, token).catch(() => undefined);
+            }
           }
         },
         onDiagnostic: reportNotificationRegistrationDiagnostic,
@@ -77,13 +82,30 @@ export function useNotificationLifecycle(): void {
     return () => {
       active = false;
       if (registeredToken) {
-        void revokeDeviceToken(registeredToken).catch(() => undefined);
+        if (isEligibleCustomer) {
+          void revokeDeviceToken(registeredToken).catch(() => undefined);
+        } else if (registeredGuestAccess) {
+          void revokeGuestDeviceToken(registeredGuestAccess, registeredToken).catch(() => undefined);
+        }
       }
     };
-  }, [isEligibleCustomer]);
+  }, [isEligibleCustomer, isEligibleGuest, ticketAccess, isProfileLoading]);
 
   useEffect(() => {
-    if (!isEligibleCustomer) return;
+    if (!isEligibleCustomer && !isEligibleGuest) return;
+
+    function routeNotification(response: Notifications.NotificationResponse): void {
+      const target = ticketTargetFromNotificationData(response.notification.request.content.data);
+      if (!target) return;
+
+      if (isEligibleCustomer) {
+        router.push(
+          `/(app)/ticket?ticketId=${encodeURIComponent(target.ticketId)}&queueId=${encodeURIComponent(target.queueId)}` as Href,
+        );
+      } else {
+        router.push(`/(public)/ticket` as Href);
+      }
+    }
 
     const receivedSubscription = Notifications.addNotificationReceivedListener(() => {
       // Foreground presentation is configured by the notification foundation.
@@ -98,5 +120,5 @@ export function useNotificationLifecycle(): void {
       receivedSubscription.remove();
       responseSubscription.remove();
     };
-  }, [isEligibleCustomer]);
+  }, [isEligibleCustomer, isEligibleGuest]);
 }
