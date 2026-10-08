@@ -3,12 +3,12 @@ import { useCallback, useState } from 'react';
 import { AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Card, Icon, IconButton, Metric, Pill, Sheet } from '@/components/ui';
+import { Button, Card, Icon, IconButton, Sheet } from '@/components/ui';
 import { CalledGuestTicket } from '@/components/customer/called-guest-ticket';
 import { CompletedGuestTicket } from '@/components/customer/completed-guest-ticket';
-import { CustomerPage, CustomerState } from '@/components/customer/customer-ui';
+import { CustomerPage, CustomerState, StatusBadge } from '@/components/customer/customer-ui';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
-import { useGuestFlow } from '@/features/public/guest-flow-session';
+import { DEFAULT_DEMO_TICKET, useGuestFlow } from '@/features/public/guest-flow-session';
 import { canUseGuestTicket, isTerminalGuestTicketStatus } from '@/features/public/public-route-policy';
 import {
   cancelGuestTicket,
@@ -88,7 +88,7 @@ function QueueTimeline({ peopleAhead, status }: { peopleAhead: number; status: '
 }
 
 export default function GuestTicketScreen() {
-  const { ticketAccess, endGuestTicketSession } = useGuestFlow();
+  const { ticketAccess, endGuestTicketSession, demoTicket } = useGuestFlow();
   const [ticket, setTicket] = useState<GuestTicketState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -100,10 +100,29 @@ export default function GuestTicketScreen() {
   );
 
   const returnHome = useCallback(() => {
-    router.replace('/');
+    router.replace('/(app)');
   }, []);
 
   const refresh = useCallback(async () => {
+    if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
+      const source = demoTicket ?? DEFAULT_DEMO_TICKET;
+      setTicket({
+        visibleCode: source.visibleCode,
+        status: source.status,
+        peopleAhead: source.peopleAhead,
+        waitMinutes: source.waitMinutes,
+        serviceName: source.serviceName,
+        requestedBarberName: null,
+        assignedBarberName: source.barberName,
+        calledDeadlineAt: null,
+        customerResponse: null,
+        customerResponseAt: null,
+      });
+      setError(null);
+      setIsLoading(false);
+      return true;
+    }
+
     if (!ticketAccess) return false;
     setIsLoading(true);
     try {
@@ -118,7 +137,7 @@ export default function GuestTicketScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [endGuestTicketSession, ticketAccess]);
+  }, [demoTicket, endGuestTicketSession, ticketAccess]);
 
   useFocusEffect(
     useCallback(() => {
@@ -158,7 +177,6 @@ export default function GuestTicketScreen() {
   const status = ticket ? presentTicketStatus(ticket.status) : null;
   const canCancel = ticket ? canCancelTicket(ticket.status) : false;
   const barberName = ticket?.assignedBarberName ?? ticket?.requestedBarberName ?? null;
-  const destructive = status?.tone === 'destructive';
 
   async function cancel() {
     if (!ticketAccess || !canCancel) return;
@@ -214,7 +232,7 @@ export default function GuestTicketScreen() {
     );
   }
 
-  if (!canUseGuestTicket(ticketAccess)) {
+  if (!ticket && !canUseGuestTicket(ticketAccess) && !demoTicket) {
     return (
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <CustomerPage>
@@ -246,7 +264,7 @@ export default function GuestTicketScreen() {
                   <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>Tu turno en la barbería</Text>
                 </View>
               </View>
-              <Pill label={status.label} tone={destructive ? 'danger' : 'brand'} />
+              <StatusBadge status={ticket.status} />
             </View>
 
             {isLoading ? <Text style={styles.refreshing}>Actualizando…</Text> : null}
@@ -269,20 +287,35 @@ export default function GuestTicketScreen() {
               <Text style={[TypeScale.body, { color: Palette.inkMuted }]}>{status.message}</Text>
 
               {ticket.status === 'en_espera' || ticket.status === 'notificado' ? (
-                <View style={styles.heroMetrics}>
-                  <Metric
-                    label={ticket.peopleAhead === 1 ? 'persona delante' : 'personas delante'}
-                    size="sm"
-                    tone="brand"
-                    value={String(ticket.peopleAhead)}
-                  />
-                  <View style={styles.metricDivider} />
-                  <Metric
-                    label="espera estimada"
-                    size="sm"
-                    tone="gold"
-                    value={estimatedWaitSeconds > 0 ? `~${formatEstimatedWait(estimatedWaitSeconds)}` : 'Próximo'}
-                  />
+                <View style={styles.heroStats}>
+                  <View style={styles.heroStat}>
+                    <View style={styles.heroStatIcon}>
+                      <Icon color={Palette.brand} name="users" size={15} />
+                    </View>
+                    <View style={styles.heroStatCopy}>
+                      <Text style={[TypeScale.title, { color: Palette.ink }]}>
+                        {String(ticket.peopleAhead)}
+                      </Text>
+                      <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>
+                        {ticket.peopleAhead === 1 ? 'persona delante' : 'personas delante'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.heroStat}>
+                    <View style={[styles.heroStatIcon, styles.heroStatIconGold]}>
+                      <Icon color={Palette.goldDeep} name="clock" size={15} />
+                    </View>
+                    <View style={styles.heroStatCopy}>
+                      <Text
+                        accessibilityLabel={`Espera estimada ${estimatedWaitSeconds > 0 ? formatEstimatedWait(estimatedWaitSeconds) : 'próximo'}`}
+                        style={[TypeScale.title, { color: Palette.goldInk }]}
+                      >
+                        {estimatedWaitSeconds > 0 ? `~${formatEstimatedWait(estimatedWaitSeconds)}` : 'Próximo'}
+                      </Text>
+                      <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>espera estimada</Text>
+                    </View>
+                  </View>
                 </View>
               ) : null}
             </Card>
@@ -346,7 +379,6 @@ export default function GuestTicketScreen() {
                 variant="secondary"
               />
             ) : null}
-            <Button label="Volver al inicio" onPress={returnHome} variant="ghost" />
           </>
         ) : null}
       </ScrollView>
@@ -406,8 +438,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 48,
   },
-  heroMetrics: { backgroundColor: Palette.brandSoftest, borderRadius: Radius.medium, flexDirection: 'row', paddingVertical: space(3) },
-  metricDivider: { backgroundColor: Palette.border, width: 1 },
+  heroStats: { flexDirection: 'row', gap: space(2) },
+  heroStat: {
+    alignItems: 'center',
+    backgroundColor: Palette.brandSoftest,
+    borderColor: Palette.brandBorder,
+    borderRadius: Radius.medium,
+    borderWidth: 1,
+    flex: 1,
+    gap: space(1.5),
+    justifyContent: 'center',
+    minHeight: 68,
+    paddingHorizontal: space(2.5),
+    paddingVertical: space(2.5),
+  },
+  heroStatIcon: {
+    alignItems: 'center',
+    backgroundColor: Palette.brandSoft,
+    borderRadius: Radius.pill,
+    height: 28,
+    justifyContent: 'center',
+    width: 28,
+  },
+  heroStatIconGold: { backgroundColor: Palette.goldSoft },
+  heroStatCopy: { alignItems: 'center', gap: 1 },
 
   timeline: { paddingTop: space(1) },
   timelineItem: { alignItems: 'flex-start', flexDirection: 'row', gap: space(3) },

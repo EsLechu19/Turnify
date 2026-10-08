@@ -12,14 +12,40 @@ export type GuestBookingDraft = {
   details: GuestDetails;
 };
 
+/**
+ * Locally created ticket used when the app runs as a static demo. The static
+ * barbería directory has no matching rows in the backend, so the booking RPC
+ * cannot be called; this keeps the post-confirmation experience intact.
+ */
+export type DemoGuestTicket = {
+  visibleCode: string;
+  status: 'en_espera' | 'llamado' | 'en_atencion';
+  serviceName: string;
+  barberName: string | null;
+  peopleAhead: number;
+  waitMinutes: number;
+};
+
+/** Shown by the customer surfaces before the demo customer books a real turn. */
+export const DEFAULT_DEMO_TICKET: DemoGuestTicket = {
+  visibleCode: 'A24',
+  status: 'en_espera',
+  serviceName: 'Corte clásico',
+  barberName: null,
+  peopleAhead: 2,
+  waitMinutes: 10,
+};
+
 type GuestFlowContextValue = {
   draft: GuestBookingDraft | null;
   ticketAccess: GuestTicketAccess | null;
+  demoTicket: DemoGuestTicket | null;
   beginDiscovery(companyCode: string, catalog: CommercialCatalog): boolean;
   chooseService(serviceId: string): void;
   chooseBarber(requestedBarberId: string | null): void;
   setDetails(details: GuestDetails): void;
   setTicketAccess(access: GuestTicketAccess): void;
+  setDemoTicket(ticket: DemoGuestTicket | null): void;
   hasActiveTicketAccess: boolean;
   endGuestTicketSession(): void;
 };
@@ -29,6 +55,7 @@ const GuestFlowContext = createContext<GuestFlowContextValue | undefined>(undefi
 export function GuestFlowProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState<GuestBookingDraft | null>(null);
   const [ticketAccess, setTicketAccess] = useState<GuestTicketAccess | null>(null);
+  const [demoTicket, setDemoTicket] = useState<DemoGuestTicket | null>(null);
 
   const beginDiscovery = useCallback((companyCode: string, catalog: CommercialCatalog) => {
     if (ticketAccess) return false;
@@ -45,19 +72,21 @@ export function GuestFlowProvider({ children }: { children: ReactNode }) {
     setDraft((current) => current ? { ...current, details } : current);
   }, []);
   const setTicketAccessForFlow = useCallback((access: GuestTicketAccess) => { setDraft(null); setTicketAccess(access); }, []);
-  const endGuestTicketSession = useCallback(() => { setDraft(null); setTicketAccess(null); }, []);
+  const endGuestTicketSession = useCallback(() => { setDraft(null); setTicketAccess(null); setDemoTicket(null); }, []);
 
   const value = useMemo<GuestFlowContextValue>(() => ({
     draft,
     ticketAccess,
+    demoTicket,
     beginDiscovery,
     chooseService,
     chooseBarber,
     setDetails,
     setTicketAccess: setTicketAccessForFlow,
+    setDemoTicket,
     hasActiveTicketAccess: ticketAccess !== null,
     endGuestTicketSession,
-  }), [beginDiscovery, chooseBarber, chooseService, draft, endGuestTicketSession, setDetails, setTicketAccessForFlow, ticketAccess]);
+  }), [beginDiscovery, chooseBarber, chooseService, demoTicket, draft, endGuestTicketSession, setDetails, setTicketAccessForFlow, ticketAccess]);
 
   return <GuestFlowContext.Provider value={value}>{children}</GuestFlowContext.Provider>;
 }
