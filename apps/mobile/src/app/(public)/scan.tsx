@@ -8,7 +8,7 @@ import { BrandBar, Button, Card, Icon, StateBlock } from '@/components/ui';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import { parseTurnifyQr } from '@/features/queue/queue-api';
 import { useGuestFlow } from '@/features/public/guest-flow-session';
-import { publicLaunchRoute, publicShopRoute } from '@/features/public/public-route-policy';
+import { publicShopRoute } from '@/features/public/public-route-policy';
 
 function Reticle() {
   const scanProgress = useRef(new Animated.Value(0)).current;
@@ -48,13 +48,13 @@ export default function PublicScanScreen() {
   const [hasScanned, setHasScanned] = useState(false);
 
   useEffect(() => {
-    if (hasActiveTicketAccess) router.replace(publicLaunchRoute);
+    if (hasActiveTicketAccess) router.replace('/(public)/ticket');
   }, [hasActiveTicketAccess]);
 
   if (hasActiveTicketAccess) return null;
 
   function returnHome() {
-    router.replace(publicLaunchRoute);
+    router.replace('/(app)');
   }
 
   function retryScan() {
@@ -169,8 +169,6 @@ export default function PublicScanScreen() {
             </Card>
           </View>
         ) : null}
-
-        <Button label="Volver al inicio" onPress={returnHome} variant="ghost" />
       </ScrollView>
     </View>
   );

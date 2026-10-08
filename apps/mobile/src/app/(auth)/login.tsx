@@ -1,43 +1,26 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 
-import { AuthButton, AuthErrorMessage, AuthIntro, AuthNotice, AuthSwitch } from '@/components/auth/auth-ui';
 import { AuthField } from '@/components/auth/auth-field';
+import { AuthButton, AuthIntro, AuthSwitch } from '@/components/auth/auth-ui';
 import { Card, Screen } from '@/components/ui';
-import { useAuth } from '@/features/auth/use-auth';
+import { customerRegistrationRoute } from '@/features/public/public-route-policy';
 
 export default function LoginScreen() {
-  const { signIn, isSupabaseConfigured } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const canSubmit = email.trim().length > 0 && password.length > 0 && !isLoading;
-
-  async function handleSubmit() {
-    setIsLoading(true);
-    setError(null);
-    const failure = await signIn(email, password);
-    setError(failure);
-    setIsLoading(false);
-  }
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   return (
     <Screen>
       <AuthIntro
-        detail="Acceso exclusivo para barberos y personal autorizado."
-        eyebrow="Equipo"
-        icon="lock"
+        detail="Accede con el correo y la contraseña de tu cuenta. También puedes entrar directo a una vista."
+        eyebrow="Bienvenido"
         title="Iniciar sesión"
       />
 
-      {!isSupabaseConfigured && (
-        <AuthNotice message="Falta configurar Supabase. Copia apps/mobile/.env.example a apps/mobile/.env y completa los valores." />
-      )}
-
       <Card padding="lg">
         <AuthField
-          editable={!isLoading}
           keyboardType="email-address"
           label="Correo"
           onChangeText={setEmail}
@@ -47,27 +30,28 @@ export default function LoginScreen() {
         />
 
         <AuthField
-          editable={!isLoading}
           label="Contraseña"
           onChangeText={setPassword}
-          onSubmitEditing={handleSubmit}
+          passwordVisibility={{
+            isVisible: isPasswordVisible,
+            onToggle: () => setIsPasswordVisible((visible) => !visible),
+          }}
           placeholder="Tu contraseña"
-          secureTextEntry
           textContentType="password"
           value={password}
         />
 
-        <AuthErrorMessage message={error} />
+        <AuthButton label="Ingresar" onPress={() => {}} />
 
-        <AuthButton
-          disabled={!canSubmit || !isSupabaseConfigured}
-          isLoading={isLoading}
-          label="Entrar"
-          onPress={handleSubmit}
-        />
+        <AuthButton label="Cliente" onPress={() => router.replace('/(app)')} variant="secondary" />
+        <AuthButton label="Empleado" onPress={() => router.replace('/(app)/worker')} variant="secondary" />
       </Card>
 
-      <AuthSwitch action="Regístrate como personal" href="/(auth)/worker-register" question="¿Eres barbero o quieres sumarte al equipo?" />
+      <AuthSwitch
+        action="Crear cuenta"
+        href={customerRegistrationRoute}
+        question="¿No tienes una cuenta?"
+      />
     </Screen>
   );
 }

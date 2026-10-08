@@ -21,7 +21,7 @@ export default function ShopScreen() {
 
   useEffect(() => {
     if (hasActiveTicketAccess) {
-      router.replace('/');
+      router.replace('/(public)/ticket');
       return;
     }
     let active = true;
@@ -51,7 +51,7 @@ export default function ShopScreen() {
   }, [attempt, beginDiscovery, code, hasActiveTicketAccess]);
 
   const retryDiscovery = useCallback(() => setAttempt((current) => current + 1), []);
-  const returnHome = useCallback(() => router.replace('/'), []);
+  const returnHome = useCallback(() => router.replace('/(app)'), []);
   const catalog = draft?.companyCode === code ? draft.catalog : null;
   const canShowCatalog = catalog !== null && !isLoading && error === null;
   const availableBarbers = catalog?.barbers.filter((barber) => barber.operationalState === 'disponible').length ?? 0;
