@@ -22,24 +22,23 @@ describe('Worker authenticated access flow', () => {
     expect(resolveWorkerAccessState({ role: 'cliente', businessId: null }, false)).toBe('denied');
   });
 
-  it('validates registration and preserves Worker intent in the sign-up call', () => {
+  it('validates registration input before it ever reaches the removed screen', () => {
     expect(validateWorkerRegistration('', 'worker@example.com', 'secret')).toBe('Ingresa tu nombre.');
     expect(validateWorkerRegistration('Ana', 'worker@example.com', 'short')).toBe('La contraseña debe tener al menos 6 caracteres.');
     expect(validateWorkerRegistration('Ana', 'worker@example.com', 'secret')).toBeNull();
-    expect(source('../../apps/mobile/src/app/(auth)/worker-register.tsx')).toContain('signUp(email, password, { name, workerIntent: true })');
   });
 
-  it('renders confirmation and live-session awaiting-assignment states without creating memberships', () => {
-    const registration = source('../../apps/mobile/src/app/(auth)/worker-register.tsx');
-    expect(registration).toContain('Confirma tu correo');
-    expect(registration).toContain('accessState === \'awaiting-assignment\'');
-    expect(registration).not.toContain('registerAsWorker');
+  it('keeps a single login screen with both static role shortcuts', () => {
+    const login = source('../../apps/mobile/src/app/(auth)/login.tsx');
+
+    expect(login).toContain("router.replace('/(app)')");
+    expect(login).toContain("router.replace('/(app)/worker')");
+    expect(login).toContain('label="Cliente"');
+    expect(login).toContain('label="Empleado"');
+    expect(login).toContain('label="Ingresar"');
   });
 
   it('uses Worker Shops as the awaiting destination and denies unselected live routes', () => {
-    expect(source('../../apps/mobile/src/app/(auth)/worker-access.tsx')).toContain('Redirect href="/(app)/worker"');
-    expect(source('../../apps/mobile/src/app/(auth)/worker-access.tsx')).toContain('Redirect href="/(app)/worker-shops"');
-    expect(source('../../apps/mobile/src/app/(auth)/worker-register.tsx')).toContain('Redirect href="/(app)/worker-shops"');
     expect(roleCanAccessAppRoute({ role: 'admin', businessId: 'shop' }, 'worker')).toBe(false);
     expect(roleCanAccessAppRoute({ role: 'cliente', businessId: null }, 'worker')).toBe(false);
     expect(source('../../apps/mobile/src/app/(app)/worker-profile.tsx')).toContain('selectWorkerShop(shop.businessId).then(reloadProfile)');

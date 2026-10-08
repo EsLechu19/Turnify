@@ -47,26 +47,23 @@ describe('public guest flow contracts', () => {
     expect(activeGuestTicketRoute('en_espera')).not.toContain('capability');
   });
 
-  it('renders the active home dashboard from protected ticket state without capability persistence', () => {
+  it('resolves the root route to the demo login without capability persistence', () => {
     const home = readFileSync('apps/mobile/src/app/index.tsx', 'utf8');
-    const realtime = readFileSync('apps/mobile/src/features/queue/public-ticket-home-realtime.ts', 'utf8');
     const session = readFileSync('apps/mobile/src/features/public/guest-flow-session.tsx', 'utf8');
 
-    expect(home).toContain('getGuestTicketState(ticketAccess)');
-    expect(home).toContain('createGuestTicketHomeChannelName(ticketAccess.ticketId)');
-    expect(realtime).toContain('guest-ticket-home:');
-    expect(home).toContain('Ver mi turno');
-    expect(home).toContain("activeGuestTicketRoute(activeTicket?.status ?? 'en_espera')");
+    expect(home).toContain("export { default } from './(auth)/login'");
+    expect(home).not.toContain('<View');
+    expect(home).not.toContain('<ScrollView');
     expect(session).not.toMatch(/AsyncStorage|SecureStore|capability.*params/i);
   });
 
-  it('redirects discovery entry points while the in-memory ticket access is active', () => {
+  it('redirects discovery entry points to the active ticket while ticket access exists', () => {
     const scan = readFileSync('apps/mobile/src/app/(public)/scan.tsx', 'utf8');
     const shop = readFileSync('apps/mobile/src/app/(public)/shop.tsx', 'utf8');
 
     expect(scan).toContain('hasActiveTicketAccess');
-    expect(scan).toContain('router.replace(publicLaunchRoute)');
+    expect(scan).toContain("router.replace('/(public)/ticket')");
     expect(shop).toContain('hasActiveTicketAccess');
-    expect(shop).toContain("router.replace('/')");
+    expect(shop).toContain("router.replace('/(public)/ticket')");
   });
 });

@@ -12,6 +12,7 @@ describe('customer navigation', () => {
   it('keeps account destinations out of the public guest flow', () => {
     expect(customerNavigationItems).toEqual([
       { key: 'home', label: 'Inicio', href: '/(app)' },
+      { key: 'barbers', label: 'Barberías', href: '/(app)/barbers' },
       { key: 'history', label: 'Mis turnos', href: '/(app)/history' },
       { key: 'profile', label: 'Perfil', href: '/(app)/profile' },
     ]);
