@@ -27,13 +27,26 @@ export interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+const isDemoSkipAuth = process.env.EXPO_PUBLIC_SKIP_AUTH === '1';
+const demoProfile: AuthProfile = {
+  role: 'personal',
+  businessId: process.env.EXPO_PUBLIC_DEMO_BUSINESS_ID?.trim() || null,
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [isRestoring, setIsRestoring] = useState(true);
-  const [profile, setProfile] = useState<AuthProfile | null>(null);
+  const [isRestoring, setIsRestoring] = useState(!isDemoSkipAuth);
+  const [profile, setProfile] = useState<AuthProfile | null>(isDemoSkipAuth ? demoProfile : null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
 
   useEffect(() => {
+    if (isDemoSkipAuth) {
+      setProfile(demoProfile);
+      setSession(null);
+      setIsRestoring(false);
+      setIsProfileLoading(false);
+      return;
+    }
     if (!isSupabaseConfigured) {
       setIsRestoring(false);
       return;
@@ -64,25 +77,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signIn = useCallback<AuthContextValue['signIn']>(async (email, password) => {
-    const { error } = await getSupabase().auth.signInWithPassword({ email: email.trim(), password });
-    return error ? translateAuthError(error.message) : null;
-  }, []);
+  const signIn = useCallback<AuthContextValue['signIn']>(async () => null, []);
 
-  const signUp = useCallback<AuthContextValue['signUp']>(async (email, password, metadata) => {
-    const { error } = await getSupabase().auth.signUp({
-      email: email.trim(),
-      password,
-      options: { data: { nombre: metadata?.name?.trim() || undefined, worker_intent: metadata?.workerIntent ? 'true' : undefined } },
-    });
-    return error ? translateAuthError(error.message) : null;
-  }, []);
+  const signUp = useCallback<AuthContextValue['signUp']>(async () => null, []);
 
   const signOut = useCallback(async () => {
+    if (isDemoSkipAuth) return;
     await getSupabase().auth.signOut();
   }, []);
 
   const reloadProfile = useCallback(async (): Promise<AuthProfile | null> => {
+    if (isDemoSkipAuth) {
+      setProfile(demoProfile);
+      return demoProfile;
+    }
     const userId = session?.user.id;
     if (!userId) {
       setProfile(null);

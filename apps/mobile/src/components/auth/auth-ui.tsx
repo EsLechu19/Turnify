@@ -1,7 +1,10 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Radius } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { BrandMark } from '@/components/ui/brand-mark';
+import { Button, type ButtonVariant } from '@/components/ui/button';
+import { Icon, type IconName } from '@/components/ui/icon';
+import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 
 export type AuthButtonProps = {
   label: string;
@@ -11,40 +14,89 @@ export type AuthButtonProps = {
   variant?: 'primary' | 'secondary' | 'destructive';
 };
 
-export function AuthButton({ label, onPress, disabled, isLoading, variant = 'primary' }: AuthButtonProps) {
-  const theme = useTheme();
-  const isDisabled = disabled || isLoading;
-  const colors = variant === 'destructive'
-    ? { background: theme.destructive, label: theme.background }
-    : variant === 'secondary'
-      ? { background: theme.primaryMuted, label: theme.primary }
-      : { background: theme.primary, label: theme.background };
+const variants: Record<'primary' | 'secondary' | 'destructive', ButtonVariant> = {
+  primary: 'primary',
+  secondary: 'secondary',
+  destructive: 'danger',
+};
 
+/** Compatibility wrapper: auth actions are the same `Button` as the rest of the app. */
+export function AuthButton({ label, onPress, disabled, isLoading, variant = 'primary' }: AuthButtonProps) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled: Boolean(isDisabled) }}
-      disabled={isDisabled}
+    <Button
+      disabled={disabled}
+      fullWidth
+      label={label}
+      loading={isLoading}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        { backgroundColor: colors.background, opacity: isDisabled ? 0.5 : pressed ? 0.86 : 1 },
-      ]}>
-      {isLoading ? (
-        <ActivityIndicator color={colors.label} />
-      ) : (
-        <Text style={[styles.label, { color: colors.label }]}>{label}</Text>
-      )}
-    </Pressable>
+      variant={variants[variant]}
+    />
   );
 }
 
+/**
+ * Neutral shell for the sign-in and staff-access screens. It does not scroll on
+ * its own: screens that need scrolling use `Screen` from the UI kit.
+ */
 export function AuthScreenContainer({ children }: { children: React.ReactNode }) {
-  const theme = useTheme();
-
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.content}>{children}</View>
+    <SafeAreaView edges={['top', 'bottom']} style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboard}
+      >
+        <View style={styles.content}>{children}</View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+/** Brand lockup plus the screen title shared by every authentication screen. */
+export function AuthIntro({
+  eyebrow,
+  title,
+  detail,
+  icon,
+}: {
+  eyebrow?: string;
+  title: string;
+  detail: string;
+  icon?: IconName;
+}) {
+  return (
+    <View style={styles.intro}>
+      <View accessibilityLabel="Turnify" style={styles.lockup}>
+        <BrandMark size={34} tile />
+        <Text style={[TypeScale.headline, { color: Palette.ink }]}>Turnify</Text>
+      </View>
+      {icon ? (
+        <View style={styles.introIcon}>
+          <Icon color={Palette.brand} name={icon} size={24} />
+        </View>
+      ) : null}
+      {eyebrow ? <Text style={[TypeScale.eyebrow, { color: Palette.goldDeep }]}>{eyebrow}</Text> : null}
+      <Text style={[TypeScale.h1, { color: Palette.ink }]}>{title}</Text>
+      <Text style={[TypeScale.body, { color: Palette.inkMuted }]}>{detail}</Text>
+    </View>
+  );
+}
+
+/** Inline notice used when the Supabase environment variables are missing. */
+export function AuthNotice({ message }: { message: string }) {
+  return (
+    <View accessibilityRole="alert" style={styles.notice}>
+      <Icon color={Palette.goldDeep} name="info" size={18} />
+      <Text style={[TypeScale.caption, { color: Palette.ink, flex: 1 }]}>{message}</Text>
+    </View>
+  );
+}
+
+/** Bottom navigation between the sign-in and sign-up screens. */
+export function AuthSwitch({ question, action, href }: { question: string; action: string; href: string }) {
+  return (
+    <View style={styles.switchRow}>
+      <Text style={[TypeScale.bodySmall, { color: Palette.inkMuted }]}>{question}</Text>
+      <Button href={href} label={action} variant="link" />
     </View>
   );
 }
@@ -53,47 +105,59 @@ export function AuthErrorMessage({ message }: { message: string | null }) {
   if (!message) {
     return null;
   }
+
   return (
-    <Text accessibilityRole="alert" style={styles.error}>
-      {message}
-    </Text>
+    <View accessibilityLiveRegion="polite" accessibilityRole="alert" style={styles.error}>
+      <Icon color={Palette.danger} name="alert" size={18} />
+      <Text style={styles.errorLabel}>{message}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { backgroundColor: Palette.canvas, flex: 1 },
+  keyboard: { flex: 1 },
   content: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 32,
-    gap: 20,
-    maxWidth: 480,
-    width: '100%',
     alignSelf: 'center',
-  },
-  button: {
-    alignItems: 'center',
+    flex: 1,
+    gap: space(4),
     justifyContent: 'center',
-    minHeight: 52,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    maxWidth: 480,
+    paddingHorizontal: space(5),
+    paddingVertical: space(8),
+    width: '100%',
+  },
+  intro: { gap: space(2) },
+  lockup: { alignItems: 'center', flexDirection: 'row', gap: space(2), marginBottom: space(3) },
+  introIcon: {
+    alignItems: 'center',
+    backgroundColor: Palette.brandSoft,
+    borderRadius: Radius.pill,
+    height: 48,
+    justifyContent: 'center',
+    marginBottom: space(1),
+    width: 48,
+  },
+  notice: {
+    alignItems: 'center',
+    backgroundColor: Palette.goldSoft,
+    borderColor: Palette.goldBorder,
     borderRadius: Radius.medium,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: space(2),
+    padding: space(3.5),
   },
-  label: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: 600,
-  },
+  switchRow: { alignItems: 'center', backgroundColor: 'transparent', flexDirection: 'row', gap: space(1) },
   error: {
-    color: '#C6533A',
-    backgroundColor: '#F8E6E1',
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 500,
-    padding: 12,
-    borderRadius: Radius.small,
+    alignItems: 'center',
+    backgroundColor: Palette.dangerSoft,
+    borderColor: Palette.dangerBorder,
+    borderRadius: Radius.medium,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: space(2),
+    padding: space(3.5),
   },
+  errorLabel: { color: Palette.danger, flex: 1, fontSize: 13, fontWeight: '600', lineHeight: 18 },
 });

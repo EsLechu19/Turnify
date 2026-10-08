@@ -15,6 +15,10 @@ export default function AuthLayout() {
     return null;
   }
 
+  if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
+    return <Redirect href="/(app)/worker" />;
+  }
+
   if (session && isProfileLoading) {
     return null;
   }

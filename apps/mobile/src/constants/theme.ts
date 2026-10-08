@@ -1,42 +1,87 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Turnify design tokens.
+ *
+ * Single source of truth for the visual language of the app. The palette comes
+ * from the brand reference in `recursos/colores.md`; the logo itself lives in
+ * `recursos/logo_turnify.png`.
+ *
+ * The product ships in a single light appearance, so `Colors.dark` is an alias
+ * of `Colors.light` instead of a second, untested palette.
  */
 
 import '@/global.css';
 
-import { Platform } from 'react-native';
+import { Platform, type ViewStyle } from 'react-native';
 
-export const Colors = {
-  light: {
-    text: '#15202B',
-    background: '#FBF9F5',
-    backgroundElement: '#FFFFFF',
-    backgroundSelected: '#D7E9E8',
-    textSecondary: '#5C6670',
-    primary: '#0E8388',
-    primaryMuted: '#E1F1F0',
-    destructive: '#C6533A',
-    destructiveMuted: '#F8E6E1',
-    border: '#E5DDD2',
-    success: '#237A5A',
-  },
-  dark: {
-    text: '#F7F3EC',
-    background: '#0E1E2E',
-    backgroundElement: '#172C3A',
-    backgroundSelected: '#214C50',
-    textSecondary: '#BCC7CC',
-    primary: '#40B8BA',
-    primaryMuted: '#173D40',
-    destructive: '#EC8A74',
-    destructiveMuted: '#482B2A',
-    border: '#304450',
-    success: '#66C39A',
-  },
+export const Palette = {
+  /** #1264E8 — botones, navegación y acciones principales. */
+  brand: '#1264E8',
+  brandBright: '#087FF5',
+  brandDeep: '#0B47B8',
+  /** #E7F0FF — tarjetas suaves, campos seleccionados. */
+  brandSoft: '#E7F0FF',
+  brandSoftest: '#F4F8FF',
+  /** #101D4A — títulos y texto importante. */
+  ink: '#101D4A',
+  /** #52617A — texto secundario. */
+  inkMuted: '#52617A',
+  inkFaint: '#8A99B4',
+  /** #F0F6FF — fondo general de la app. */
+  canvas: '#F0F6FF',
+  surface: '#FFFFFF',
+  surfaceMuted: '#F8FAFF',
+  /** #FFB718 — reservado a avisos, "te toca" y destacados. */
+  gold: '#FFB718',
+  goldDeep: '#F59E0B',
+  goldSoft: '#FFF7E0',
+  goldBorder: '#FBE3A6',
+  /** #FF8A8A — detalles de la mascota. */
+  rose: '#FF8A8A',
+  success: '#22C55E',
+  successSoft: '#E8F9EF',
+  successBorder: '#BFE9CF',
+  danger: '#EF4444',
+  dangerSoft: '#FDECEC',
+  dangerBorder: '#F8CFCF',
+  dangerInk: '#A32020',
+  successInk: '#12693C',
+  goldInk: '#9A6206',
+  brandBorder: '#C9DDFF',
+  border: '#DCE7FB',
+  borderStrong: '#BFD3F5',
+  overlay: 'rgba(16, 29, 74, 0.55)',
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+const lightColors = {
+  text: Palette.ink,
+  textSecondary: Palette.inkMuted,
+  textFaint: Palette.inkFaint,
+  textInverse: '#FFFFFF',
+  background: Palette.canvas,
+  backgroundElement: Palette.surface,
+  backgroundSelected: Palette.brandSoft,
+  backgroundMuted: Palette.surfaceMuted,
+  primary: Palette.brand,
+  primaryBright: Palette.brandBright,
+  primaryDeep: Palette.brandDeep,
+  primaryMuted: Palette.brandSoft,
+  accent: Palette.gold,
+  accentDeep: Palette.goldDeep,
+  accentMuted: Palette.goldSoft,
+  mascot: Palette.rose,
+  destructive: Palette.danger,
+  destructiveMuted: Palette.dangerSoft,
+  success: Palette.success,
+  successMuted: Palette.successSoft,
+  border: Palette.border,
+  borderStrong: Palette.borderStrong,
+  overlay: Palette.overlay,
+} as const;
+
+/** One appearance only: `dark` is an alias so the broken branch cannot return. */
+export const Colors = { light: lightColors, dark: lightColors };
+
+export type ThemeColor = keyof typeof lightColors;
 
 export const Fonts = Platform.select({
   ios: {
@@ -63,6 +108,9 @@ export const Fonts = Platform.select({
   },
 });
 
+/** 4pt base scale. `space(3)` is 12, `space(5)` is 20. */
+export const space = (steps: number): number => steps * 4;
+
 export const Spacing = {
   half: 2,
   one: 4,
@@ -74,10 +122,85 @@ export const Spacing = {
 } as const;
 
 export const Radius = {
-  small: 10,
-  medium: 14,
+  xs: 8,
+  small: 12,
+  medium: 16,
   large: 20,
+  xl: 28,
+  xlarge: 34,
+  pill: 999,
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+export const BorderWidth = {
+  hairline: 1,
+  thick: 2,
+} as const;
+
+/** The only type scale in the product. Every screen reads from here. */
+const baseTypeScale = {
+  metric: { fontSize: 44, lineHeight: 48, fontWeight: '800', letterSpacing: -1 },
+  display: { fontSize: 30, lineHeight: 36, fontWeight: '800', letterSpacing: -0.6 },
+  title: { fontSize: 23, lineHeight: 29, fontWeight: '800', letterSpacing: -0.3 },
+  headline: { fontSize: 18, lineHeight: 24, fontWeight: '700' },
+  body: { fontSize: 15, lineHeight: 22, fontWeight: '400' },
+  bodyStrong: { fontSize: 15, lineHeight: 22, fontWeight: '700' },
+  label: { fontSize: 13, lineHeight: 18, fontWeight: '600' },
+  caption: { fontSize: 12, lineHeight: 17, fontWeight: '500' },
+  eyebrow: { fontSize: 11, lineHeight: 14, fontWeight: '800', letterSpacing: 0.9 },
+  code: { fontFamily: Fonts?.mono, fontSize: 13, lineHeight: 18, fontWeight: '700', letterSpacing: 1 },
+} as const;
+
+/**
+ * Semantic headings on top of the scale. New code prefers `metric`/`display`/
+ * `title`; `h1..h5` exist so screens still using the old names keep compiling.
+ */
+export const TypeScale = {
+  ...baseTypeScale,
+  h1: baseTypeScale.display,
+  h2: baseTypeScale.title,
+  h3: baseTypeScale.headline,
+  h4: baseTypeScale.bodyStrong,
+  h5: baseTypeScale.label,
+  bodySmall: baseTypeScale.caption,
+} as const;
+
+export type TypeVariant = keyof typeof TypeScale;
+
+type ShadowSpec = {
+  offsetY: number;
+  opacity: number;
+  radius: number;
+  elevation: number;
+};
+
+export type ShadowStyle = ViewStyle;
+
+/**
+ * react-native-web rejects the `shadow*` props ("use boxShadow"), while native
+ * keeps its exact rendering through them. This returns the right pair per
+ * platform so the design tokens stay declared once and look the same everywhere.
+ */
+function shadow({ offsetY, opacity, radius, elevation }: ShadowSpec): ShadowStyle {
+  return Platform.select<ShadowStyle>({
+    web: { boxShadow: `0 ${offsetY}px ${radius}px rgba(16, 29, 74, ${opacity})` },
+    default: {
+      shadowColor: Palette.ink,
+      shadowOffset: { width: 0, height: offsetY },
+      shadowOpacity: opacity,
+      shadowRadius: radius,
+      elevation,
+    },
+  });
+}
+
+export const Shadows = {
+  card: shadow({ offsetY: 4, opacity: 0.06, radius: 12, elevation: 2 }),
+  raised: shadow({ offsetY: 10, opacity: 0.12, radius: 24, elevation: 6 }),
+  /** Bottom navigation and sticky action bars. */
+  nav: shadow({ offsetY: -4, opacity: 0.08, radius: 16, elevation: 12 }),
+  /** Modal sheets rise from the bottom edge. */
+  sheet: shadow({ offsetY: -8, opacity: 0.18, radius: 28, elevation: 16 }),
+} as const;
+
+export const BottomTabInset = Platform.select({ ios: 56, android: 84 }) ?? 0;
+export const MaxContentWidth = 560;

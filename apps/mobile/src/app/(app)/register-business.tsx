@@ -33,7 +33,9 @@ export default function RegisterBusinessScreen() {
     try {
       await createBusiness({ name, fiscalId, email, phone, address });
       await reloadProfile();
-      router.replace('/(app)/admin');
+      // The owner administers their business from the web panel, so the mobile
+      // app has nowhere to send them once the company exists.
+      router.replace('/');
     } catch {
       setError('No pudimos registrar tu empresa. Revisa los datos e intenta de nuevo.');
     } finally {

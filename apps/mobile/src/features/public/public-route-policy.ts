@@ -14,10 +14,15 @@ export const publicBookingRoutes = [
 export const workerSignInRoute = '/(auth)/worker-access' as const;
 export const workerRegistrationRoute = '/(auth)/worker-register' as const;
 
-export function staffLanding(profile: AuthProfile | null): '/(app)/worker' | '/(app)/worker-shops' | '/(app)/admin' | '/' {
+/**
+ * Where each role lands after signing in.
+ *
+ * Administration is handled in the web panel, so an owner opening the mobile app
+ * goes back to the public launch instead of a screen this app no longer has.
+ */
+export function staffLanding(profile: AuthProfile | null): '/(app)/worker' | '/(app)/worker-shops' | '/' {
   if (profile?.role === 'personal' && profile.businessId) return '/(app)/worker';
   if (profile?.role === 'personal') return '/(app)/worker-shops';
-  if (profile?.role === 'admin' && profile.businessId) return '/(app)/admin';
   return '/';
 }
 

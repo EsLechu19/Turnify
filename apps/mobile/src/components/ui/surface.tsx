@@ -1,43 +1,36 @@
-import { StyleSheet, View, type ViewProps } from 'react-native';
+import { View, type ViewProps } from 'react-native';
 
-import { Radius } from '@/constants/theme';
-import { ThemedText } from '@/components/themed-text';
-import { useTheme } from '@/hooks/use-theme';
+import { Card, Pill, type CardProps, type PillTone } from '@/components/ui';
 
-export function AppCard({ style, ...props }: ViewProps) {
-  const theme = useTheme();
-
-  return <View {...props} style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.border }, style]} />;
+/**
+ * Compatibility layer: `AppCard`/`StatusBadge` are now the shared `Card` and
+ * `Pill` so every surface uses the same radius, border and type scale.
+ */
+export function AppCard({ style, ...props }: ViewProps & Omit<CardProps, 'style'>) {
+  return <Card padding="md" style={style} {...props} />;
 }
 
-export function StatusBadge({ label, tone = 'neutral' }: { label: string; tone?: 'neutral' | 'primary' | 'success' | 'destructive' }) {
-  const theme = useTheme();
-  const colors = tone === 'destructive'
-    ? { backgroundColor: theme.destructiveMuted, color: theme.destructive }
-    : tone === 'success'
-      ? { backgroundColor: theme.primaryMuted, color: theme.success }
-      : tone === 'primary'
-        ? { backgroundColor: theme.primaryMuted, color: theme.primary }
-        : { backgroundColor: theme.backgroundSelected, color: theme.textSecondary };
+export function StatusBadge({
+  label,
+  tone = 'neutral',
+}: {
+  label: string;
+  tone?: 'neutral' | 'primary' | 'success' | 'destructive' | 'gold';
+}) {
+  const mapped: PillTone =
+    tone === 'destructive'
+      ? 'danger'
+      : tone === 'success'
+        ? 'success'
+        : tone === 'primary'
+          ? 'brand'
+          : tone === 'gold'
+            ? 'gold'
+            : 'neutral';
 
   return (
-    <View style={[styles.badge, colors]}>
-      <ThemedText type="eyebrow" style={{ color: colors.color }}>{label}</ThemedText>
+    <View>
+      <Pill label={label} tone={mapped} />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    borderWidth: 1,
-    borderRadius: Radius.large,
-    gap: 12,
-    padding: 16,
-  },
-  badge: {
-    alignSelf: 'flex-start',
-    borderRadius: Radius.small,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-});

@@ -1,5 +1,5 @@
 import Constants from 'expo-constants';
-import { router, type Href } from 'expo-router';
+import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
@@ -10,6 +10,7 @@ import {
   reportNotificationRegistrationDiagnostic,
 } from '@/features/notifications/notification-registration';
 import { ticketTargetFromNotificationData } from '@/features/notifications/notification-routing';
+import { activeGuestTicketRoute } from '@/features/public/public-route-policy';
 import { useAuth } from '@/features/auth/use-auth';
 import { initializeNotificationFoundation } from '@/lib/notifications';
 
@@ -22,9 +23,15 @@ function routeNotification(response: Notifications.NotificationResponse): void {
   const target = ticketTargetFromNotificationData(response.notification.request.content.data);
   if (!target) return;
 
-  router.push(
-    `/(app)/ticket?ticketId=${encodeURIComponent(target.ticketId)}&queueId=${encodeURIComponent(target.queueId)}` as Href,
-  );
+  // The live ticket lives in the public group: it is readable by guests holding
+  // a capability, so a push must land there and not inside the guarded `(app)`.
+  router.push({
+    pathname: activeGuestTicketRoute('llamado'),
+    params: {
+      ticketId: target.ticketId,
+      queueId: target.queueId,
+    },
+  });
 }
 
 /** Registers customer-only notification behavior after authentication is ready. */

@@ -1,11 +1,9 @@
-import { Link } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
 
-import { AuthButton, AuthErrorMessage, AuthScreenContainer } from '@/components/auth/auth-ui';
+import { AuthButton, AuthErrorMessage, AuthIntro, AuthNotice, AuthSwitch } from '@/components/auth/auth-ui';
 import { AuthField } from '@/components/auth/auth-field';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { Card, Screen } from '@/components/ui';
+import { space } from '@/constants/theme';
 import { useAuth } from '@/features/auth/use-auth';
 
 const MIN_PASSWORD_LENGTH = 6;
@@ -34,87 +32,59 @@ export default function RegisterScreen() {
 
   if (isRegistered) {
     return (
-      <AuthScreenContainer>
-        <View style={styles.header}>
-          <ThemedText type="subtitle">Cuenta creada</ThemedText>
-          <ThemedText type="small">
-            Revisa tu correo para confirmar la cuenta y luego inicia sesión.
-          </ThemedText>
-        </View>
-        <Link href="/(auth)/login" style={styles.link}>
-          Ir a iniciar sesión
-        </Link>
-      </AuthScreenContainer>
+      <Screen bottomInset={space(8)}>
+        <AuthIntro
+          detail="Revisa tu correo para confirmar la cuenta y luego inicia sesión."
+          eyebrow="Casi listo"
+          icon="check-circle"
+          title="Cuenta creada"
+        />
+        <Card padding="lg" tone="success">
+          <AuthSwitch action="Ir a iniciar sesión" href="/(auth)/login" question="¿Ya confirmaste tu correo?" />
+        </Card>
+      </Screen>
     );
   }
 
   return (
-    <AuthScreenContainer>
-      <View style={styles.header}>
-        <ThemedText type="subtitle">Crear cuenta</ThemedText>
-        <ThemedText type="small">Regístrate para tomar turnos.</ThemedText>
-      </View>
+    <Screen>
+      <AuthIntro detail="Regístrate para tomar turnos." icon="user" title="Crear cuenta" />
 
-      <AuthField
-        label="Correo"
-        value={email}
-        onChangeText={setEmail}
-        placeholder="tu@correo.com"
-        keyboardType="email-address"
-        textContentType="emailAddress"
-        editable={!isLoading}
-      />
+      {!isSupabaseConfigured && <AuthNotice message="Falta configurar Supabase para crear la cuenta." />}
 
-      <AuthField
-        label="Contraseña"
-        value={password}
-        onChangeText={setPassword}
-        placeholder={`Mínimo ${MIN_PASSWORD_LENGTH} caracteres`}
-        secureTextEntry
-        textContentType="newPassword"
-        editable={!isLoading}
-      />
+      <Card padding="lg">
+        <AuthField
+          editable={!isLoading}
+          keyboardType="email-address"
+          label="Correo"
+          onChangeText={setEmail}
+          placeholder="tu@correo.com"
+          textContentType="emailAddress"
+          value={email}
+        />
 
-      {!isPasswordValid && password.length > 0 && (
-        <ThemedText type="small">La contraseña debe tener al menos 6 caracteres.</ThemedText>
-      )}
+        <AuthField
+          editable={!isLoading}
+          error={!isPasswordValid && password.length > 0 ? `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.` : null}
+          label="Contraseña"
+          onChangeText={setPassword}
+          placeholder={`Mínimo ${MIN_PASSWORD_LENGTH} caracteres`}
+          secureTextEntry
+          textContentType="newPassword"
+          value={password}
+        />
 
-      <AuthErrorMessage message={error} />
+        <AuthErrorMessage message={error} />
 
-      <AuthButton
-        label="Crear cuenta"
-        onPress={handleSubmit}
-        disabled={!canSubmit || !isSupabaseConfigured}
-        isLoading={isLoading}
-      />
+        <AuthButton
+          disabled={!canSubmit || !isSupabaseConfigured}
+          isLoading={isLoading}
+          label="Crear cuenta"
+          onPress={handleSubmit}
+        />
+      </Card>
 
-      <ThemedView style={styles.footer}>
-        <Text style={styles.footerText}>¿Ya tienes cuenta?</Text>
-        <Link href="/(auth)/login" style={styles.link}>
-          Inicia sesión
-        </Link>
-      </ThemedView>
-    </AuthScreenContainer>
+      <AuthSwitch action="Inicia sesión" href="/(auth)/login" question="¿Ya tienes cuenta?" />
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    gap: 4,
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  footerText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  link: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#3c87f7',
-    fontWeight: 600,
-  },
-});

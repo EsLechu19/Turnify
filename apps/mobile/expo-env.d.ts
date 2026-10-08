@@ -1,4 +1,3 @@
 /// <reference types="expo/types" />
 
-// NOTE: Expo regenerates this file on `expo start`. It is tracked on purpose so
-// `tsc --noEmit` works on a fresh checkout without running the dev server first.
+// NOTE: This file should not be edited and should be in your git ignore
