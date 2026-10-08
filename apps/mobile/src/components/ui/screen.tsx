@@ -30,9 +30,12 @@ export function Screen({
   backgroundColor = Palette.canvas,
 }: ScreenProps) {
   if (!scroll) {
+    // `bottomInset` is deliberately not applied here: in this mode the screen owns
+    // its scroll container and the sticky bar is a sibling, so padding the flex
+    // container would push the bar up instead of padding the scrollable content.
     return (
       <SafeAreaView edges={edges} style={[styles.root, { backgroundColor }]}>
-        <View style={[styles.content, { paddingBottom: bottomInset, paddingTop: topInset }, contentStyle]}>{children}</View>
+        <View style={[styles.content, styles.flexContent, { paddingTop: topInset }, contentStyle]}>{children}</View>
       </SafeAreaView>
     );
   }
@@ -84,6 +87,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(5),
     width: '100%',
   },
+  /**
+   * Screens that own their own scroll container need a bounded height, otherwise
+   * the inner `ScrollView` collapses to its content and stops scrolling.
+   */
+  flexContent: { flex: 1 },
   stickyBar: {
     backgroundColor: Palette.surface,
     borderTopColor: Palette.border,

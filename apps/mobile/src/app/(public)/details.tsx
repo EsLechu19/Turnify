@@ -28,7 +28,7 @@ const genderLabels: Record<GuestGender, string> = {
 
 export default function DetailsScreen() {
   const insets = useSafeAreaInsets();
-  const { draft, setDetails, setTicketAccess } = useGuestFlow();
+  const { draft, setDetails, setTicketAccess, setDemoTicket } = useGuestFlow();
   const [name, setName] = useState(draft?.details.name ?? '');
   const [ageRange, setAgeRange] = useState<GuestAgeRange | null>(draft?.details.ageRange ?? null);
   const [gender, setGender] = useState<GuestGender | null>(draft?.details.gender ?? null);
@@ -39,7 +39,7 @@ export default function DetailsScreen() {
   if (!draft?.serviceId) {
     return (
       <CustomerPage>
-        <CustomerState label="Primero completa la selección del servicio." action={() => router.replace('/')} />
+        <CustomerState label="Primero completa la selección del servicio." action={() => router.replace('/(app)')} />
       </CustomerPage>
     );
   }
@@ -72,6 +72,25 @@ export default function DetailsScreen() {
       setDetails(details);
       setIsCreating(true);
       setError(null);
+
+      if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
+        const prefix = currentDraft.catalog.name
+          .replace(/[^A-Za-z]/g, '')
+          .slice(0, 2)
+          .toUpperCase() || 'TU';
+        const number = 25 + Math.floor(Math.random() * 40);
+        setDemoTicket({
+          visibleCode: `${prefix}-${number}`,
+          status: 'en_espera',
+          serviceName: selectedService.name,
+          barberName: barberPreference === 'Cualquier barbero compatible' ? null : barberPreference,
+          peopleAhead: 1 + Math.floor(Math.random() * 5),
+          waitMinutes: 5 + Math.floor(Math.random() * 15),
+        });
+        router.replace('/(app)');
+        return;
+      }
+
       const access = await createGuestTicket({
         companyCode: currentDraft.companyCode,
         serviceId: selectedService.serviceId,
@@ -92,12 +111,12 @@ export default function DetailsScreen() {
   }
 
   return (
-    <Screen bottomInset={120 + Math.max(insets.bottom, 16)} scroll={false}>
+    <Screen scroll={false}>
       <ScrollView
-        contentContainerStyle={styles.page}
+        contentContainerStyle={[styles.page, { paddingBottom: 120 + Math.max(insets.bottom, 16) }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        style={{ backgroundColor: Palette.canvas }}
+        style={{ backgroundColor: Palette.canvas, flex: 1 }}
       >
         <BrandBar
           onBack={isCreating ? undefined : () => router.back()}
@@ -264,7 +283,7 @@ export default function DetailsScreen() {
         ) : null}
       </ScrollView>
 
-      <StickyBar>
+      <StickyBar style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
         <Button
           accessibilityLabel="Confirmar y obtener código de turno"
           accessibilityState={{ busy: isCreating }}

@@ -43,11 +43,11 @@ export default function BarberScreen() {
   const hasBarbers = barbers.length > 0;
 
   return (
-    <Screen bottomInset={164 + Math.max(insets.bottom, 16)} scroll={false}>
+    <Screen scroll={false}>
       <ScrollView
-        contentContainerStyle={styles.page}
+        contentContainerStyle={[styles.page, { paddingBottom: 140 + Math.max(insets.bottom, 16) }]}
         showsVerticalScrollIndicator={false}
-        style={{ backgroundColor: Palette.canvas }}
+        style={{ backgroundColor: Palette.canvas, flex: 1 }}
       >
         <BrandBar onBack={() => router.back()} step="2/3" />
 
@@ -126,7 +126,7 @@ export default function BarberScreen() {
         </Card>
       </ScrollView>
 
-      <StickyBar>
+      <StickyBar style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
         <View style={styles.bottomHint}>
           <Icon color={Palette.inkMuted} name={draft.requestedBarberId === null ? 'sparkle' : 'user'} size={15} />
           <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>

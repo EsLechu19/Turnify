@@ -38,7 +38,7 @@ export default function ServiceScreen() {
   if (!draft) {
     return (
       <CustomerPage>
-        <CustomerState label="Primero identifica una barbería." action={() => router.replace('/')} />
+        <CustomerState label="Primero identifica una barbería." action={() => router.replace('/(app)')} />
       </CustomerPage>
     );
   }
@@ -47,11 +47,11 @@ export default function ServiceScreen() {
   const selectedPrice = selectedService ? formatReferencePrice(selectedService.referencePriceCents) : null;
 
   return (
-    <Screen bottomInset={176 + Math.max(insets.bottom, 16)} scroll={false}>
+    <Screen scroll={false}>
       <ScrollView
-        contentContainerStyle={styles.page}
+        contentContainerStyle={[styles.page, { paddingBottom: 150 + Math.max(insets.bottom, 16) }]}
         showsVerticalScrollIndicator={false}
-        style={{ backgroundColor: Palette.canvas }}
+        style={{ backgroundColor: Palette.canvas, flex: 1 }}
       >
         <BrandBar onBack={() => router.back()} step="1/3" />
 
@@ -97,7 +97,7 @@ export default function ServiceScreen() {
         )}
       </ScrollView>
 
-      <StickyBar>
+      <StickyBar style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
         <View style={styles.summary}>
           <View style={styles.summaryIcon}>
             <Icon color={Palette.brand} name={selectedService ? 'scissors' : 'clock'} size={18} />
