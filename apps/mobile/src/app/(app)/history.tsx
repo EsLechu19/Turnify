@@ -1,3 +1,63 @@
-import { useFocusEffect, router } from 'expo-router'; import { useCallback, useState } from 'react'; import { Text, View } from 'react-native'; import { CustomerScreenContainer } from '@/components/customer/customer-screen-container'; import { CustomerButton, CustomerCard, CustomerHeading, CustomerPage, CustomerState } from '@/components/customer/customer-ui'; import { useTheme } from '@/hooks/use-theme'; import { getCustomerTicketHistory, type TicketHistoryItem, type TicketStatus } from '@/features/customer/customer-api'; import { useAuth } from '@/features/auth/use-auth';
-const labels: Record<TicketStatus, string> = { en_espera: 'En espera', notificado: 'Notificado', llamado: 'Llamado', en_atencion: 'En atención', finalizado: 'Finalizado', cancelado: 'Cancelado', ausente: 'Ausente' };
-export default function HistoryScreen() { const theme = useTheme(); const { session } = useAuth(); const [tickets, setTickets] = useState<TicketHistoryItem[]>([]); const [error, setError] = useState<string | null>(null); const [isLoading, setIsLoading] = useState(true); const load = useCallback(async () => { if (!session?.user.id) return; setIsLoading(true); try { setTickets(await getCustomerTicketHistory(session.user.id)); setError(null); } catch { setError('No pudimos cargar tu historial. Intenta de nuevo.'); } finally { setIsLoading(false); } }, [session?.user.id]); useFocusEffect(useCallback(() => { void load(); }, [load])); return <CustomerScreenContainer activeNavigation="history"><CustomerPage><CustomerHeading eyebrow="Tu actividad" title="Mis turnos" detail="Consulta los turnos asociados a tu cuenta." />{isLoading && <CustomerState label="Cargando historial…" isLoading />}{error && <CustomerState label={error} action={() => void load()} />}{!isLoading && !error && tickets.length === 0 && <CustomerState label="Todavía no tienes turnos registrados." detail="Cuando solicites un turno, aparecerá aquí." />}{tickets.map((ticket) => <CustomerCard key={ticket.id}><View style={{ flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: theme.text, fontSize: 20, fontWeight: '700' }}>{ticket.visibleCode}</Text><Text style={{ color: theme.primary, fontSize: 12, fontWeight: '700' }}>{labels[ticket.status].toUpperCase()}</Text></View><Text style={{ color: theme.textSecondary, marginTop: 8 }}>{ticket.operatingDate} · {ticket.origin === 'app' ? 'App' : 'Presencial'}</Text></CustomerCard>)}<CustomerButton label="Volver al inicio" variant="secondary" onPress={() => router.replace('/(app)')} /></CustomerPage></CustomerScreenContainer>; }
+import { useFocusEffect, router } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { Text, View } from 'react-native';
+
+import { CustomerScreenContainer } from '@/components/customer/customer-screen-container';
+import { CustomerButton, CustomerHeading, CustomerPage, CustomerState, HistoryItem } from '@/components/customer/customer-ui';
+import { useAuth } from '@/features/auth/use-auth';
+import { getCustomerTicketHistory, type TicketHistoryItem } from '@/features/customer/customer-api';
+
+export default function HistoryScreen() {
+  const { session } = useAuth();
+  const [tickets, setTickets] = useState<TicketHistoryItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
+      setTickets([
+        { id: 'demo-1', visibleCode: 'A24', status: 'finalizado', operatingDate: '2026-10-07', origin: 'app', createdAt: '2026-10-07T16:30:00.000Z', serviceName: 'Corte clásico' },
+        { id: 'demo-2', visibleCode: 'A18', status: 'ausente', operatingDate: '2026-10-05', origin: 'presencial', createdAt: '2026-10-05T21:20:00.000Z', serviceName: 'Perfilado de barba' },
+        { id: 'demo-3', visibleCode: 'A09', status: 'finalizado', operatingDate: '2026-09-28', origin: 'app', createdAt: '2026-09-28T14:15:00.000Z', serviceName: 'Corte + barba' },
+      ]);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+    if (!session?.user.id) return;
+    setIsLoading(true);
+    try {
+      setTickets(await getCustomerTicketHistory(session.user.id));
+      setError(null);
+    } catch {
+      setError('No pudimos cargar tu historial. Intenta de nuevo.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [session?.user.id]);
+
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
+
+  return (
+    <CustomerScreenContainer activeNavigation="history">
+      <CustomerPage>
+        <CustomerHeading eyebrow="Tu actividad" title="Mis turnos" detail="Consulta tus turnos pasados y actuales." />
+        {isLoading ? <CustomerState label="Cargando historial…" isLoading /> : null}
+        {error ? <CustomerState label={error} action={() => void load()} /> : null}
+        {!isLoading && !error && tickets.length === 0 ? (
+          <CustomerState label="Todavía no tienes turnos" detail="Cuando solicites un turno, aparecerá aquí." action={() => router.push('/(public)/scan')} />
+        ) : null}
+        {!isLoading && !error ? tickets.map((ticket) => (
+          <HistoryItem
+            key={ticket.id}
+            code={ticket.visibleCode}
+            dateLabel={`${ticket.operatingDate} · ${ticket.origin === 'app' ? 'App' : 'Presencial'}`}
+            serviceName={ticket.serviceName}
+            status={ticket.status}
+          />
+        )) : null}
+        <CustomerButton label="Volver al inicio" variant="secondary" onPress={() => router.replace('/(app)')} />
+      </CustomerPage>
+    </CustomerScreenContainer>
+  );
+}

@@ -15,6 +15,7 @@ export type WorkerNavigationKey = (typeof workerNavigationItems)[number]['key'];
  */
 export type AppRouteName =
   | 'index'
+  | 'barbers'
   | 'history'
   | 'profile'
   | 'register-business'
@@ -25,7 +26,7 @@ export type AppRouteName =
   | 'worker-shops'
   | 'worker-walk-in';
 
-const customerRoutes = new Set<AppRouteName>(['index', 'history', 'profile', 'register-business']);
+const customerRoutes = new Set<AppRouteName>(['index', 'barbers', 'history', 'profile', 'register-business']);
 const workerRoutes = new Set<AppRouteName>(['worker', 'worker-queue', 'worker-history', 'worker-profile', 'worker-walk-in']);
 
 export function appRouteNameFromSegments(segments: readonly string[]): AppRouteName {
