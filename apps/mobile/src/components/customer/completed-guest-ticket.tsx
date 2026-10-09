@@ -1,7 +1,8 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CustomerButton, CustomerCard, CustomerHeading, CustomerState } from '@/components/customer/customer-ui';
-import { Icon, Pill } from '@/components/ui';
+import { Button, Icon, Pill } from '@/components/ui';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import type { GuestTicketState } from '@/features/queue/public-guest-ticket-api';
 
@@ -11,14 +12,21 @@ export function CompletedGuestTicket({
   onRetry,
   onReturn,
   onNewTicket,
+  puntuacion,
+  isRating,
+  onRate,
 }: {
   ticket: GuestTicketState;
   error: string | null;
   onRetry: () => void;
   onReturn: () => void;
   onNewTicket: () => void;
+  puntuacion: number | null;
+  isRating: boolean;
+  onRate: (puntos: number) => void;
 }) {
   const isAbsent = ticket.status === 'ausente';
+  const [selected, setSelected] = useState(0);
 
   return (
     <>
@@ -61,6 +69,51 @@ export function CompletedGuestTicket({
       </CustomerCard>
 
       <CustomerButton label={isAbsent ? 'Sacar otro turno' : 'Volver al inicio'} onPress={isAbsent ? onNewTicket : onReturn} />
+
+      {!isAbsent ? (
+        <View style={styles.rating}>
+          {puntuacion != null ? (
+            <>
+              <View style={styles.stars}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Icon
+                    color={star <= puntuacion ? Palette.gold : Palette.border}
+                    key={star}
+                    name="star"
+                    size={28}
+                  />
+                ))}
+              </View>
+              <Text style={[TypeScale.bodySmall, styles.ratingThanks]}>Gracias por tu puntuacion.</Text>
+            </>
+          ) : (
+            <>
+              <Text style={[TypeScale.bodyStrong, styles.ratingTitle]}>Como te atendimos?</Text>
+              <View style={styles.stars}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Pressable
+                    accessibilityLabel={`Puntuar ${star} de 5`}
+                    accessibilityRole="button"
+                    disabled={isRating}
+                    hitSlop={8}
+                    key={star}
+                    onPress={() => setSelected(star)}
+                    style={({ pressed }) => [pressed ? styles.starPressed : null, isRating ? styles.ratingBusy : null]}
+                  >
+                    <Icon color={star <= selected ? Palette.gold : Palette.border} name="star" size={40} />
+                  </Pressable>
+                ))}
+              </View>
+              <Button
+                disabled={selected === 0 || isRating}
+                label="Enviar puntuacion"
+                onPress={() => onRate(selected)}
+              />
+              <Text style={[TypeScale.caption, styles.ratingHint]}>Toca una estrella y confirma tu voto.</Text>
+            </>
+          )}
+        </View>
+      ) : null}
     </>
   );
 }
@@ -84,4 +137,11 @@ const styles = StyleSheet.create({
   facts: { borderTopColor: Palette.border, borderTopWidth: 1, gap: space(3.5), paddingTop: space(4) },
   fact: { gap: space(1) },
   factValue: { color: Palette.ink, ...TypeScale.bodyStrong },
+  rating: { alignItems: 'center', gap: space(2), paddingTop: space(2) },
+  ratingTitle: { color: Palette.ink, textAlign: 'center' },
+  ratingThanks: { color: Palette.inkMuted, textAlign: 'center' },
+  ratingHint: { color: Palette.inkMuted, textAlign: 'center' },
+  ratingBusy: { opacity: 0.6 },
+  starPressed: { transform: [{ scale: 0.88 }] },
+  stars: { flexDirection: 'row', gap: space(2), justifyContent: 'center' },
 });

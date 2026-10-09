@@ -48,4 +48,25 @@ describe('called-ticket customer response mobile contract', () => {
     expect(workerRoute).toContain("'Cliente: llega en 2 minutos'");
     expect(workerRoute).toContain('La respuesta no inicia ni extiende la atención.');
   });
+
+  it('returns the completed guest to a fresh launch that admits a new ticket', () => {
+    expect(ticketRoute).toContain('onReturn={startNewTicket}');
+    expect(ticketRoute).toContain('endGuestTicketSession();');
+  });
+
+  it('offers a one-time star rating on the completed visit', () => {
+    const completed = read('apps', 'mobile', 'src', 'components', 'customer', 'completed-guest-ticket.tsx');
+
+    expect(completed).toContain('name="star"');
+    expect(completed).toContain('onRate');
+    expect(completed).toContain('setSelected');
+    expect(completed).toContain('Enviar puntuacion');
+    expect(guestApi).toContain("rpc('puntuar_atencion_invitado'");
+    expect(ticketRoute).toContain('rateFinishedGuestTicket');
+  });
+
+  it('keeps the rating capability after the guest session ends', () => {
+    expect(ticketRoute).toContain('rateAccess');
+    expect(ticketRoute).toContain('setVoted(puntos)');
+  });
 });

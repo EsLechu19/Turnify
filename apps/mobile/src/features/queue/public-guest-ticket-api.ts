@@ -19,6 +19,7 @@ export type GuestTicketState = {
   calledDeadlineAt: string | null;
   customerResponse: 'presente' | 'llega_en_2_min' | null;
   customerResponseAt: string | null;
+  puntuacion: number | null;
 };
 
 type GuestTicketAccessPayload = { ticket_id: string; codigo_visible: string; capacidad: string };
@@ -33,6 +34,7 @@ type GuestTicketStatePayload = {
   llamado_vencimiento_en: string | null;
   respuesta_cliente: GuestTicketState['customerResponse'];
   respuesta_cliente_en: string | null;
+  puntuacion: number | null;
 };
 
 /** The capability is an in-memory handoff only; callers must not persist it. */
@@ -73,6 +75,7 @@ export async function getGuestTicketState(access: Pick<GuestTicketAccess, 'ticke
     calledDeadlineAt: ticket.llamado_vencimiento_en,
     customerResponse: ticket.respuesta_cliente,
     customerResponseAt: ticket.respuesta_cliente_en,
+    puntuacion: ticket.puntuacion,
   };
 }
 
@@ -89,6 +92,15 @@ export async function cancelGuestTicket(access: Pick<GuestTicketAccess, 'ticketI
   const { error } = await getSupabase().rpc('cancelar_ticket_invitado', {
     p_ticket_id: access.ticketId,
     p_capacidad: access.capability,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function rateFinishedGuestTicket(access: Pick<GuestTicketAccess, 'ticketId' | 'capability'>, puntos: number): Promise<void> {
+  const { error } = await getSupabase().rpc('puntuar_atencion_invitado', {
+    p_ticket_id: access.ticketId,
+    p_capacidad: access.capability,
+    p_puntos: puntos,
   });
   if (error) throw new Error(error.message);
 }

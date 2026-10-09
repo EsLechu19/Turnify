@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -13,7 +13,9 @@ import { canUseGuestTicket, isTerminalGuestTicketStatus } from '@/features/publi
 import {
   cancelGuestTicket,
   getGuestTicketState,
+  rateFinishedGuestTicket,
   respondToCalledGuestTicket,
+  type GuestTicketAccess,
   type GuestTicketState,
 } from '@/features/queue/public-guest-ticket-api';
 import { translateQueueError } from '@/features/queue/queue-api';
@@ -100,7 +102,12 @@ export default function GuestTicketScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isResponding, setIsResponding] = useState(false);
+  const [isRating, setIsRating] = useState(false);
+  const [voted, setVoted] = useState<number | null>(null);
   const [isConfirmingCancel, setIsConfirmingCancel] = useState(false);
+  // The guest session ends when the ticket reaches a terminal state, but the
+  // thanks screen still needs the capability to record the vote afterwards.
+  const rateAccess = useRef<GuestTicketAccess | null>(null);
   const estimatedWaitSeconds = useEstimatedWaitSeconds(
     ticket?.status === 'en_espera' || ticket?.status === 'notificado' ? ticket.waitMinutes : null,
   );
@@ -113,6 +120,10 @@ export default function GuestTicketScreen() {
     endGuestTicketSession();
     router.replace('/');
   }, [endGuestTicketSession]);
+
+  useEffect(() => {
+    if (ticketAccess) rateAccess.current = ticketAccess;
+  }, [ticketAccess]);
 
   const refresh = useCallback(async () => {
     if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
@@ -128,6 +139,7 @@ export default function GuestTicketScreen() {
         calledDeadlineAt: null,
         customerResponse: null,
         customerResponseAt: null,
+        puntuacion: null,
       });
       setError(null);
       setIsLoading(false);
@@ -221,6 +233,20 @@ export default function GuestTicketScreen() {
     }
   }
 
+  async function rate(puntos: number) {
+    const access = rateAccess.current;
+    if (!access || isRating) return;
+    setIsRating(true);
+    try {
+      await rateFinishedGuestTicket(access, puntos);
+      setVoted(puntos);
+    } catch {
+      setError('No pudimos guardar tu puntuacion. Intenta de nuevo.');
+    } finally {
+      setIsRating(false);
+    }
+  }
+
   if (ticket && status?.isActiveTurn) {
     return (
       <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
@@ -246,8 +272,11 @@ export default function GuestTicketScreen() {
             error={error}
             onNewTicket={startNewTicket}
             onRetry={() => void refresh()}
-            onReturn={returnHome}
+            onReturn={startNewTicket}
             ticket={ticket}
+            puntuacion={voted ?? ticket.puntuacion}
+            isRating={isRating}
+            onRate={(puntos) => void rate(puntos)}
           />
         </CustomerPage>
       </SafeAreaView>
