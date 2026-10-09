@@ -84,3 +84,8 @@ export function canCancelTicket(status: TicketState['status']): boolean {
 export function ticketPosition(peopleAhead: number): number {
   return peopleAhead + 1;
 }
+
+export function formatEstimatedWait(seconds: number): string {
+  const safe = Math.max(0, Math.floor(seconds));
+  return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, '0')}`;
+}

@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { workerIntentOutcome, workerRegistrationRoute, workerSignInRoute } from '../../apps/mobile/src/features/public/public-route-policy';
+import { workerIntentOutcome, workerSignInRoute } from '../../apps/mobile/src/features/public/public-route-policy';
 import { roleCanAccessAppRoute } from '../../apps/mobile/src/features/worker/worker-navigation';
 
 describe('worker intent authentication', () => {
-  it('opens worker sign-in from the public footer', () => {
-    expect(workerSignInRoute).toBe('/(auth)/worker-access');
-    expect(workerRegistrationRoute).toBe('/(auth)/worker-register');
+  it('opens the single static login from the public footer', () => {
+    expect(workerSignInRoute).toBe('/(auth)/login');
   });
 
   it('routes only an associated personal profile to the worker lifecycle', () => {

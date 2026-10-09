@@ -1,81 +1,46 @@
-import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
+import { Text, type TextProps } from 'react-native';
 
-import { Fonts, ThemeColor } from '@/constants/theme';
+import { TypeScale, type TypeVariant } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
+export type TextTone = 'default' | 'muted' | 'faint' | 'primary' | 'accent' | 'success' | 'danger' | 'inverse';
+
+/**
+ * Names used before the single type scale existed. They stay mapped so a screen
+ * that is not part of the current redesign keeps compiling unchanged.
+ */
+const legacyVariants = {
+  default: 'body',
+  small: 'label',
+  smallBold: 'bodyStrong',
+  subtitle: 'display',
+  link: 'label',
+  linkPrimary: 'label',
+} as const satisfies Record<string, TypeVariant>;
+
 export type ThemedTextProps = TextProps & {
-  type?: 'default' | 'eyebrow' | 'title' | 'small' | 'smallBold' | 'subtitle' | 'link' | 'linkPrimary' | 'code';
-  themeColor?: ThemeColor;
+  /** Preferred: any variant of the type scale in `constants/theme`. */
+  variant?: TypeVariant;
+  /** Legacy name for `variant`, kept for screens outside the redesign. */
+  type?: TypeVariant | keyof typeof legacyVariants;
+  tone?: TextTone;
+  /** Legacy name for `tone`. */
+  themeColor?: TextTone;
 };
 
-export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {
+export function ThemedText({ style, variant, type, tone, themeColor, ...rest }: ThemedTextProps) {
   const theme = useTheme();
+  const resolved = (variant ?? (type && type in TypeScale ? (type as TypeVariant) : undefined) ?? (type ? legacyVariants[type as keyof typeof legacyVariants] : undefined) ?? 'body');
+  const toneColor = {
+    default: theme.text,
+    muted: theme.textSecondary,
+    faint: theme.textFaint,
+    primary: theme.primary,
+    accent: theme.accentDeep,
+    success: theme.success,
+    danger: theme.destructive,
+    inverse: theme.textInverse,
+  }[tone ?? themeColor ?? 'default'];
 
-  return (
-    <Text
-      style={[
-        { color: theme[themeColor ?? 'text'] },
-        type === 'eyebrow' && styles.eyebrow,
-        type === 'default' && styles.default,
-        type === 'title' && styles.title,
-        type === 'small' && styles.small,
-        type === 'smallBold' && styles.smallBold,
-        type === 'subtitle' && styles.subtitle,
-        type === 'link' && styles.link,
-        type === 'linkPrimary' && styles.linkPrimary,
-        type === 'code' && styles.code,
-        style,
-      ]}
-      {...rest}
-    />
-  );
+  return <Text {...rest} style={[TypeScale[resolved], { color: toneColor }, style]} />;
 }
-
-const styles = StyleSheet.create({
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: 700,
-    letterSpacing: 0.8,
-    lineHeight: 16,
-    textTransform: 'uppercase',
-  },
-  small: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 500,
-  },
-  smallBold: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 700,
-  },
-  default: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: 500,
-  },
-  title: {
-    fontSize: 40,
-    fontWeight: 700,
-    lineHeight: 46,
-  },
-  subtitle: {
-    fontSize: 30,
-    lineHeight: 38,
-    fontWeight: 700,
-  },
-  link: {
-    lineHeight: 30,
-    fontSize: 14,
-  },
-  linkPrimary: {
-    lineHeight: 30,
-    fontSize: 14,
-    color: '#0E8388',
-  },
-  code: {
-    fontFamily: Fonts.mono,
-    fontWeight: Platform.select({ android: 700 }) ?? 500,
-    fontSize: 12,
-  },
-});

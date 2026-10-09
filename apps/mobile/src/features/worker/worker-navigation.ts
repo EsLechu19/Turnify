@@ -9,16 +9,16 @@ export const workerNavigationItems = [
 
 export type WorkerNavigationKey = (typeof workerNavigationItems)[number]['key'];
 
+/**
+ * Routes of the authenticated app group. Administration lives in the web panel,
+ * so the mobile app only serves customers and barbers.
+ */
 export type AppRouteName =
   | 'index'
-  | 'admin'
-  | 'configuration'
+  | 'barbers'
   | 'history'
-  | 'preview'
   | 'profile'
   | 'register-business'
-  | 'scan'
-  | 'ticket'
   | 'worker'
   | 'worker-queue'
   | 'worker-history'
@@ -26,9 +26,8 @@ export type AppRouteName =
   | 'worker-shops'
   | 'worker-walk-in';
 
-const customerRoutes = new Set<AppRouteName>();
+const customerRoutes = new Set<AppRouteName>(['index', 'barbers', 'history', 'profile', 'register-business']);
 const workerRoutes = new Set<AppRouteName>(['worker', 'worker-queue', 'worker-history', 'worker-profile', 'worker-walk-in']);
-const adminRoutes = new Set<AppRouteName>(['admin', 'configuration']);
 
 export function appRouteNameFromSegments(segments: readonly string[]): AppRouteName {
   const leaf = segments.at(-1);
@@ -38,6 +37,5 @@ export function appRouteNameFromSegments(segments: readonly string[]): AppRouteN
 export function roleCanAccessAppRoute(profile: AuthProfile | null | undefined, route: AppRouteName): boolean {
   if (profile?.role === 'cliente') return customerRoutes.has(route);
   if (profile?.role === 'personal') return route === 'worker-shops' || (typeof profile.businessId === 'string' && profile.businessId.length > 0 && workerRoutes.has(route));
-  if (profile?.role === 'admin') return adminRoutes.has(route);
   return false;
 }

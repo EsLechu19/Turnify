@@ -1,6 +1,5 @@
 import Constants from 'expo-constants';
-import { router, type Href } from 'expo-router';
-import * as Notifications from 'expo-notifications';
+import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
@@ -10,6 +9,8 @@ import {
   reportNotificationRegistrationDiagnostic,
 } from '@/features/notifications/notification-registration';
 import { ticketTargetFromNotificationData } from '@/features/notifications/notification-routing';
+import { isPushRuntimeSupported, loadPushModule, type PushModule } from '@/features/notifications/push-runtime';
+import { activeGuestTicketRoute } from '@/features/public/public-route-policy';
 import { useAuth } from '@/features/auth/use-auth';
 import { initializeNotificationFoundation } from '@/lib/notifications';
 
@@ -18,13 +19,23 @@ function configuredProjectId(): string | null {
   return typeof projectId === 'string' && projectId.trim() ? projectId.trim() : null;
 }
 
-function routeNotification(response: Notifications.NotificationResponse): void {
+type NotificationResponseLike = {
+  notification: { request: { content: { data?: unknown } } };
+};
+
+function routeNotification(response: NotificationResponseLike): void {
   const target = ticketTargetFromNotificationData(response.notification.request.content.data);
   if (!target) return;
 
-  router.push(
-    `/(app)/ticket?ticketId=${encodeURIComponent(target.ticketId)}&queueId=${encodeURIComponent(target.queueId)}` as Href,
-  );
+  // The live ticket lives in the public group: it is readable by guests holding
+  // a capability, so a push must land there and not inside the guarded `(app)`.
+  router.push({
+    pathname: activeGuestTicketRoute('llamado'),
+    params: {
+      ticketId: target.ticketId,
+      queueId: target.queueId,
+    },
+  });
 }
 
 /** Registers customer-only notification behavior after authentication is ready. */
@@ -50,6 +61,15 @@ export function useNotificationLifecycle(): void {
     let registeredToken: string | null = null;
 
     async function registerCurrentDevice(): Promise<void> {
+      if (!isPushRuntimeSupported()) {
+        reportNotificationRegistrationDiagnostic('push_unsupported_runtime');
+        return;
+      }
+      const Notifications: PushModule | null = await loadPushModule();
+      if (!active || !Notifications) {
+        if (!Notifications) reportNotificationRegistrationDiagnostic('push_unsupported_runtime');
+        return;
+      }
       await registerTokenAfterPermission({
         initializeNotifications: initializeNotificationFoundation,
         getPermissions: Notifications.getPermissionsAsync,
@@ -83,20 +103,31 @@ export function useNotificationLifecycle(): void {
   }, [isEligibleCustomer]);
 
   useEffect(() => {
-    if (!isEligibleCustomer) return;
+    if (!isEligibleCustomer || !isPushRuntimeSupported()) return;
 
-    const receivedSubscription = Notifications.addNotificationReceivedListener(() => {
-      // Foreground presentation is configured by the notification foundation.
-    });
-    const responseSubscription = Notifications.addNotificationResponseReceivedListener(routeNotification);
+    let active = true;
+    let cleanup: (() => void) | undefined;
 
-    void Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (response) routeNotification(response);
+    loadPushModule().then((Notifications) => {
+      if (!active || !Notifications) return;
+      const receivedSubscription = Notifications.addNotificationReceivedListener(() => {
+        // Foreground presentation is configured by the notification foundation.
+      });
+      const responseSubscription = Notifications.addNotificationResponseReceivedListener(routeNotification);
+
+      void Notifications.getLastNotificationResponseAsync().then((response) => {
+        if (response) routeNotification(response);
+      }).catch(() => undefined);
+
+      cleanup = () => {
+        receivedSubscription.remove();
+        responseSubscription.remove();
+      };
     }).catch(() => undefined);
 
     return () => {
-      receivedSubscription.remove();
-      responseSubscription.remove();
+      active = false;
+      cleanup?.();
     };
   }, [isEligibleCustomer]);
 }

@@ -22,27 +22,42 @@ describe('Worker authenticated access flow', () => {
     expect(resolveWorkerAccessState({ role: 'cliente', businessId: null }, false)).toBe('denied');
   });
 
-  it('validates registration and preserves Worker intent in the sign-up call', () => {
+  it('validates registration input before it ever reaches the removed screen', () => {
     expect(validateWorkerRegistration('', 'worker@example.com', 'secret')).toBe('Ingresa tu nombre.');
     expect(validateWorkerRegistration('Ana', 'worker@example.com', 'short')).toBe('La contraseña debe tener al menos 6 caracteres.');
     expect(validateWorkerRegistration('Ana', 'worker@example.com', 'secret')).toBeNull();
-    expect(source('../../apps/mobile/src/app/(auth)/worker-register.tsx')).toContain('signUp(email, password, { name, workerIntent: true })');
   });
 
-  it('renders confirmation and live-session awaiting-assignment states without creating memberships', () => {
-    const registration = source('../../apps/mobile/src/app/(auth)/worker-register.tsx');
-    expect(registration).toContain('Confirma tu correo');
-    expect(registration).toContain('accessState === \'awaiting-assignment\'');
-    expect(registration).not.toContain('registerAsWorker');
+  it('keeps a single login screen for staff without blind role shortcuts', () => {
+    const login = source('../../apps/mobile/src/app/(auth)/login.tsx');
+
+    expect(login).not.toContain("router.replace('/(app)')");
+    expect(login).not.toContain("router.replace('/(app)/worker')");
+    expect(login).not.toContain('label="Cliente"');
+    expect(login).not.toContain('label="Empleado"');
+    expect(login).toContain('label="Ingresar"');
+    expect(login).toContain('Entrar como invitado');
+  });
+
+  it('wires the login form to the real sign-in with validation and visible errors', () => {
+    const login = source('../../apps/mobile/src/app/(auth)/login.tsx');
+    const context = source('../../apps/mobile/src/features/auth/use-auth.tsx');
+
+    expect(login).toContain('signIn(');
+    expect(login).toContain('validateWorkerCredentials');
+    expect(login).toContain('AuthErrorMessage');
+    expect(context).toContain('signInWithPassword');
+    expect(context).toContain('translateAuthError');
   });
 
   it('uses Worker Shops as the awaiting destination and denies unselected live routes', () => {
-    expect(source('../../apps/mobile/src/app/(auth)/worker-access.tsx')).toContain('Redirect href="/(app)/worker"');
-    expect(source('../../apps/mobile/src/app/(auth)/worker-access.tsx')).toContain('Redirect href="/(app)/worker-shops"');
-    expect(source('../../apps/mobile/src/app/(auth)/worker-register.tsx')).toContain('Redirect href="/(app)/worker-shops"');
     expect(roleCanAccessAppRoute({ role: 'admin', businessId: 'shop' }, 'worker')).toBe(false);
     expect(roleCanAccessAppRoute({ role: 'cliente', businessId: null }, 'worker')).toBe(false);
-    expect(source('../../apps/mobile/src/app/(app)/worker-profile.tsx')).toContain('selectWorkerShop(shop.businessId).then(reloadProfile)');
+    const profile = source('../../apps/mobile/src/app/(app)/worker-profile.tsx');
+    expect(profile).toContain('selectWorkerShop(shop.businessId)');
+    expect(profile).toContain("router.replace('/(app)/worker')");
+    expect(profile).toContain('Salir de la barbería');
+    expect(profile).toContain("router.replace('/(app)/worker-shops')");
   });
 
   it('permits an unselected personal account only to Worker Shops', () => {
@@ -51,6 +66,29 @@ describe('Worker authenticated access flow', () => {
     expect(roleCanAccessAppRoute(worker, 'worker')).toBe(false);
     expect(source('../../apps/mobile/src/app/(app)/worker-shops.tsx')).toContain('requestWorkerInvitation(code)');
     expect(source('../../apps/mobile/src/app/(app)/worker-shops.tsx')).toContain("router.replace('/(app)/worker')");
+  });
+
+  it('returns signed-out users to the public launch screen', () => {
+    const profile = source('../../apps/mobile/src/app/(app)/profile.tsx');
+    const workerProfile = source('../../apps/mobile/src/app/(app)/worker-profile.tsx');
+    const workerShops = source('../../apps/mobile/src/app/(app)/worker-shops.tsx');
+
+    for (const screen of [profile, workerProfile, workerShops]) {
+      expect(screen).toContain("router.replace('/')");
+      expect(screen).not.toContain("router.replace('/(auth)/login')");
+    }
+  });
+
+  it('renders Worker Shops with the current UI kit instead of the legacy surfaces', () => {
+    const shops = source('../../apps/mobile/src/app/(app)/worker-shops.tsx');
+
+    expect(shops).toContain("from '@/components/ui'");
+    expect(shops).toContain('Palette');
+    expect(shops).toContain('OptionCard');
+    expect(shops).toContain('Row');
+    expect(shops).not.toContain('ThemedText');
+    expect(shops).not.toContain('AuthScreenContainer');
+    expect(shops).not.toContain('AppCard');
   });
 
   it('avoids unsupported station, queue-total, and static-progress dashboard claims', () => {

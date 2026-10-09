@@ -18,6 +18,7 @@ export type TicketHistoryItem = {
   operatingDate: string;
   origin: TicketOrigin;
   createdAt: string;
+  serviceName: string | null;
 };
 
 export type CustomerProfile = {
@@ -33,6 +34,7 @@ type TicketHistoryRow = {
   fecha_operativa: string;
   origen: TicketOrigin;
   creado_en: string;
+  servicio_nombre: string | null;
 };
 
 type ProfileRow = {
@@ -48,7 +50,7 @@ function toCustomerProfile(row: ProfileRow): CustomerProfile {
 export async function getCustomerTicketHistory(customerId: string): Promise<TicketHistoryItem[]> {
   const { data, error } = await getSupabase()
     .from('tickets')
-    .select('id, codigo_visible, estado, fecha_operativa, origen, creado_en')
+    .select('id, codigo_visible, estado, fecha_operativa, origen, creado_en, servicio_nombre')
     .eq('cliente_id', customerId)
     .order('creado_en', { ascending: false });
 
@@ -63,7 +65,13 @@ export async function getCustomerTicketHistory(customerId: string): Promise<Tick
     operatingDate: ticket.fecha_operativa,
     origin: ticket.origen,
     createdAt: ticket.creado_en,
+    serviceName: ticket.servicio_nombre,
   }));
+}
+
+export async function getCustomerActiveTicket(customerId: string): Promise<TicketHistoryItem | null> {
+  const tickets = await getCustomerTicketHistory(customerId);
+  return tickets.find((ticket) => ticket.status === 'en_espera' || ticket.status === 'notificado' || ticket.status === 'llamado' || ticket.status === 'en_atencion') ?? null;
 }
 
 export async function getCustomerProfile(customerId: string): Promise<CustomerProfile | null> {

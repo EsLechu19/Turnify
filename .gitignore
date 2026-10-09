@@ -1,3 +1,4 @@
+recursos/
 node_modules/
 .expo/
 dist/
@@ -17,6 +18,8 @@ web-build/
 *.key
 *.mobileprovision
 .metro-health-check*
+.codegraph/
+.atl/
 
 # generated native folders
 apps/mobile/ios/

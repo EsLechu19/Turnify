@@ -10,14 +10,21 @@ export const publicBookingRoutes = [
   '/(public)/details',
   '/(public)/ticket',
 ] as const;
-/** Public footer entry begins the authenticated Worker sign-in flow. */
-export const workerSignInRoute = '/(auth)/worker-access' as const;
-export const workerRegistrationRoute = '/(auth)/worker-register' as const;
+/** Public footer entry resolves to the single static login screen. */
+export const workerSignInRoute = '/(auth)/login' as const;
+/** Sign-up screen reachable from the login footer. */
+export const customerRegistrationRoute = '/(auth)/register' as const;
 
-export function staffLanding(profile: AuthProfile | null): '/(app)/worker' | '/(app)/worker-shops' | '/(app)/admin' | '/' {
-  if (profile?.role === 'personal' && profile.businessId) return '/(app)/worker';
+/**
+ * Where each role lands after signing in.
+ *
+ * Staff always lands on the shop panel so multi-shop barbers choose (and can
+ * switch) their active shop; the panel forwards into the operational screens.
+ * Administration is handled in the web panel, so an owner opening the mobile app
+ * goes back to the public launch instead of a screen this app no longer has.
+ */
+export function staffLanding(profile: AuthProfile | null): '/(app)/worker-shops' | '/' {
   if (profile?.role === 'personal') return '/(app)/worker-shops';
-  if (profile?.role === 'admin' && profile.businessId) return '/(app)/admin';
   return '/';
 }
 

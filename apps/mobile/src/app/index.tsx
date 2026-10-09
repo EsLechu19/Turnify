@@ -1,59 +1,39 @@
 import { router } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, AppState, Easing, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import { useCallback, useEffect, useState } from 'react';
+import { AppState, StyleSheet, Text, View } from 'react-native';
 
-import { normalizeBusinessCode } from '@/features/queue/queue-api';
+import { BrandMark, Button, Card, Icon, Pill, TextField } from '@/components/ui';
+import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import { getGuestTicketState, type GuestTicketState } from '@/features/queue/public-guest-ticket-api';
 import { createGuestTicketHomeChannelName, subscribeToGuestTicketHomeChanges } from '@/features/queue/public-ticket-home-realtime';
+import { normalizeBusinessCode } from '@/features/queue/queue-api';
 import { useGuestFlow } from '@/features/public/guest-flow-session';
-import { activeGuestTicketRoute, isActiveGuestTicketStatus, publicShopRoute, workerSignInRoute } from '@/features/public/public-route-policy';
+import { activeGuestTicketRoute, isActiveGuestTicketStatus, publicShopRoute } from '@/features/public/public-route-policy';
 import { getSupabase } from '@/lib/supabase';
 
-type LaunchIconName = 'arrow' | 'code' | 'scan' | 'shield' | 'storefront' | 'ticket';
-
-function LaunchIcon({ name, color = '#00686C', size = 22 }: { name: LaunchIconName; color?: string; size?: number }) {
-  const common = { stroke: color, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, strokeWidth: 1.8 };
-
-  return (
-    <Svg accessibilityElementsHidden height={size} width={size} viewBox="0 0 24 24" fill="none">
-      {name === 'arrow' && <Path {...common} d="M5 12h14m-6-6 6 6-6 6" />}
-      {name === 'code' && <><Path {...common} d="m9 7-5 5 5 5M15 7l5 5-5 5M14 4l-4 16" /></>}
-      {name === 'scan' && <><Path {...common} d="M4 9V6a2 2 0 0 1 2-2h3M15 4h3a2 2 0 0 1 2 2v3M20 15v3a2 2 0 0 1-2 2h-3M9 20H6a2 2 0 0 1-2-2v-3" /><Path {...common} d="M8 12h8" /></>}
-      {name === 'shield' && <Path {...common} d="M12 3 5.5 6v5c0 4.2 2.7 7.8 6.5 10 3.8-2.2 6.5-5.8 6.5-10V6L12 3Z" />}
-      {name === 'storefront' && <><Path {...common} d="M4 10h16v10H4zM3 10l1.5-5h15l1.5 5M8 10v3M12 10v3M16 10v3M8 20v-5h8v5" /></>}
-      {name === 'ticket' && <><Path {...common} d="M5 6h14v4a2 2 0 0 0 0 4v4H5v-4a2 2 0 0 0 0-4V6Z" /><Path {...common} d="M12 8v8" /></>}
-    </Svg>
-  );
-}
-
-function ValueCard({ icon, title, detail }: { icon: 'ticket' | 'shield'; title: string; detail: string }) {
-  return <View style={styles.valueCard}><View style={styles.valueIcon}><LaunchIcon name={icon} size={20} /></View><Text style={styles.valueTitle}>{title}</Text><Text style={styles.valueDetail}>{detail}</Text></View>;
-}
-
-/** Public launch route. Guest access never depends on an authenticated session. */
+/**
+ * Public launch route. Guest entry never depends on an authenticated session:
+ * QR scan or business code for any customer.
+ */
 export default function PublicWelcomeScreen() {
-  const insets = useSafeAreaInsets();
   const [code, setCode] = useState('');
-  const [showCodeDrawer, setShowCodeDrawer] = useState(false);
-  const [isDrawerMounted, setIsDrawerMounted] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { ticketAccess, hasActiveTicketAccess, endGuestTicketSession } = useGuestFlow();
   const [activeTicket, setActiveTicket] = useState<GuestTicketState | null>(null);
-  const drawerProgress = useRef(new Animated.Value(0)).current;
 
   const refreshActiveTicket = useCallback(async () => {
     if (!ticketAccess) return;
     try {
       const ticket = await getGuestTicketState(ticketAccess);
-      if (isActiveGuestTicketStatus(ticket.status)) setActiveTicket(ticket);
-      else {
+      if (isActiveGuestTicketStatus(ticket.status)) {
+        setActiveTicket(ticket);
+      } else {
         setActiveTicket(null);
         endGuestTicketSession();
       }
     } catch {
-      // Capability failures remain private and never enter route or UI state.
+      // Capability failures stay private and never enter route or UI state.
     }
   }, [endGuestTicketSession, ticketAccess]);
 
@@ -63,29 +43,23 @@ export default function PublicWelcomeScreen() {
       return;
     }
     let mounted = true;
-    const refresh = async () => { if (mounted) await refreshActiveTicket(); };
     const channel = subscribeToGuestTicketHomeChanges(
       getSupabase().channel(createGuestTicketHomeChannelName(ticketAccess.ticketId)),
       ticketAccess.ticketId,
-      () => { void refresh(); },
+      () => {
+        if (mounted) void refreshActiveTicket();
+      },
     );
-    const appStateSubscription = AppState.addEventListener('change', (state) => { if (state === 'active') void refresh(); });
-    void refresh();
-    return () => { mounted = false; appStateSubscription.remove(); void getSupabase().removeChannel(channel); };
-  }, [refreshActiveTicket, ticketAccess]);
-
-  useEffect(() => {
-    if (showCodeDrawer) setIsDrawerMounted(true);
-
-    Animated.timing(drawerProgress, {
-      duration: 220,
-      easing: Easing.out(Easing.cubic),
-      toValue: showCodeDrawer ? 1 : 0,
-      useNativeDriver: false,
-    }).start(({ finished }) => {
-      if (finished && !showCodeDrawer) setIsDrawerMounted(false);
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void refreshActiveTicket();
     });
-  }, [drawerProgress, showCodeDrawer]);
+    void refreshActiveTicket();
+    return () => {
+      mounted = false;
+      subscription.remove();
+      void getSupabase().removeChannel(channel);
+    };
+  }, [refreshActiveTicket, ticketAccess]);
 
   function continueWithCode() {
     const normalized = normalizeBusinessCode(code);
@@ -93,123 +67,209 @@ export default function PublicWelcomeScreen() {
       setError('Ingresa el código válido que muestra la barbería.');
       return;
     }
-
     setError(null);
-    router.push({ pathname: publicShopRoute, params: { code: normalized } });
+    router.push({ params: { code: normalized }, pathname: publicShopRoute });
   }
 
   function toggleCodeDrawer() {
     setError(null);
-    setShowCodeDrawer((current) => !current);
+    setIsDrawerOpen((current) => !current);
   }
 
   if (hasActiveTicketAccess) {
     const barberName = activeTicket?.assignedBarberName ?? activeTicket?.requestedBarberName;
-    return <ScrollView contentContainerStyle={[styles.page, { paddingBottom: Math.max(insets.bottom, 20) + 20, paddingTop: Math.max(insets.top, 12) + 12 }]} style={styles.shell}>
-      <View style={styles.brand} accessibilityLabel="Turnify"><View style={styles.brandMark}><View style={styles.brandMarkInner} /></View><Text style={styles.brandName}>turnify</Text></View>
-      <View style={styles.activeCard}>
-        <Text style={styles.activeEyebrow}>TU TURNO SIGUE ACTIVO</Text>
-        <Text style={styles.activeTitle}>{activeTicket ? `Turno ${activeTicket.visibleCode}` : 'Recuperando tu turno…'}</Text>
-        {activeTicket && <><Text style={styles.activeStatus}>{activeTicket.status === 'llamado' ? 'Te están llamando ahora' : 'Tu lugar en la fila está reservado'}</Text><View style={styles.activeMetrics}><Text style={styles.activeMetric}>{activeTicket.peopleAhead} delante</Text><Text style={styles.activeMetric}>{activeTicket.waitMinutes} min estimados</Text></View>{(activeTicket.serviceName || barberName) && <Text style={styles.activeDetail}>{[activeTicket.serviceName, barberName].filter(Boolean).join(' · ')}</Text>}</>}
-        <Pressable accessibilityLabel="Ver mi turno" accessibilityRole="button" onPress={() => router.push(activeGuestTicketRoute(activeTicket?.status ?? 'en_espera'))} style={({ pressed }) => [styles.primaryButton, styles.activeButton, pressed && styles.pressed]}><Text style={styles.primaryButtonLabel}>Ver mi turno</Text><LaunchIcon name="arrow" color="#FFFFFF" size={20} /></Pressable>
+    const statusPill = activeTicket?.status === 'llamado'
+      ? { label: 'LLAMADO · TE TOCA', tone: 'gold' as const }
+      : activeTicket?.status === 'notificado'
+        ? { label: 'NOTIFICADO', tone: 'brand' as const }
+        : activeTicket?.status === 'en_atencion'
+          ? { label: 'EN ATENCIÓN', tone: 'success' as const }
+          : { label: 'EN ESPERA', tone: 'neutral' as const };
+    return (
+      <View style={styles.centered}>
+        <BrandMark size={44} />
+        <Text style={[TypeScale.eyebrow, styles.eyebrow]}>TU TURNO SIGUE ACTIVO</Text>
+        <Text style={TypeScale.display}>{activeTicket ? `Turno ${activeTicket.visibleCode}` : 'Recuperando tu turno…'}</Text>
+        {activeTicket ? <Pill label={statusPill.label} tone={statusPill.tone} /> : null}
+        {activeTicket ? (
+          <Card tone={activeTicket.status === 'llamado' ? 'gold' : 'brand'} padding="lg" style={styles.activeMetrics}>
+            <Text style={[TypeScale.body, { color: Palette.inkMuted }]}>
+              {activeTicket.status === 'llamado'
+                ? 'Te están llamando ahora: acércate al personal'
+                : activeTicket.status === 'en_atencion'
+                  ? 'Te están atendiendo'
+                  : 'Tu lugar en la fila está reservado'}
+            </Text>
+            <Text style={[TypeScale.title, { color: Palette.brandDeep }]}>
+              {activeTicket.peopleAhead} delante · {activeTicket.waitMinutes} min
+            </Text>
+            {activeTicket.serviceName || barberName ? (
+              <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>
+                {[activeTicket.serviceName, barberName].filter(Boolean).join(' · ')}
+              </Text>
+            ) : null}
+          </Card>
+        ) : null}
+        <Button
+          fullWidth
+          iconRight="arrow-right"
+          label="Ver mi turno"
+          onPress={() => router.push(activeGuestTicketRoute(activeTicket?.status ?? 'en_espera'))}
+          size="lg"
+        />
+        <Text style={[TypeScale.caption, styles.mutedCenter]}>
+          Cuando este turno termine, podrás escanear o ingresar otro código.
+        </Text>
       </View>
-      <View style={styles.activeNotice}><Text style={styles.activeNoticeTitle}>No puedes iniciar otro turno todavía</Text><Text style={styles.activeNoticeDetail}>Cuando este turno termine, podrás escanear o ingresar otro código.</Text></View>
-    </ScrollView>;
+    );
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={[styles.page, { paddingBottom: Math.max(insets.bottom, 20) + 20, paddingTop: Math.max(insets.top, 12) + 12 }]}
-      style={styles.shell}>
-      <View style={styles.brand} accessibilityLabel="Turnify">
-        <View style={styles.brandMark}><View style={styles.brandMarkInner} /></View>
-        <Text style={styles.brandName}>turnify</Text>
+    <View style={styles.page}>
+      <View style={styles.brand}>
+        <BrandMark size={44} />
+        <Text style={[TypeScale.title, { color: Palette.ink }]}>turnify</Text>
       </View>
 
-      <View style={styles.categoryPill}><LaunchIcon name="storefront" color="#3D5781" size={16} /><Text style={styles.categoryLabel}>BARBERÍAS</Text></View>
-      <View style={styles.heading}>
-        <Text style={styles.title}>Tu turno empieza aquí</Text>
-        <Text style={styles.subtitle}>Escanea el código de tu barbería y únete a la fila sin crear una cuenta.</Text>
-      </View>
-
-      <View accessible accessibilityLabel="Área segura para escanear el código QR de la barbería" style={styles.scannerHero}>
-        <View style={styles.heroGlowOuter} /><View style={styles.heroGlowInner} />
-        <View style={styles.reticle}>
-          <View style={[styles.reticleCorner, styles.topLeft]} /><View style={[styles.reticleCorner, styles.topRight]} />
-          <View style={[styles.reticleCorner, styles.bottomLeft]} /><View style={[styles.reticleCorner, styles.bottomRight]} />
-          <View style={styles.scanIcon}><LaunchIcon name="scan" color="#00686C" size={38} /></View>
-          <View style={styles.scanLine} />
+      <View style={styles.narrative}>
+        <View style={styles.pill}>
+          <Icon color={Palette.brand} name="storefront" size={16} />
+          <Text style={[TypeScale.eyebrow, { color: Palette.brandDeep }]}>BARBERÍAS</Text>
         </View>
-        <View style={styles.securityLabel}><LaunchIcon name="shield" color="#00686C" size={16} /><Text style={styles.securityText}>ACCESO SEGURO</Text></View>
+        <Text style={[TypeScale.display, styles.narrativeTitle]}>Tu turno, sin esperar de más</Text>
+        <Text style={[TypeScale.body, styles.narrativeDetail]}>
+          Escanea el código QR en la entrada de la barbería o ingresa su código para sumarte a la fila al instante.
+        </Text>
       </View>
 
-      <Pressable accessibilityLabel="Escanear código QR" accessibilityRole="button" onPress={() => router.push('/(public)/scan')} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-        <LaunchIcon name="scan" color="#FFFFFF" size={22} /><Text style={styles.primaryButtonLabel}>Escanear código QR</Text><LaunchIcon name="arrow" color="#FFFFFF" size={20} />
-      </Pressable>
+      <Card tone="soft" padding="lg" style={styles.scannerCard}>
+        <View style={styles.reticle}>
+          <View style={[styles.reticleCorner, styles.topLeft]} />
+          <View style={[styles.reticleCorner, styles.topRight]} />
+          <View style={[styles.reticleCorner, styles.bottomLeft]} />
+          <View style={[styles.reticleCorner, styles.bottomRight]} />
+          <View style={styles.scanBadge}>
+            <Icon color={Palette.brand} name="qr" size={42} />
+          </View>
+        </View>
+        <Text style={[TypeScale.label, { color: Palette.inkMuted }]}>Listo para enfocar</Text>
+      </Card>
 
-      <Pressable accessibilityHint={showCodeDrawer ? 'Oculta el campo para ingresar el código.' : 'Muestra el campo para ingresar el código.'} accessibilityLabel="Ingresar código de la barbería" accessibilityRole="button" onPress={toggleCodeDrawer} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}>
-        <LaunchIcon name="code" color="#00686C" size={20} /><Text style={styles.secondaryButtonLabel}>Ingresar código de la barbería</Text>
-      </Pressable>
-
-      {isDrawerMounted && <Animated.View style={[styles.drawer, { height: drawerProgress.interpolate({ inputRange: [0, 1], outputRange: [0, 148] }), opacity: drawerProgress, transform: [{ translateY: drawerProgress.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) }] }]}>
-        <Text style={styles.drawerLabel}>CÓDIGO DE LA BARBERÍA</Text>
-        <TextInput accessibilityLabel="Código de la barbería" autoCapitalize="characters" autoCorrect={false} onChangeText={setCode} onSubmitEditing={continueWithCode} placeholder="Ej.: TURNO-123" placeholderTextColor="#6B7890" returnKeyType="go" style={styles.input} value={code} />
-        <Pressable accessibilityLabel="Continuar con el código" accessibilityRole="button" onPress={continueWithCode} style={({ pressed }) => [styles.drawerButton, pressed && styles.pressed]}><Text style={styles.drawerButtonLabel}>Continuar</Text><LaunchIcon name="arrow" color="#FFFFFF" size={18} /></Pressable>
-      </Animated.View>}
-      {error && <View accessibilityRole="alert" style={styles.error}><Text style={styles.errorText}>{error}</Text></View>}
-
-      <View style={styles.values}>
-        <ValueCard icon="ticket" title="Código visible" detail="Consulta tu turno con el código que recibes al confirmar." />
-        <ValueCard icon="shield" title="Te llaman en el local" detail="Mira la pantalla o escucha el llamado cuando sea tu turno." />
+      <View style={styles.actions}>
+        <Button
+          fullWidth
+          icon="qr"
+          label="Escanear código QR"
+          onPress={() => router.push('/(public)/scan')}
+          size="lg"
+        />
+        <Button
+          fullWidth
+          icon="code"
+          label="Ingresar código del negocio"
+          onPress={toggleCodeDrawer}
+          size="lg"
+          variant="secondary"
+        />
+        {isDrawerOpen ? (
+          <View style={styles.drawer}>
+            <TextField
+              autoCapitalize="characters"
+              autoCorrect={false}
+              error={error}
+              hint="Consulta el código en el mostrador o recepción."
+              label="CÓDIGO DE LA BARBERÍA"
+              onChangeText={setCode}
+              onSubmitEditing={continueWithCode}
+              placeholder="Ej.: TURNO-123"
+              returnKeyType="go"
+              value={code}
+            />
+            <Button fullWidth iconRight="arrow-right" label="Continuar" onPress={continueWithCode} />
+          </View>
+        ) : null}
       </View>
 
-      <View style={styles.staffFooter}><Text style={styles.staffQuestion}>¿Trabajas en una barbería?</Text><Pressable accessibilityLabel="Acceso para personal" accessibilityRole="button" onPress={() => router.push(workerSignInRoute)}><Text style={styles.staffLink}>Acceso para personal</Text></Pressable></View>
-    </ScrollView>
+      <View style={styles.trustRow}>
+        <Card style={styles.trustCard} padding="sm">
+          <Icon color={Palette.brand} name="clock" size={20} />
+          <Text style={[TypeScale.label, { color: Palette.ink }]}>Tiempo real</Text>
+          <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>Sigue tu posición</Text>
+        </Card>
+        <Card style={styles.trustCard} padding="sm">
+          <Icon color={Palette.brand} name="bell" size={20} />
+          <Text style={[TypeScale.label, { color: Palette.ink }]}>Aviso de llamado</Text>
+          <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>Te avisamos al llamarte</Text>
+        </Card>
+      </View>
+
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  shell: { backgroundColor: '#F7F9FF', flex: 1 },
-  activeCard: { backgroundColor: '#E8F1FF', borderColor: '#BFD6F7', borderRadius: 12, borderWidth: 1, gap: 12, padding: 20 }, activeEyebrow: { color: '#00686C', fontSize: 11, fontWeight: '800', letterSpacing: 1 }, activeTitle: { color: '#111D27', fontSize: 30, fontWeight: '800' }, activeStatus: { color: '#3D5781', fontSize: 16, lineHeight: 22 }, activeMetrics: { flexDirection: 'row', gap: 12 }, activeMetric: { color: '#00686C', fontSize: 13, fontWeight: '700' }, activeDetail: { color: '#60707D', fontSize: 14 }, activeButton: { marginTop: 4 }, activeNotice: { backgroundColor: '#FFFFFF', borderRadius: 12, gap: 6, padding: 18 }, activeNoticeTitle: { color: '#111D27', fontSize: 16, fontWeight: '800' }, activeNoticeDetail: { color: '#60707D', fontSize: 14, lineHeight: 20 },
-  page: { alignSelf: 'center', gap: 16, maxWidth: 480, paddingHorizontal: 20, width: '100%' },
-  brand: { alignItems: 'center', gap: 6 },
-  brandMark: { alignItems: 'center', backgroundColor: '#00686C', borderRadius: 12, height: 42, justifyContent: 'center', width: 42 },
-  brandMarkInner: { backgroundColor: '#F7F9FF', borderRadius: 3, height: 18, transform: [{ rotate: '45deg' }], width: 18 },
-  brandName: { color: '#111D27', fontSize: 21, fontWeight: '800', letterSpacing: -0.5, lineHeight: 26 },
-  categoryPill: { alignItems: 'center', alignSelf: 'center', backgroundColor: '#E9EEFF', borderRadius: 999, flexDirection: 'row', gap: 6, paddingHorizontal: 12, paddingVertical: 7 },
-  categoryLabel: { color: '#3D5781', fontSize: 11, fontWeight: '800', letterSpacing: 1, lineHeight: 14 },
-  heading: { alignItems: 'center', gap: 8, paddingHorizontal: 8 },
-  title: { color: '#111D27', fontSize: 29, fontWeight: '800', letterSpacing: -0.8, lineHeight: 35, textAlign: 'center' },
-  subtitle: { color: '#526075', fontSize: 15, lineHeight: 22, maxWidth: 335, textAlign: 'center' },
-  scannerHero: { alignItems: 'center', backgroundColor: '#EAF0FF', borderRadius: 12, height: 244, justifyContent: 'center', overflow: 'hidden' },
-  heroGlowOuter: { backgroundColor: '#D7E5FF', borderRadius: 999, height: 250, opacity: 0.8, position: 'absolute', width: 250 },
-  heroGlowInner: { backgroundColor: '#F7F9FF', borderRadius: 999, height: 194, position: 'absolute', width: 194 },
-  reticle: { alignItems: 'center', height: 138, justifyContent: 'center', position: 'relative', width: 138 },
-  reticleCorner: { borderColor: '#00686C', height: 30, position: 'absolute', width: 30 },
-  topLeft: { borderLeftWidth: 2, borderTopWidth: 2, left: 0, top: 0 }, topRight: { borderRightWidth: 2, borderTopWidth: 2, right: 0, top: 0 },
-  bottomLeft: { borderBottomWidth: 2, borderLeftWidth: 2, bottom: 0, left: 0 }, bottomRight: { borderBottomWidth: 2, borderRightWidth: 2, bottom: 0, right: 0 },
-  scanIcon: { alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 999, height: 76, justifyContent: 'center', shadowColor: '#38517A', shadowOffset: { height: 7, width: 0 }, shadowOpacity: 0.12, shadowRadius: 14, width: 76 },
-  scanLine: { backgroundColor: '#0E8388', height: 2, opacity: 0.75, position: 'absolute', top: 68, width: 112 },
-  securityLabel: { alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 999, bottom: 16, flexDirection: 'row', gap: 6, paddingHorizontal: 12, paddingVertical: 7, position: 'absolute' },
-  securityText: { color: '#00686C', fontSize: 10, fontWeight: '800', letterSpacing: 0.9, lineHeight: 13 },
-  primaryButton: { alignItems: 'center', backgroundColor: '#00686C', borderRadius: 12, flexDirection: 'row', height: 56, justifyContent: 'space-between', paddingHorizontal: 18 },
-  primaryButtonLabel: { color: '#FFFFFF', fontSize: 16, fontWeight: '800', lineHeight: 22 },
-  secondaryButton: { alignItems: 'center', backgroundColor: '#FFFFFF', borderColor: '#C9D5EF', borderRadius: 12, borderWidth: 1, flexDirection: 'row', gap: 10, height: 52, justifyContent: 'center', paddingHorizontal: 16 },
-  secondaryButtonLabel: { color: '#00686C', fontSize: 15, fontWeight: '700', lineHeight: 20 },
-  pressed: { opacity: 0.8 },
-  drawer: { backgroundColor: '#E9EEFF', borderRadius: 12, gap: 9, overflow: 'hidden', paddingHorizontal: 14, paddingTop: 14 },
-  drawerLabel: { color: '#3D5781', fontSize: 10, fontWeight: '800', letterSpacing: 0.9, lineHeight: 13 },
-  input: { backgroundColor: '#FFFFFF', borderColor: '#B8C6E4', borderRadius: 8, borderWidth: 1, color: '#111D27', fontSize: 16, height: 44, paddingHorizontal: 12 },
-  drawerButton: { alignItems: 'center', backgroundColor: '#0E8388', borderRadius: 8, flexDirection: 'row', height: 40, justifyContent: 'center', gap: 6 },
-  drawerButtonLabel: { color: '#FFFFFF', fontSize: 14, fontWeight: '800', lineHeight: 18 },
-  error: { backgroundColor: '#FFF0EE', borderColor: '#F2BBB4', borderRadius: 8, borderWidth: 1, padding: 12 },
-  errorText: { color: '#9B281B', fontSize: 14, fontWeight: '600', lineHeight: 20, textAlign: 'center' },
-  values: { flexDirection: 'row', gap: 10 },
-  valueCard: { backgroundColor: '#FFFFFF', borderColor: '#DCE3F2', borderRadius: 12, borderWidth: 1, flex: 1, gap: 7, minHeight: 158, padding: 13 },
-  valueIcon: { alignItems: 'center', backgroundColor: '#E8F4F3', borderRadius: 8, height: 34, justifyContent: 'center', width: 34 },
-  valueTitle: { color: '#111D27', fontSize: 14, fontWeight: '800', lineHeight: 18 },
-  valueDetail: { color: '#59667A', fontSize: 12, lineHeight: 17 },
-  staffFooter: { alignItems: 'center', gap: 5, paddingTop: 4 },
-  staffQuestion: { color: '#667389', fontSize: 13, lineHeight: 18 },
-  staffLink: { color: '#00686C', fontSize: 14, fontWeight: '800', lineHeight: 20, textDecorationLine: 'underline' },
+  page: {
+    alignSelf: 'center',
+    backgroundColor: Palette.canvas,
+    flex: 1,
+    gap: space(4),
+    maxWidth: 480,
+    paddingHorizontal: space(5),
+    paddingVertical: space(5),
+    width: '100%',
+  },
+  centered: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: Palette.canvas,
+    flex: 1,
+    gap: space(3),
+    justifyContent: 'center',
+    maxWidth: 480,
+    paddingHorizontal: space(5),
+    width: '100%',
+  },
+  eyebrow: { color: Palette.brandDeep },
+  brand: { alignItems: 'center', gap: space(2) },
+  narrative: { alignItems: 'center', gap: space(2) },
+  narrativeTitle: { color: Palette.ink, textAlign: 'center' },
+  narrativeDetail: { color: Palette.inkMuted, textAlign: 'center' },
+  pill: {
+    alignItems: 'center',
+    backgroundColor: Palette.brandSoft,
+    borderRadius: Radius.pill,
+    flexDirection: 'row',
+    gap: space(1.5),
+    paddingHorizontal: space(3),
+    paddingVertical: space(1.5),
+  },
+  scannerCard: { alignItems: 'center', gap: space(2) },
+  reticle: {
+    alignItems: 'center',
+    backgroundColor: Palette.surface,
+    borderRadius: Radius.large,
+    height: 168,
+    justifyContent: 'center',
+    position: 'relative',
+    width: 168,
+  },
+  reticleCorner: { borderColor: Palette.brand, height: 28, position: 'absolute', width: 28 },
+  topLeft: { borderLeftWidth: 3, borderTopWidth: 3, left: 10, top: 10 },
+  topRight: { borderRightWidth: 3, borderTopWidth: 3, right: 10, top: 10 },
+  bottomLeft: { borderBottomWidth: 3, borderLeftWidth: 3, bottom: 10, left: 10 },
+  bottomRight: { borderBottomWidth: 3, borderRightWidth: 3, bottom: 10, right: 10 },
+  scanBadge: {
+    alignItems: 'center',
+    backgroundColor: Palette.brandSoftest,
+    borderRadius: Radius.pill,
+    height: 84,
+    justifyContent: 'center',
+    width: 84,
+  },
+  actions: { gap: space(3) },
+  drawer: { gap: space(3) },
+  trustRow: { flexDirection: 'row', gap: space(2) },
+  trustCard: { alignItems: 'flex-start', flex: 1, gap: space(1) },
+  activeMetrics: { alignItems: 'center', gap: space(1), width: '100%' },
+  mutedCenter: { color: Palette.inkMuted, textAlign: 'center' },
 });

@@ -22,6 +22,7 @@ vi.mock('react', () => ({
   createContext: () => ({ Provider: 'GuestFlowProvider' }),
   useCallback: <T>(callback: T, dependencies: readonly unknown[]) => cached(() => callback, dependencies),
   useContext: () => undefined,
+  useEffect: () => undefined,
   useMemo: <T>(factory: () => T, dependencies: readonly unknown[]) => cached(factory, dependencies),
   useState: <T,>(initialValue: T) => {
     const index = cursor++;
