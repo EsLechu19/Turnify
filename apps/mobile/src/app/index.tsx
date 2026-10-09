@@ -8,7 +8,7 @@ import { getGuestTicketState, type GuestTicketState } from '@/features/queue/pub
 import { createGuestTicketHomeChannelName, subscribeToGuestTicketHomeChanges } from '@/features/queue/public-ticket-home-realtime';
 import { normalizeBusinessCode } from '@/features/queue/queue-api';
 import { useGuestFlow } from '@/features/public/guest-flow-session';
-import { activeGuestTicketRoute, isActiveGuestTicketStatus, publicShopRoute } from '@/features/public/public-route-policy';
+import { activeGuestTicketRoute, isActiveGuestTicketStatus, publicShopRoute, workerSignInRoute } from '@/features/public/public-route-policy';
 import { getSupabase } from '@/lib/supabase';
 
 /**
@@ -203,6 +203,11 @@ export default function PublicWelcomeScreen() {
         </Card>
       </View>
 
+      <View style={styles.workerFooter}>
+        <Text style={[TypeScale.caption, styles.workerCaption]}>¿Eres trabajador de la barbería?</Text>
+        <Button href={workerSignInRoute} label="Iniciar sesión como trabajador" variant="link" />
+      </View>
+
     </View>
   );
 }
@@ -270,6 +275,8 @@ const styles = StyleSheet.create({
   drawer: { gap: space(3) },
   trustRow: { flexDirection: 'row', gap: space(2) },
   trustCard: { alignItems: 'flex-start', flex: 1, gap: space(1) },
+  workerFooter: { alignItems: 'center', gap: space(1), paddingBottom: space(2) },
+  workerCaption: { color: Palette.inkMuted, textAlign: 'center' },
   activeMetrics: { alignItems: 'center', gap: space(1), width: '100%' },
   mutedCenter: { color: Palette.inkMuted, textAlign: 'center' },
 });

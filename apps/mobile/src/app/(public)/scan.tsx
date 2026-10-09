@@ -8,7 +8,7 @@ import { BrandBar, Button, Card, Icon, StateBlock } from '@/components/ui';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import { parseTurnifyQr } from '@/features/queue/queue-api';
 import { useGuestFlow } from '@/features/public/guest-flow-session';
-import { publicShopRoute } from '@/features/public/public-route-policy';
+import { publicShopRoute, workerSignInRoute } from '@/features/public/public-route-policy';
 
 function Reticle() {
   const scanProgress = useRef(new Animated.Value(0)).current;
@@ -54,7 +54,7 @@ export default function PublicScanScreen() {
   if (hasActiveTicketAccess) return null;
 
   function returnHome() {
-    router.replace('/(app)');
+    router.replace('/');
   }
 
   function retryScan() {
@@ -169,6 +169,16 @@ export default function PublicScanScreen() {
             </Card>
           </View>
         ) : null}
+
+        <View style={styles.workerFooter}>
+          <Text style={[TypeScale.caption, styles.workerCaption]}>¿Eres trabajador de la barbería?</Text>
+          <Button
+            accessibilityLabel="Iniciar sesión como trabajador"
+            href={workerSignInRoute}
+            label="Iniciar sesión como trabajador"
+            variant="link"
+          />
+        </View>
       </ScrollView>
     </View>
   );
@@ -234,4 +244,6 @@ const styles = StyleSheet.create({
   cameraStatusText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800', letterSpacing: 0.7, lineHeight: 14 },
 
   privacyHint: { alignItems: 'center', alignSelf: 'center', flexDirection: 'row', gap: 7, marginTop: -space(2) },
+  workerFooter: { alignItems: 'center', gap: space(1), paddingVertical: space(2) },
+  workerCaption: { color: Palette.inkMuted, textAlign: 'center' },
 });

@@ -47,6 +47,7 @@ export default function RootLayout() {
                 contentStyle: { backgroundColor: Palette.canvas },
               }}
             >
+              <Stack.Screen name="index" />
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="(public)" />
               <Stack.Screen name="(app)" />
