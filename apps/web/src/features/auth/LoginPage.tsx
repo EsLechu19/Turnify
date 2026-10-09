@@ -1,13 +1,16 @@
 import { useState, type FormEvent } from 'react';
+import { useLocation } from 'react-router-dom';
 
 import { Icon } from '@/components/Icon';
 import { Button } from '@/components/common';
+import { isSupabaseConfigured } from '@/data/supabase';
 import { useAuth } from '@/state/AuthContext';
 
 export function LoginPage() {
   const { signIn, error, pending, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const bounceMessage = (useLocation().state as { message?: string } | null)?.message;
 
   const canSubmit = email.trim().length > 0 && password.length > 0 && !pending;
 
@@ -77,6 +80,11 @@ export function LoginPage() {
               <Icon name="info" size={15} />
               <span>{error}</span>
             </p>
+          ) : bounceMessage ? (
+            <p className="auth__error" role="status">
+              <Icon name="info" size={15} />
+              <span>{bounceMessage}</span>
+            </p>
           ) : null}
 
           <Button disabled={!canSubmit} icon="logout" size="lg" type="submit">
@@ -84,9 +92,11 @@ export function LoginPage() {
           </Button>
         </form>
 
-        <p className="auth__hint muted">
-          Demo: <strong>esau01s@turnify.app</strong> / <strong>turnify</strong>
-        </p>
+        {!isSupabaseConfigured() ? (
+          <p className="auth__hint muted">
+            Demo: <strong>esau01s@turnify.app</strong> / <strong>turnify</strong>
+          </p>
+        ) : null}
       </div>
     </div>
   );

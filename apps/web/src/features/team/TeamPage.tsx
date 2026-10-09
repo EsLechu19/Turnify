@@ -1,9 +1,9 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import { Icon } from '@/components/Icon';
 import { Badge, Button, ConfirmModal, DetailRow, EmptyState, FormModal, IconButton, Modal, PageHeader, SectionCard, StatsRow } from '@/components/common';
 import { formatDuration, formatPrice, initialsOf } from '@/utils/format';
-import { paceOf, staffAvailabilityLabels, staffAvailabilityTone } from '@/data/mocks/staff';
+import { paceOf, staffAvailabilityLabels, staffAvailabilityTone } from '@/data/labels';
 import { staffRepository } from '@/data/repositories';
 import { useServices } from '@/state/ServicesContext';
 import type { ServiceRecord, StaffAvailability, StaffRecord, StaffRole } from '@/data/types';
@@ -74,13 +74,34 @@ function emptyDraft(member: StaffRecord, serviceIds: string[]): StaffDraft {
 
 export function TeamPage() {
   const { services, saveService } = useServices();
-  const [staff, setStaff] = useState<StaffRecord[]>(staffRepository.list());
+  const [staff, setStaff] = useState<StaffRecord[]>([]);
+  const [loadingStaff, setLoadingStaff] = useState(true);
   const [query, setQuery] = useState('');
   const [availabilityFilter, setAvailabilityFilter] = useState<AvailabilityFilter>('todas');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
   const [modal, setModal] = useState<StaffModal>(null);
   const [draft, setDraft] = useState<StaffDraft | null>(null);
   const [formError, setFormError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+
+    staffRepository
+      .list()
+      .then((members) => {
+        if (active) {
+          setStaff(members);
+          setLoadingStaff(false);
+        }
+      })
+      .catch(() => {
+        if (active) setLoadingStaff(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const modalMember = modal && 'id' in modal ? (staff.find((member) => member.id === modal.id) ?? null) : null;
 
@@ -330,7 +351,9 @@ export function TeamPage() {
           </span>
         </div>
 
-        {filtered.length === 0 ? (
+        {loadingStaff ? (
+          <EmptyState detail="Trayendo al equipo del local…" title="Cargando equipo" />
+        ) : filtered.length === 0 ? (
           <EmptyState detail="Ajusta la búsqueda o los filtros para ver miembros del equipo." title="Nadie coincide" />
         ) : (
           <div className="table-wrap" style={{ marginTop: 16 }}>

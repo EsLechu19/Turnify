@@ -33,6 +33,12 @@ export interface ServiceMixItem {
   count: number;
 }
 
+/** One hour of the demand baseline: average tickets created that hour. */
+export interface DemandEstimate {
+  hour: string;
+  estimated: number;
+}
+
 export interface ActivityEvent {
   id: string;
   time: string;

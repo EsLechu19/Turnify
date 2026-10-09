@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
-    dispatch({ type: 'restored', session: authRepository.restore() });
+    void authRepository.restore().then((session) => dispatch({ type: 'restored', session }));
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {

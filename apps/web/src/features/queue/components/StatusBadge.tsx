@@ -1,5 +1,5 @@
 import { Badge } from '@/components/common';
-import { statusLabels, statusTone } from '@/data/mocks/panel';
+import { statusLabels, statusTone } from '@/data/labels';
 import type { QueueTicket } from '@/data/types';
 
 export function StatusBadge({ ticket }: { ticket: QueueTicket }) {

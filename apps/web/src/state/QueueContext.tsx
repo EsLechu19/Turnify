@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useReducer, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
 
 import { panelRepository } from '@/data/repositories';
 import { computeStats } from '@/data/compute';
@@ -27,23 +27,20 @@ interface QueueState {
   team: QueueTeamMember[];
   queues: QueueSummary[];
   activity: ActivityEvent[];
+  loading: boolean;
 }
 
 type QueueAction =
+  | {
+    type: 'loaded';
+    state: { tickets: QueueTicket[]; team: TeamMember[]; queues: QueueSummary[]; activity: ActivityEvent[] };
+  }
   | { type: 'status-changed'; id: string; status: TicketStatus }
   | { type: 'ticket-assigned'; id: string; barber: string }
   | { type: 'reset' };
 
-function initialState(): QueueState {
-  return {
-    tickets: panelRepository.tickets(),
-    team: panelRepository.team().map((member) => ({
-      ...member,
-      scheduleAvailability: member.availability,
-    })),
-    queues: panelRepository.queues(),
-    activity: panelRepository.activity(),
-  };
+function emptyState(): QueueState {
+  return { tickets: [], team: [], queues: [], activity: [], loading: true };
 }
 
 /** Fields each transition resets, mirroring what the panel showed before. */
@@ -94,6 +91,17 @@ function syncBarber(
 
 function reducer(state: QueueState, action: QueueAction): QueueState {
   switch (action.type) {
+    case 'loaded': {
+      return {
+        ...action.state,
+        team: action.state.team.map((member) => ({
+          ...member,
+          scheduleAvailability: member.availability,
+        })),
+        loading: false,
+      };
+    }
+
     case 'status-changed': {
       const tickets = state.tickets.map((ticket) => {
         if (ticket.id !== action.id) {
@@ -137,7 +145,7 @@ function reducer(state: QueueState, action: QueueAction): QueueState {
     }
 
     case 'reset':
-      return initialState();
+      return emptyState();
   }
 }
 
@@ -151,7 +159,28 @@ interface QueueContextValue extends QueueState {
 const QueueContext = createContext<QueueContextValue | null>(null);
 
 export function QueueProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, undefined, initialState);
+  const [state, dispatch] = useReducer(reducer, undefined, emptyState);
+
+  useEffect(() => {
+    let active = true;
+
+    Promise.all([
+      panelRepository.tickets(),
+      panelRepository.team(),
+      panelRepository.queues(),
+      panelRepository.activity(),
+    ])
+      .then(([tickets, team, queues, activity]) => {
+        if (active) dispatch({ type: 'loaded', state: { tickets, team, queues, activity } });
+      })
+      .catch(() => {
+        if (active) dispatch({ type: 'loaded', state: { tickets: [], team: [], queues: [], activity: [] } });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const value = useMemo<QueueContextValue>(
     () => ({

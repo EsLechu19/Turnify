@@ -5,22 +5,12 @@
  * rows below emulate a day of attended, absent and cancelled turns.
  */
 
-import type { HistoryRecord, HistoryStatus } from '../types';
+import type { HistoryRecord } from '../types';
 
-export const historyStatusLabels: Record<HistoryStatus, string> = {
-  completado: 'Completado',
-  ausencia: 'Ausencia',
-  cancelado: 'Cancelado',
-};
-
-export const historyStatusTone: Record<HistoryStatus, 'success' | 'danger' | 'neutral'> = {
-  completado: 'success',
-  ausencia: 'danger',
-  cancelado: 'neutral',
-};
+/** Labels moved to `@/data/labels`; re-exported here so fixtures keep compiling. */
+export { averageOf, historyStatusLabels, historyStatusTone } from '../labels';
 
 export const initialHistory: HistoryRecord[] = [
-  { id: 'h-01', code: 'C-101', date: '2026-10-05', arrival: '09:05', customer: 'Carlos Méndez', service: 'Corte caballero', barber: 'Diego Ramírez', waitMinutes: 6, durationMinutes: 32, status: 'completado' },
   { id: 'h-02', code: 'B-021', date: '2026-10-05', arrival: '09:20', customer: 'Jorge Parra', service: 'Barba clásica', barber: 'Mateo Cruz', waitMinutes: 4, durationMinutes: 18, status: 'completado' },
   { id: 'h-03', code: 'C-102', date: '2026-10-05', arrival: '09:45', customer: 'Lucía Fernández', service: 'Corte + barba', barber: 'Diego Ramírez', waitMinutes: 11, durationMinutes: 44, status: 'completado' },
   { id: 'h-04', code: 'C-103', date: '2026-10-05', arrival: '10:10', customer: 'Andrés Soto', service: 'Corte caballero', barber: null, waitMinutes: 9, durationMinutes: 0, status: 'ausencia' },
@@ -45,11 +35,3 @@ export const initialHistory: HistoryRecord[] = [
   { id: 'h-23', code: 'B-028', date: '2026-10-05', arrival: '19:20', customer: 'Eva Ramos', service: 'Barba + perfilado', barber: 'Diego Ramírez', waitMinutes: 5, durationMinutes: 23, status: 'completado' },
   { id: 'h-24', code: 'C-116', date: '2026-10-05', arrival: '19:55', customer: 'Tino Cruz', service: 'Corte + barba', barber: 'Mateo Cruz', waitMinutes: 10, durationMinutes: 46, status: 'completado' },
 ];
-
-export function averageOf(values: number[]): number {
-  if (values.length === 0) {
-    return 0;
-  }
-
-  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
-}

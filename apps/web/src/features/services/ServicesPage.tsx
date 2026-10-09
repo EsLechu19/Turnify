@@ -1,14 +1,13 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 
 import { Icon } from '@/components/Icon';
 import { Badge, Button, ConfirmModal, DetailRow, EmptyState, FormModal, IconButton, Modal, PageHeader, SectionCard, StatsRow } from '@/components/common';
-import { availabilityLabels } from '@/data/mocks/panel';
-import { panelRepository, staffRepository } from '@/data/repositories';
+import { availabilityLabels } from '@/data/labels';
+import { computeServiceMix } from '@/data/compute';
 import { formatDuration, formatPrice } from '@/utils/format';
 import { useServices } from '@/state/ServicesContext';
-import type { ServiceRecord } from '@/data/types';
-
-const serviceMix = panelRepository.serviceMix();
+import { useQueue } from '@/state/QueueContext';
+import type { ServiceRecord, TeamMember } from '@/data/types';
 
 type StatusFilter = 'todos' | 'activo' | 'inactivo';
 
@@ -33,10 +32,6 @@ const statusOptions: { label: string; value: StatusFilter }[] = [
   { label: 'Activos', value: 'activo' },
   { label: 'Inactivos', value: 'inactivo' },
 ];
-
-function barberName(id: string): string {
-  return staffRepository.list().find((member) => member.id === id)?.name ?? 'Barbero no disponible';
-}
 
 function emptyDraft(): ServiceDraft {
   return {
@@ -63,9 +58,11 @@ function draftFrom(service: ServiceRecord): ServiceDraft {
 function ServiceForm({
   draft,
   onChange,
+  team,
 }: {
   draft: ServiceDraft;
   onChange: (patch: Partial<ServiceDraft>) => void;
+  team: TeamMember[];
 }) {
   function toggleBarber(id: string) {
     const next = draft.barberIds.includes(id)
@@ -143,7 +140,7 @@ function ServiceForm({
           </legend>
 
           <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-            {staffRepository.list().map((member) => (
+            {team.map((member) => (
               <label
                 key={member.id}
                 style={{
@@ -180,12 +177,18 @@ function ServiceForm({
 
 export function ServicesPage() {
   const { services, saveService, removeService } = useServices();
+  const { tickets, team } = useQueue();
+  const serviceMix = useMemo(() => computeServiceMix(tickets), [tickets]);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
   const [barberFilter, setBarberFilter] = useState('all');
   const [modal, setModal] = useState<ModalState>(null);
   const [draft, setDraft] = useState<ServiceDraft>(emptyDraft);
   const [formError, setFormError] = useState('');
+
+  function barberName(id: string): string {
+    return team.find((member) => member.id === id)?.name ?? 'Barbero no disponible';
+  }
 
   const activeCount = services.filter((service) => service.active).length;
   const avgDuration =
@@ -353,7 +356,7 @@ export function ServicesPage() {
             >
               <option value="all">Todos los barberos</option>
               <option value="none">Sin barberos asignados</option>
-              {staffRepository.list().map((member) => (
+              {team.map((member) => (
                 <option key={member.id} value={member.id}>
                   {member.name}
                 </option>
@@ -473,7 +476,7 @@ export function ServicesPage() {
           submitLabel="Guardar servicio"
           title={modal.id ? 'Editar servicio' : 'Crear nuevo servicio'}
         >
-          <ServiceForm draft={draft} onChange={handleDraftChange} />
+          <ServiceForm draft={draft} onChange={handleDraftChange} team={team} />
         </FormModal>
       ) : null}
 
@@ -538,7 +541,7 @@ export function ServicesPage() {
           ) : (
             <div style={{ display: 'grid', gap: 10 }}>
               {modalService.barberIds.map((id) => {
-                const member = staffRepository.list().find((person) => person.id === id);
+                const member = team.find((person) => person.id === id);
 
                 return (
                   <div

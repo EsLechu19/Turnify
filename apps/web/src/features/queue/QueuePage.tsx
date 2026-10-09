@@ -1,20 +1,17 @@
 import { useMemo, useState, type CSSProperties, type FormEvent } from 'react';
 
 import { Badge, Button, Card, CardHead, CardNote, InfoCell, MiniStat, PageHeader, SectionCard, TwoColumnGrid } from '@/components/common';
-import { availabilityLabels } from '@/data/mocks/panel';
-import { panelRepository } from '@/data/repositories';
+import { availabilityLabels } from '@/data/labels';
+import { computeServiceMix } from '@/data/compute';
 import { formatWait } from '@/utils/format';
 import { nextActionableTicket } from '@/data/selectors';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import type { QueueTicket, TeamMember, TicketStatus } from '@/data/types';
 import { useQueue } from '@/state/QueueContext';
+import { useShop } from '@/state/ShopContext';
 
 import { StatusBadge } from './components/StatusBadge';
 import { QR_CELLS, buildQrMatrix } from './qr';
-
-const business = panelRepository.business();
-const serviceMix = panelRepository.serviceMix();
-const branch = panelRepository.branch();
 
 /** Display state of a station: the member plus their live ticket. */
 type StationStatus = 'disponible' | 'ocupado' | 'fuera_de_turno';
@@ -57,6 +54,11 @@ const chipStyle: CSSProperties = {
 
 export function QueuePage() {
   const { tickets: panelTickets, team, queues, changeStatus: onStatusChange } = useQueue();
+  const { business, branch } = useShop();
+  const businessName = business?.name ?? 'Turnify';
+  const businessBranch = business?.branch ?? '';
+  const branchAccessCode = branch?.accessCode ?? '';
+  const serviceMix = useMemo(() => computeServiceMix(panelTickets), [panelTickets]);
   const [paused, setPaused] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
   const [manualTickets, setManualTickets] = useState<QueueTicket[]>([]);
@@ -66,14 +68,14 @@ export function QueuePage() {
   const [form, setForm] = useState({
     customer: '',
     priority: false,
-    queueId: queues[0].id,
-    service: serviceMix[0].service,
+    queueId: queues[0]?.id ?? '',
+    service: serviceMix[0]?.service ?? '',
   });
 
   const isCompact = useMediaQuery('(max-width: 1500px)');
   const isNarrow = useMediaQuery('(max-width: 1300px)');
 
-  const qrMatrix = useMemo(() => buildQrMatrix(business.name), []);
+  const qrMatrix = useMemo(() => buildQrMatrix(businessName), [businessName]);
   const allTickets = useMemo(
     () =>
       [...manualTickets, ...panelTickets].map((ticket) =>
@@ -212,7 +214,7 @@ export function QueuePage() {
       ...current,
     ]);
 
-    setForm({ customer: '', priority: false, queueId: queues[0].id, service: serviceMix[0].service });
+    setForm({ customer: '', priority: false, queueId: queues[0]?.id ?? '', service: serviceMix[0]?.service ?? '' });
     setShowManualForm(false);
   }
 
@@ -222,7 +224,7 @@ export function QueuePage() {
     }
 
     navigator.clipboard
-      .writeText(branch.accessCode)
+      .writeText(branchAccessCode)
       .then(() => {
         setCopied(true);
         window.setTimeout(() => setCopied(false), 1600);
@@ -709,7 +711,7 @@ export function QueuePage() {
             }}
           >
             <div
-              aria-label={`Código QR de ${business.name}`}
+              aria-label={`Código QR de ${businessName}`}
               role="img"
               style={{
                 background: '#fff',
@@ -729,7 +731,7 @@ export function QueuePage() {
             </div>
 
             <span className="muted" style={{ font: 'var(--text-caption)', textAlign: 'center' }}>
-              Escanean para tomar turno · {business.branch}
+              Escanean para tomar turno · {businessBranch}
             </span>
 
             <div
@@ -753,7 +755,7 @@ export function QueuePage() {
                 >
                   Código en la app
                 </span>
-                <strong style={{ font: 'var(--text-headline)', letterSpacing: '0.08em' }}>{branch.accessCode}</strong>
+                <strong style={{ font: 'var(--text-headline)', letterSpacing: '0.08em' }}>{branchAccessCode}</strong>
               </div>
               <Button icon={copied ? 'check' : 'copy'} onClick={copyAccessCode} size="sm" variant="secondary">
                 {copied ? 'Copiado' : 'Copiar'}

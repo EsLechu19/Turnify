@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useReducer, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
 
 import { serviceRepository } from '@/data/repositories';
 import type { ServiceRecord } from '@/data/types';
@@ -7,22 +7,23 @@ import type { ServiceRecord } from '@/data/types';
 
 interface ServicesState {
   services: ServiceRecord[];
+  loading: boolean;
 }
 
 type ServicesAction =
+  | { type: 'loaded'; services: ServiceRecord[] }
   | { type: 'saved'; service: ServiceRecord }
   | { type: 'removed'; id: string };
 
-function initialState(): ServicesState {
-  return { services: serviceRepository.list() };
-}
-
 function reducer(state: ServicesState, action: ServicesAction): ServicesState {
   switch (action.type) {
+    case 'loaded':
+      return { services: action.services, loading: false };
     case 'saved': {
       const exists = state.services.some((service) => service.id === action.service.id);
 
       return {
+        ...state,
         services: exists
           ? state.services.map((service) =>
               service.id === action.service.id ? action.service : service,
@@ -32,7 +33,7 @@ function reducer(state: ServicesState, action: ServicesAction): ServicesState {
     }
 
     case 'removed':
-      return { services: state.services.filter((service) => service.id !== action.id) };
+      return { ...state, services: state.services.filter((service) => service.id !== action.id) };
   }
 }
 
@@ -44,11 +45,28 @@ interface ServicesContextValue extends ServicesState {
 const ServicesContext = createContext<ServicesContextValue | null>(null);
 
 export function ServicesProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, undefined, initialState);
+  const [state, dispatch] = useReducer(reducer, undefined, (): ServicesState => ({ services: [], loading: true }));
+
+  useEffect(() => {
+    let active = true;
+
+    serviceRepository
+      .list()
+      .then((services) => {
+        if (active) dispatch({ type: 'loaded', services });
+      })
+      .catch(() => {
+        if (active) dispatch({ type: 'loaded', services: [] });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const value = useMemo<ServicesContextValue>(
     () => ({
-      services: state.services,
+      ...state,
       saveService: (service) => dispatch({ type: 'saved', service }),
       removeService: (id) => dispatch({ type: 'removed', id }),
     }),

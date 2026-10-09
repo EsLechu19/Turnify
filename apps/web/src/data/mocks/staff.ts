@@ -6,23 +6,9 @@
  * per barber are derived from `services[].barberIds`, never duplicated here.
  */
 
-import type { StaffAvailability, StaffRecord, StaffRole, TeamMember } from '../types';
+import type { StaffRecord, StaffRole, TeamMember } from '../types';
 import { companyId } from './services';
 import { initialTeam } from './panel';
-
-export const staffAvailabilityLabels: Record<StaffAvailability, string> = {
-  atencion: 'En atención',
-  disponible: 'Disponible',
-  descanso: 'En descanso',
-  fuera: 'Fuera de atención',
-};
-
-export const staffAvailabilityTone: Record<StaffAvailability, 'brand' | 'success' | 'gold' | 'neutral'> = {
-  atencion: 'brand',
-  disponible: 'success',
-  descanso: 'gold',
-  fuera: 'neutral',
-};
 
 const roleByEmail: Record<string, StaffRole> = {
   'diego.ramirez@turnify.app': 'admin',
@@ -87,11 +73,5 @@ export const initialStaff: StaffRecord[] = [
   },
 ];
 
-/** Minutes spent per finished service (8h shift / finished services today). */
-export function paceOf(completedToday: number): number | null {
-  if (completedToday <= 0) {
-    return null;
-  }
-
-  return Math.round(480 / completedToday);
-}
+/** Labels moved to `@/data/labels`; re-exported here so fixtures keep compiling. */
+export { paceOf, staffAvailabilityLabels, staffAvailabilityTone } from '../labels';

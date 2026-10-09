@@ -194,18 +194,5 @@ export const statusLabels: Record<QueueTicket['status'], string> = {
   ausente: 'Ausente',
 };
 
-export const statusTone: Record<QueueTicket['status'], 'neutral' | 'brand' | 'gold' | 'success' | 'danger'> = {
-  espera: 'neutral',
-  llamado: 'gold',
-  atencion: 'brand',
-  finalizado: 'success',
-  ausente: 'danger',
-};
-
-/** Short copy for the station and team cards. `staffAvailabilityLabels` is the wording used by the staff form. */
-export const availabilityLabels: Record<TeamMember['availability'], string> = {
-  atencion: 'Ocupado',
-  disponible: 'Disponible',
-  descanso: 'En descanso',
-  fuera: 'Fuera de turno',
-};
+/** Labels moved to `@/data/labels`; re-exported here so fixtures keep compiling. */
+export { availabilityLabels, statusTone } from '../labels';

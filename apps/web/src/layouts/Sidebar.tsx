@@ -2,11 +2,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import { Icon, type IconName } from '@/components/Icon';
 import { Button } from '@/components/common';
-import { panelRepository } from '@/data/repositories';
 import { useAuth } from '@/state/AuthContext';
+import { useShop } from '@/state/ShopContext';
 import { initialsOf } from '@/utils/format';
-
-const business = panelRepository.business();
 
 export interface NavItem {
   to: string;
@@ -31,6 +29,10 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { session, signOut } = useAuth();
+  const { business } = useShop();
+  const businessName = business?.name ?? 'Turnify';
+  const businessBranch = business?.branch ?? '';
+  const businessOwner = business?.owner ?? 'Panel';
 
   const isCurrent = (to: string) => (to === '/' ? pathname === '/' : pathname.startsWith(to));
 
@@ -44,9 +46,9 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
       <div className="sidebar__brand">
         <img alt="" src="/turnify-logo.png" />
         <div>
-          <strong>{business.name}</strong>
+          <strong>{businessName}</strong>
           <span>Panel</span>
-          <span>{business.branch}</span>
+          <span>{businessBranch}</span>
         </div>
       </div>
 
@@ -75,9 +77,9 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
 
       <div className="sidebar__footer">
         <div className="sidebar__user">
-          <span className="sidebar__avatar">{initialsOf(session?.user.name ?? business.owner)}</span>
+          <span className="sidebar__avatar">{initialsOf(session?.user.name ?? businessOwner)}</span>
           <div className="sidebar__user-info">
-            <strong>{session?.user.name ?? business.owner}</strong>
+            <strong>{session?.user.name ?? businessOwner}</strong>
             <span className="sidebar__role">
               {session?.user.role === 'barbero' ? 'Barbero' : 'Administrador'}
             </span>

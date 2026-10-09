@@ -15,7 +15,7 @@ import {
 } from 'recharts';
 
 import { Badge, Button, Card, CardHead, EmptyState, PageHeader, StatsRow } from '@/components/common';
-import { averageOf, historyStatusLabels, historyStatusTone } from '@/data/mocks/history';
+import { averageOf, historyStatusLabels, historyStatusTone } from '@/data/labels';
 import { historyRepository } from '@/data/repositories';
 import type { HistoryRecord, HistoryStatus } from '@/data/types';
 
@@ -85,10 +85,32 @@ export function HistoryPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
   const [page, setPage] = useState(1);
   const [printAll, setPrintAll] = useState(false);
+  const [rows, setRows] = useState<HistoryRecord[]>([]);
+  const [loadingRows, setLoadingRows] = useState(true);
 
   useEffect(() => {
     setPage(1);
   }, [barberFilter, serviceFilter, statusFilter]);
+
+  useEffect(() => {
+    let active = true;
+
+    historyRepository
+      .list()
+      .then((records) => {
+        if (active) {
+          setRows(records);
+          setLoadingRows(false);
+        }
+      })
+      .catch(() => {
+        if (active) setLoadingRows(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     function enterPrint() {
@@ -107,8 +129,6 @@ export function HistoryPage() {
       window.removeEventListener('afterprint', leavePrint);
     };
   }, []);
-
-  const rows = historyRepository.list();
 
   const barbers = useMemo(
     () => [...new Set(rows.map((row) => row.barber).filter((name): name is string => Boolean(name)))].sort(),
@@ -346,7 +366,9 @@ export function HistoryPage() {
           title="Detalle de turnos"
         />
 
-        {filtered.length === 0 ? (
+        {loadingRows ? (
+          <EmptyState detail="Trayendo el historial del local…" title="Cargando historial" />
+        ) : filtered.length === 0 ? (
           <EmptyState
             detail="Prueba con otro barbero, servicio o estado."
             title="No hay turnos con estos filtros"
