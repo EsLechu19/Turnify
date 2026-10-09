@@ -5,6 +5,7 @@ export type NotificationPermission = {
 export type NotificationRegistrationDiagnostic =
   | 'missing_authenticated_customer_profile'
   | 'expo_project_id_missing'
+  | 'push_unsupported_runtime'
   | 'android_foundation_failed'
   | 'permission_denied'
   | 'expo_token_acquisition_failed'

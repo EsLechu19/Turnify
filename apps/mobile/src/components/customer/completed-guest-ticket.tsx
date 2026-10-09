@@ -10,19 +10,26 @@ export function CompletedGuestTicket({
   error,
   onRetry,
   onReturn,
+  onNewTicket,
 }: {
   ticket: GuestTicketState;
   error: string | null;
   onRetry: () => void;
   onReturn: () => void;
+  onNewTicket: () => void;
 }) {
+  const isAbsent = ticket.status === 'ausente';
+
   return (
     <>
       <View accessibilityElementsHidden style={styles.completionIcon}>
-        <Icon color={Palette.brand} name="check-circle" size={30} />
+        <Icon color={isAbsent ? Palette.danger : Palette.brand} name={isAbsent ? 'alert' : 'check-circle'} size={30} />
       </View>
 
-      <CustomerHeading detail="Esperamos que hayas disfrutado tu experiencia." title="¡Gracias por visitarnos!" />
+      <CustomerHeading
+        detail={isAbsent ? 'Tu tolerancia venció antes de que pudieras presentarte.' : 'Esperamos que hayas disfrutado tu experiencia.'}
+        title={isAbsent ? 'Tu turno quedó como ausente' : '¡Gracias por visitarnos!'}
+      />
 
       {error ? <CustomerState action={onRetry} label={error} /> : null}
 
@@ -32,7 +39,7 @@ export function CompletedGuestTicket({
             <Text style={styles.label}>TU NÚMERO DE TURNO</Text>
             <Text style={styles.code}>{ticket.visibleCode}</Text>
           </View>
-          <Pill label="Completado" tone="success" />
+          <Pill label={isAbsent ? 'Ausente' : 'Completado'} tone={isAbsent ? 'danger' : 'success'} />
         </View>
 
         {ticket.serviceName || ticket.assignedBarberName ? (
@@ -53,7 +60,7 @@ export function CompletedGuestTicket({
         ) : null}
       </CustomerCard>
 
-      <CustomerButton label="Volver al inicio" onPress={onReturn} />
+      <CustomerButton label={isAbsent ? 'Sacar otro turno' : 'Volver al inicio'} onPress={isAbsent ? onNewTicket : onReturn} />
     </>
   );
 }

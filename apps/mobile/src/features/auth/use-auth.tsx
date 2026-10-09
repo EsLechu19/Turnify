@@ -77,7 +77,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signIn = useCallback<AuthContextValue['signIn']>(async () => null, []);
+  /** Reads the profile row without touching state: shared by sign-in and reload. */
+  const fetchProfileData = useCallback(async (userId: string): Promise<AuthProfile | null> => {
+    const { data, error } = await getSupabase()
+      .from('perfiles')
+      .select('rol, empresa_id, empresa_personal_actual_id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    return {
+      role: data.rol as AuthProfile['role'],
+      businessId: data.rol === 'personal' ? data.empresa_personal_actual_id : data.empresa_id,
+    };
+  }, []);
+
+  const signIn = useCallback<AuthContextValue['signIn']>(async (email, password) => {
+    if (isDemoSkipAuth) {
+      return 'La demostración no usa correo y contraseña.';
+    }
+    if (!isSupabaseConfigured) {
+      return 'Falta configurar Supabase. Copia apps/mobile/.env.example a apps/mobile/.env y completa los valores.';
+    }
+    try {
+      const { data, error } = await getSupabase().auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) {
+        return translateAuthError(error.message);
+      }
+      if (!data.session) {
+        return translateAuthError('email not confirmed');
+      }
+      setSession(data.session);
+      try {
+        setProfile(await fetchProfileData(data.session.user.id));
+      } catch {
+        setProfile(null);
+      }
+      return null;
+    } catch (reason) {
+      return translateAuthError(reason instanceof Error ? reason.message : '');
+    }
+  }, [fetchProfileData]);
 
   const signUp = useCallback<AuthContextValue['signUp']>(async () => null, []);
 
@@ -99,28 +149,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setIsProfileLoading(true);
     try {
-      const { data, error } = await getSupabase()
-        .from('perfiles')
-        .select('rol, empresa_id, empresa_personal_actual_id')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      const nextProfile = data
-        ? {
-            role: data.rol as AuthProfile['role'],
-            businessId: data.rol === 'personal' ? data.empresa_personal_actual_id : data.empresa_id,
-          }
-        : null;
+      const nextProfile = await fetchProfileData(userId);
       setProfile(nextProfile);
       return nextProfile;
     } finally {
       setIsProfileLoading(false);
     }
-  }, [session?.user.id]);
+  }, [fetchProfileData, session?.user.id]);
 
   useEffect(() => {
     if (!session) {

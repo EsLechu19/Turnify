@@ -18,11 +18,12 @@ export const customerRegistrationRoute = '/(auth)/register' as const;
 /**
  * Where each role lands after signing in.
  *
+ * Staff always lands on the shop panel so multi-shop barbers choose (and can
+ * switch) their active shop; the panel forwards into the operational screens.
  * Administration is handled in the web panel, so an owner opening the mobile app
  * goes back to the public launch instead of a screen this app no longer has.
  */
-export function staffLanding(profile: AuthProfile | null): '/(app)/worker' | '/(app)/worker-shops' | '/' {
-  if (profile?.role === 'personal' && profile.businessId) return '/(app)/worker';
+export function staffLanding(profile: AuthProfile | null): '/(app)/worker-shops' | '/' {
   if (profile?.role === 'personal') return '/(app)/worker-shops';
   return '/';
 }

@@ -25,6 +25,12 @@ function initials(name: string): string {
   return name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
 }
 
+/**
+ * Anonymous guests receive no Realtime rows (RLS only serves owners and
+ * staff), so the focused ticket screen repolls its RPC state on this cadence.
+ */
+const GUEST_TICKET_POLL_MS = 10_000;
+
 function TicketHeader({ isLoading, onBack, onRefresh }: { isLoading: boolean; onBack: () => void; onRefresh: () => void }) {
   return (
     <View style={styles.header}>
@@ -103,6 +109,11 @@ export default function GuestTicketScreen() {
     router.replace('/(app)');
   }, []);
 
+  const startNewTicket = useCallback(() => {
+    endGuestTicketSession();
+    router.replace('/');
+  }, [endGuestTicketSession]);
+
   const refresh = useCallback(async () => {
     if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
       const source = demoTicket ?? DEFAULT_DEMO_TICKET;
@@ -166,9 +177,14 @@ export default function GuestTicketScreen() {
       });
       void start();
 
+      const poll = setInterval(() => {
+        void refresh();
+      }, GUEST_TICKET_POLL_MS);
+
       return () => {
         isActive = false;
         appStateSubscription.remove();
+        clearInterval(poll);
         if (channel) void getSupabase().removeChannel(channel);
       };
     }, [refresh, ticketAccess]),
@@ -222,11 +238,17 @@ export default function GuestTicketScreen() {
     );
   }
 
-  if (ticket && status?.isCompletedTurn) {
+  if (ticket && (status?.isCompletedTurn || ticket.status === 'ausente')) {
     return (
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <CustomerPage>
-          <CompletedGuestTicket error={error} onRetry={() => void refresh()} onReturn={returnHome} ticket={ticket} />
+          <CompletedGuestTicket
+            error={error}
+            onNewTicket={startNewTicket}
+            onRetry={() => void refresh()}
+            onReturn={returnHome}
+            ticket={ticket}
+          />
         </CustomerPage>
       </SafeAreaView>
     );

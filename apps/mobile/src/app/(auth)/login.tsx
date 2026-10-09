@@ -1,25 +1,45 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 
 import { AuthField } from '@/components/auth/auth-field';
-import { AuthButton, AuthIntro, AuthSwitch } from '@/components/auth/auth-ui';
-import { Card, Screen } from '@/components/ui';
+import { AuthButton, AuthErrorMessage, AuthIntro, AuthSwitch } from '@/components/auth/auth-ui';
+import { Button, Card, Screen } from '@/components/ui';
+import { useAuth } from '@/features/auth/use-auth';
+import { validateWorkerCredentials } from '@/features/worker/worker-access-state';
 import { customerRegistrationRoute } from '@/features/public/public-route-policy';
 
 export default function LoginScreen() {
+  const { signIn, isSupabaseConfigured } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function handleSubmit() {
+    const validation = validateWorkerCredentials(email, password);
+    if (validation) {
+      setError(validation);
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    // Success needs no navigation: the (auth) guard redirects by role.
+    setError(await signIn(email, password));
+    setIsLoading(false);
+  }
 
   return (
     <Screen>
       <AuthIntro
-        detail="Accede con el correo y la contraseña de tu cuenta. También puedes entrar directo a una vista."
-        eyebrow="Bienvenido"
+        detail="Acceso para barberos y personal de la barbería con tu cuenta de trabajo."
+        eyebrow="Personal"
         title="Iniciar sesión"
       />
 
       <Card padding="lg">
+        {!isSupabaseConfigured ? (
+          <AuthErrorMessage message="Falta configurar Supabase. Copia apps/mobile/.env.example a apps/mobile/.env y completa los valores." />
+        ) : null}
         <AuthField
           keyboardType="email-address"
           label="Correo"
@@ -41,10 +61,11 @@ export default function LoginScreen() {
           value={password}
         />
 
-        <AuthButton label="Ingresar" onPress={() => {}} />
+        <AuthErrorMessage message={error} />
 
-        <AuthButton label="Cliente" onPress={() => router.replace('/(app)')} variant="secondary" />
-        <AuthButton label="Empleado" onPress={() => router.replace('/(app)/worker')} variant="secondary" />
+        <AuthButton label="Ingresar" onPress={() => void handleSubmit()} isLoading={isLoading} disabled={isLoading} />
+
+        <Button href="/" label="Entrar como invitado" variant="link" />
       </Card>
 
       <AuthSwitch

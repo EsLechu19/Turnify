@@ -62,15 +62,17 @@ export function CalledGuestTicket({
       <View accessibilityLabel="Aviso de llamado activo" style={styles.alert}>
         <View style={styles.alertTop}>
           <View style={styles.alertIcon}>
-            <Icon color="#FFFFFF" name="bell" size={22} />
+            <Icon color="#FFFFFF" name="bell" size={24} />
           </View>
-          <Text style={styles.alertEyebrow}>Aviso de llamado</Text>
+          <View style={styles.alertTitles}>
+            <Text style={styles.alertEyebrow}>Aviso de llamado</Text>
+            <Text style={styles.alertTitle}>¡ES TU TURNO!</Text>
+          </View>
           <View style={styles.livePill}>
             <View style={styles.liveDot} />
             <Text style={styles.livePillText}>LLAMANDO</Text>
           </View>
         </View>
-        <Text style={styles.alertTitle}>¡ES TU TURNO!</Text>
         <Text style={styles.alertDetail}>Acércate al personal para continuar con tu turno.</Text>
       </View>
 
@@ -89,17 +91,16 @@ export function CalledGuestTicket({
 
         {ticket.calledDeadlineAt ? (
           <View style={styles.countdown}>
-            <View style={styles.countdownTop}>
-              <View style={styles.countdownCopy}>
-                <Text style={styles.countdownLabel}>TOLERANCIA RESTANTE</Text>
-                <Text style={styles.deadlineText}>Vence a las {formatDeadline(ticket.calledDeadlineAt)}</Text>
-              </View>
+            <Text style={styles.deadlineText}>Vence a las {formatDeadline(ticket.calledDeadlineAt)}</Text>
+            <View style={styles.timerRow}>
+              <Icon color={isUrgent ? Palette.danger : Palette.brand} name="clock" size={26} />
               <Text
                 accessibilityLabel={`${formatRemaining(seconds)} de tolerancia restante`}
                 style={[styles.countdownValue, isUrgent ? { color: Palette.danger } : null]}
               >
                 {formatRemaining(seconds)}
               </Text>
+              <Text style={[TypeScale.label, { color: Palette.inkMuted }]}>restantes</Text>
             </View>
             <ProgressBar tone={isUrgent ? 'danger' : 'brand'} value={decay} />
           </View>
@@ -110,27 +111,31 @@ export function CalledGuestTicket({
 
       {ticket.serviceName || barberName ? (
         <Card padding="lg">
-          <Text style={styles.cardTitle}>Tu atención</Text>
+          <Text style={styles.label}>DETALLES DE ASIGNACIÓN</Text>
 
           {barberName ? (
             <View style={styles.assignmentRow}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{initials(barberName)}</Text>
+                <View style={styles.avatarDot} />
               </View>
               <View style={styles.assignmentCopy}>
+                <Text style={styles.assignmentValue}>{barberName}</Text>
                 <Text style={styles.label}>
                   {ticket.assignedBarberName ? 'BARBERO ASIGNADO' : 'BARBERO SOLICITADO'}
                 </Text>
-                <Text style={styles.assignmentValue}>{barberName}</Text>
               </View>
             </View>
           ) : null}
 
           {ticket.serviceName ? (
-            <View style={[styles.assignmentRow, barberName ? styles.assignmentDivider : null]}>
+            <View style={[styles.serviceRow, barberName ? styles.assignmentDivider : null]}>
+              <View style={styles.serviceIcon}>
+                <Icon color={Palette.brand} name="ticket" size={19} />
+              </View>
               <View style={styles.assignmentCopy}>
                 <Text style={styles.label}>SERVICIO</Text>
-                <Text style={styles.assignmentValue}>{ticket.serviceName}</Text>
+                <Text style={[TypeScale.body, { color: Palette.ink }]}>{ticket.serviceName}</Text>
               </View>
             </View>
           ) : null}
@@ -139,12 +144,12 @@ export function CalledGuestTicket({
 
       <Card padding="lg" tone="gold">
         <View style={styles.warningTitle}>
-          <Icon color={Palette.goldDeep} name="clock" size={18} />
+          <Icon color={Palette.goldDeep} name="alert" size={20} />
           <Text style={[styles.warningHeading, { color: Palette.ink }]}>Tienes 5 minutos de tolerancia</Text>
         </View>
         <Text style={styles.warningDetail}>
-          Si no te presentas dentro del plazo, tu turno puede marcarse como ausente. Ninguna respuesta cambia ni
-          agrega tiempo a tu tolerancia.
+          Si no te presentas dentro del plazo, tu turno puede marcarse como ausente. "Llego en 2 minutos" agrega
+          2 minutos una sola vez; la primera respuesta queda registrada.
         </Text>
       </Card>
 
@@ -158,15 +163,19 @@ export function CalledGuestTicket({
           <Button
             disabled={isResponding}
             fullWidth
+            icon="check"
             label="Ya estoy aquí"
             loading={isResponding}
             onPress={() => onRespond('presente')}
+            size="lg"
           />
           <Button
             disabled={isResponding}
             fullWidth
+            icon="clock"
             label="Llego en 2 minutos"
             onPress={() => onRespond('llega_en_2_min')}
+            size="lg"
             variant="secondary"
           />
         </View>
@@ -182,18 +191,19 @@ export function CalledGuestTicket({
 }
 
 const styles = StyleSheet.create({
-  alert: { backgroundColor: Palette.brand, borderRadius: Radius.xlarge, gap: space(2), padding: space(5) },
-  alertTop: { alignItems: 'center', flexDirection: 'row', gap: space(2.5) },
+  alert: { backgroundColor: Palette.brand, borderRadius: Radius.xlarge, gap: space(3), padding: space(5) },
+  alertTop: { alignItems: 'center', flexDirection: 'row', gap: space(3) },
   alertIcon: {
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.18)',
-    borderRadius: Radius.medium,
-    height: 38,
+    borderRadius: Radius.pill,
+    height: 46,
     justifyContent: 'center',
-    width: 38,
+    width: 46,
   },
-  alertEyebrow: { color: 'rgba(255,255,255,0.88)', flex: 1, ...TypeScale.eyebrow },
-  alertTitle: { color: '#FFFFFF', marginTop: space(1), ...TypeScale.h1 },
+  alertTitles: { flex: 1, gap: 2 },
+  alertEyebrow: { color: 'rgba(255,255,255,0.88)', ...TypeScale.eyebrow },
+  alertTitle: { color: '#FFFFFF', ...TypeScale.display },
   alertDetail: { color: 'rgba(255,255,255,0.9)', ...TypeScale.bodySmall },
   livePill: {
     alignItems: 'center',
@@ -211,31 +221,49 @@ const styles = StyleSheet.create({
   label: { color: Palette.inkFaint, ...TypeScale.eyebrow },
   code: { color: Palette.ink, ...TypeScale.metric },
   countdown: {
+    alignItems: 'center',
     backgroundColor: Palette.brandSoftest,
     borderRadius: Radius.medium,
-    gap: space(3),
-    padding: space(3.5),
+    gap: space(2),
+    padding: space(4),
   },
-  countdownTop: { alignItems: 'flex-start', flexDirection: 'row', gap: space(3), justifyContent: 'space-between' },
-  countdownCopy: { flex: 1, gap: space(0.5) },
-  countdownLabel: { color: Palette.brand, ...TypeScale.eyebrow },
+  timerRow: { alignItems: 'center', flexDirection: 'row', gap: space(2) },
   deadlineText: { color: Palette.inkMuted, ...TypeScale.caption },
-  countdownValue: { color: Palette.ink, ...TypeScale.h2 },
+  countdownValue: { color: Palette.brandDeep, fontSize: 34, fontWeight: '800', lineHeight: 38 },
   missingDeadline: { color: Palette.inkMuted, ...TypeScale.bodySmall },
-  cardTitle: { color: Palette.ink, ...TypeScale.h3 },
   assignmentRow: { alignItems: 'center', flexDirection: 'row', gap: space(3) },
   assignmentDivider: { borderTopColor: Palette.border, borderTopWidth: 1, paddingTop: space(3.5) },
   avatar: {
     alignItems: 'center',
     backgroundColor: Palette.brand,
     borderRadius: Radius.pill,
-    height: 42,
+    height: 48,
     justifyContent: 'center',
-    width: 42,
+    width: 48,
   },
   avatarText: { color: '#FFFFFF', ...TypeScale.label },
+  avatarDot: {
+    backgroundColor: Palette.success,
+    borderColor: Palette.surface,
+    borderRadius: 7,
+    borderWidth: 2,
+    bottom: 0,
+    height: 14,
+    position: 'absolute',
+    right: 0,
+    width: 14,
+  },
   assignmentCopy: { flex: 1, gap: space(0.5) },
-  assignmentValue: { color: Palette.ink, ...TypeScale.bodyStrong },
+  assignmentValue: { color: Palette.ink, ...TypeScale.headline },
+  serviceRow: { alignItems: 'center', flexDirection: 'row', gap: space(3) },
+  serviceIcon: {
+    alignItems: 'center',
+    backgroundColor: Palette.brandSoft,
+    borderRadius: Radius.small,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
   warningTitle: { alignItems: 'center', flexDirection: 'row', gap: space(2) },
   warningHeading: { flex: 1, ...TypeScale.bodyStrong },
   warningDetail: { color: Palette.inkMuted, ...TypeScale.bodySmall },

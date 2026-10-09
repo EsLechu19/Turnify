@@ -20,10 +20,16 @@ export function WorkerScreenContainer({ activeNavigation, children, shopName }: 
       <View style={styles.header}>
         <View accessibilityLabel="Turnify" style={styles.identity}>
           <BrandMark size={30} tile />
-          <View style={styles.identityText}>
+          <Pressable
+            accessibilityHint="Volver al panel de barberías para cambiar de barbería activa."
+            accessibilityLabel="Cambiar de barbería"
+            accessibilityRole="button"
+            onPress={() => router.push('/(app)/worker-shops' as Href)}
+            style={styles.identityText}
+          >
             <WorkerText variant="headline">Turnify</WorkerText>
             {shopName ? <WorkerText variant="eyebrow" color={workerColors.muted} style={styles.shopName}>{shopName}</WorkerText> : null}
-          </View>
+          </Pressable>
         </View>
         <View style={styles.headerActions}>
           <Pill label="En vivo" tone="success" />

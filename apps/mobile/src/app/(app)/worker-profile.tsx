@@ -24,7 +24,10 @@ export default function WorkerProfileScreen() {
       setShops([{ businessId: 'demo', name: 'Barbería Demo', isCurrent: true }]);
       setName('Esau S');
       setPhone('987 654 321');
-      setServices([{ serviceId: 'demo-1', name: 'Corte clásico', description: null, durationSeconds: 1800, priceCents: 2000 }, { serviceId: 'demo-2', name: 'Perfilado de barba', description: null, durationSeconds: 1200, priceCents: 1500 }]);
+      setServices([
+        { serviceId: 'demo-1', name: 'Corte clásico', description: null, durationSeconds: 1800, priceCents: 2000 },
+        { serviceId: 'demo-2', name: 'Perfilado de barba', description: null, durationSeconds: 1200, priceCents: 1500 },
+      ]);
       setServicesError(null);
       return;
     }
@@ -52,6 +55,12 @@ export default function WorkerProfileScreen() {
 
   const email = session?.user.email ?? 'No disponible';
   const currentShop = shops.find((shop) => shop.isCurrent) ?? null;
+
+  async function switchShop(shop: WorkerShop) {
+    await selectWorkerShop(shop.businessId);
+    await reloadProfile();
+    router.replace('/(app)/worker');
+  }
 
   return (
     <WorkerScreenContainer activeNavigation="profile">
@@ -99,6 +108,9 @@ export default function WorkerProfileScreen() {
           ) : (
             <WorkerText color={workerColors.muted}>Tu acceso aún espera aprobación o necesitas elegir una barbería.</WorkerText>
           )}
+          {currentShop ? (
+            <WorkerButton label="Salir de la barbería" tone="secondary" onPress={() => router.replace('/(app)/worker-shops')} />
+          ) : null}
         </View>
 
         <View style={workerUiStyles.card}>
@@ -114,7 +126,7 @@ export default function WorkerProfileScreen() {
                 key={shop.businessId}
                 accessibilityRole="button"
                 accessibilityState={{ selected: shop.isCurrent }}
-                onPress={() => void selectWorkerShop(shop.businessId).then(reloadProfile)}
+                onPress={() => void switchShop(shop)}
                 style={[styles.shopRow, shop.isCurrent ? styles.shopRowSelected : null]}
               >
                 <View style={{ flex: 1, gap: 2 }}>
@@ -150,7 +162,7 @@ export default function WorkerProfileScreen() {
           <WorkerText color={workerColors.muted}>No hay un horario fijo guardado en la app. Tu disponibilidad puntual se administra desde En vivo y el estado de la barbería desde Turno/Ocupado.</WorkerText>
         </View>
 
-        <WorkerButton label="Cerrar sesión" tone="danger" onPress={async () => { await signOut(); router.replace('/(auth)/login'); }} />
+        <WorkerButton label="Cerrar sesión" tone="danger" onPress={async () => { await signOut(); router.replace('/'); }} />
       </ScrollView>
     </WorkerScreenContainer>
   );

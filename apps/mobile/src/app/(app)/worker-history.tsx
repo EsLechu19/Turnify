@@ -17,10 +17,23 @@ export default function WorkerHistoryScreen() {
   useFocusEffect(useCallback(() => {
     if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
       const now = Date.now();
+      const iso = (offsetMinutes: number) => new Date(now - offsetMinutes * 60000).toISOString();
       setEntries([
-        { ticketId: 'h1', visibleCode: 'A21', queueName: 'Cortes', serviceName: 'Corte clásico', state: 'finalizado', completedAt: new Date(now).toISOString(), clientName: 'Carlos Méndez', startedAt: new Date(now - 25 * 60000).toISOString(), finishedAt: new Date(now).toISOString(), durationSeconds: 25 * 60 },
-        { ticketId: 'h2', visibleCode: 'A22', queueName: 'Barba', serviceName: 'Perfilado de barba', state: 'ausente', completedAt: new Date(now - 10 * 60000).toISOString(), clientName: 'Ana Torres', startedAt: null, finishedAt: null, durationSeconds: null },
-        { ticketId: 'h3', visibleCode: 'A23', queueName: 'Cortes', serviceName: 'Corte + barba', state: 'finalizado', completedAt: new Date(now - 60 * 60000).toISOString(), clientName: 'Luis Ramírez', startedAt: new Date(now - 95 * 60000).toISOString(), finishedAt: new Date(now - 60 * 60000).toISOString(), durationSeconds: 35 * 60 },
+        {
+          ticketId: 'h1', visibleCode: 'A21', queueName: 'Cortes', serviceName: 'Corte clásico',
+          state: 'finalizado', completedAt: iso(0), clientName: 'Carlos Méndez',
+          startedAt: iso(25), finishedAt: iso(0), durationSeconds: 25 * 60,
+        },
+        {
+          ticketId: 'h2', visibleCode: 'A22', queueName: 'Barba', serviceName: 'Perfilado de barba',
+          state: 'ausente', completedAt: iso(10), clientName: 'Ana Torres',
+          startedAt: null, finishedAt: null, durationSeconds: null,
+        },
+        {
+          ticketId: 'h3', visibleCode: 'A23', queueName: 'Cortes', serviceName: 'Corte + barba',
+          state: 'finalizado', completedAt: iso(60), clientName: 'Luis Ramírez',
+          startedAt: iso(95), finishedAt: iso(60), durationSeconds: 35 * 60,
+        },
       ]);
       setError(null);
       return;

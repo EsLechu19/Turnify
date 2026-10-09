@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 
 import {
   appRouteNameFromSegments,
@@ -7,6 +8,8 @@ import {
 } from '../../apps/mobile/src/features/customer/customer-navigation';
 import { workerNavigationItems } from '../../apps/mobile/src/features/worker/worker-navigation';
 import { staffLanding } from '../../apps/mobile/src/features/public/public-route-policy';
+
+const source = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
 describe('customer navigation', () => {
   it('keeps account destinations out of the public guest flow', () => {
@@ -49,8 +52,22 @@ describe('customer navigation', () => {
   });
 
   it('redirects authenticated staff to their existing role-safe operational landing', () => {
-    expect(staffLanding({ role: 'personal', businessId: 'shop' })).toBe('/(app)/worker');
+    expect(staffLanding({ role: 'personal', businessId: 'shop' })).toBe('/(app)/worker-shops');
+    expect(staffLanding({ role: 'personal', businessId: null })).toBe('/(app)/worker-shops');
     expect(staffLanding({ role: 'admin', businessId: 'shop' })).toBe('/(app)/admin');
     expect(staffLanding({ role: 'cliente', businessId: null })).toBe('/');
+  });
+
+  it('returns unassigned staff to the shop panel instead of the welcome screen', () => {
+    const worker = source('../../apps/mobile/src/app/(app)/worker.tsx');
+
+    expect(worker).toContain('staffLanding(profile)');
+    expect(worker).not.toContain("return <Redirect href=\"/\" />");
+  });
+
+  it('links the worker header shop back to the shop panel', () => {
+    const container = source('../../apps/mobile/src/components/worker/worker-screen-container.tsx');
+
+    expect(container).toContain('/(app)/worker-shops');
   });
 });

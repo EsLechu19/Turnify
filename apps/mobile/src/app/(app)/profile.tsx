@@ -84,7 +84,7 @@ export default function ProfileScreen() {
               {feedback ? <Text style={[TypeScale.caption, { color: Palette.successInk }]}>{feedback}</Text> : null}
               {error ? <Text style={[TypeScale.caption, { color: Palette.dangerInk }]}>{error}</Text> : null}
             </CustomerCard>
-            <CustomerButton label="Cerrar sesión" variant="destructive" onPress={async () => { await signOut(); router.replace('/(auth)/login'); }} />
+            <CustomerButton label="Cerrar sesión" variant="destructive" onPress={async () => { await signOut(); router.replace('/'); }} />
           </>
         )}
       </CustomerPage>

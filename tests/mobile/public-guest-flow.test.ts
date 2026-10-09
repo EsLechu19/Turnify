@@ -47,13 +47,15 @@ describe('public guest flow contracts', () => {
     expect(activeGuestTicketRoute('en_espera')).not.toContain('capability');
   });
 
-  it('resolves the root route to the demo login without capability persistence', () => {
+  it('resolves the root route directly to QR and code discovery without staff entry', () => {
     const home = readFileSync('apps/mobile/src/app/index.tsx', 'utf8');
     const session = readFileSync('apps/mobile/src/features/public/guest-flow-session.tsx', 'utf8');
 
-    expect(home).toContain("export { default } from './(auth)/login'");
-    expect(home).not.toContain('<View');
-    expect(home).not.toContain('<ScrollView');
+    expect(home).not.toContain("export { default } from './(auth)/login'");
+    expect(home).toContain('/(public)/scan');
+    expect(home).toContain('normalizeBusinessCode');
+    expect(home).not.toContain('workerSignInRoute');
+    expect(home).not.toContain('Ingresar como personal');
     expect(session).not.toMatch(/AsyncStorage|SecureStore|capability.*params/i);
   });
 

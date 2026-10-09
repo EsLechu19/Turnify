@@ -1,8 +1,10 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import type { CommercialCatalog } from '@/features/queue/commercial-queue-api';
 import type { GuestDetails } from '@/features/queue/guest-ticket-details';
-import type { GuestTicketAccess } from '@/features/queue/public-guest-ticket-api';
+import { getGuestTicketState, type GuestTicketAccess } from '@/features/queue/public-guest-ticket-api';
+import { isActiveGuestTicketStatus } from '@/features/public/public-route-policy';
+import { clearStoredGuestTicketAccess, loadStoredGuestTicketAccess, storeGuestTicketAccess } from '@/features/public/guest-ticket-storage';
 
 export type GuestBookingDraft = {
   companyCode: string;
@@ -71,8 +73,38 @@ export function GuestFlowProvider({ children }: { children: ReactNode }) {
   const setDetails = useCallback((details: GuestDetails) => {
     setDraft((current) => current ? { ...current, details } : current);
   }, []);
-  const setTicketAccessForFlow = useCallback((access: GuestTicketAccess) => { setDraft(null); setTicketAccess(access); }, []);
-  const endGuestTicketSession = useCallback(() => { setDraft(null); setTicketAccess(null); setDemoTicket(null); }, []);
+  const setTicketAccessForFlow = useCallback((access: GuestTicketAccess) => {
+    setDraft(null);
+    setTicketAccess(access);
+    void storeGuestTicketAccess(undefined, access).catch(() => undefined);
+  }, []);
+  const endGuestTicketSession = useCallback(() => {
+    setDraft(null);
+    setTicketAccess(null);
+    setDemoTicket(null);
+    void clearStoredGuestTicketAccess().catch(() => undefined);
+  }, []);
+
+  // Restores the previous guest ticket without blocking the launch: stored
+  // access is revalidated and only active tickets come back.
+  useEffect(() => {
+    let active = true;
+    void loadStoredGuestTicketAccess()
+      .then((stored) => (stored ? getGuestTicketState(stored).then((state) => ({ stored, state })).catch(() => null) : null))
+      .then((restored) => {
+        if (!active || !restored) return;
+        if (isActiveGuestTicketStatus(restored.state.status)) {
+          setDraft(null);
+          setTicketAccess(restored.stored);
+        } else {
+          void clearStoredGuestTicketAccess().catch(() => undefined);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const value = useMemo<GuestFlowContextValue>(() => ({
     draft,

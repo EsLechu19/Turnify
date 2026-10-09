@@ -16,6 +16,8 @@ export type WorkerTicket = {
   calledDeadlineAt: string | null;
   customerResponse: 'presente' | 'llega_en_2_min' | null;
   customerResponseAt: string | null;
+  peopleAhead: number;
+  waitMinutes: number;
 };
 
 export type ReassignmentCandidate = {
@@ -50,6 +52,8 @@ type WorkerQueuePayload = {
     llamado_vencimiento_en: string | null;
     respuesta_cliente: WorkerTicket['customerResponse'];
     respuesta_cliente_en: string | null;
+    personas_delante: number;
+    espera_min: number;
   }>;
 };
 
@@ -72,6 +76,8 @@ export async function getWorkerBarberQueue(): Promise<{ availability: WorkerAvai
       calledDeadlineAt: ticket.llamado_vencimiento_en,
       customerResponse: ticket.respuesta_cliente,
       customerResponseAt: ticket.respuesta_cliente_en,
+      peopleAhead: ticket.personas_delante,
+      waitMinutes: ticket.espera_min,
     })),
   };
 }
@@ -218,6 +224,37 @@ export async function getWorkerWalkInOptions(): Promise<{ services: WorkerWalkIn
     }),
     barbers: ((barberRows ?? []) as Array<{ id: string; nombre: string }>).map((barber) => ({ barberId: barber.id, name: barber.nombre })),
   };
+}
+
+export type ShopStationState = 'disponible' | 'ocupado' | 'fuera_de_turno';
+
+export type ShopStation = {
+  barberId: string;
+  name: string;
+  operationalState: ShopStationState;
+  ticketCode: string | null;
+  serviceName: string | null;
+  ticketState: 'llamado' | 'en_atencion' | null;
+};
+
+export async function getShopStations(): Promise<ShopStation[]> {
+  const { data, error } = await getSupabase().rpc('estaciones_de_mi_empresa');
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Array<{
+    barbero_id: string;
+    nombre: string;
+    estado: ShopStationState;
+    ticket_codigo: string | null;
+    ticket_servicio: string | null;
+    ticket_estado: ShopStation['ticketState'];
+  }>).map((station) => ({
+    barberId: station.barbero_id,
+    name: station.nombre,
+    operationalState: station.estado,
+    ticketCode: station.ticket_codigo,
+    serviceName: station.ticket_servicio,
+    ticketState: station.ticket_estado,
+  }));
 }
 
 export function translateWorkerBarberError(message: string): string {

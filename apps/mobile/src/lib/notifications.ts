@@ -1,11 +1,15 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+
+import { loadPushModule } from '@/features/notifications/push-runtime';
 
 const ANDROID_CHANNEL_ID = 'ticket-updates';
 
 let initialization: Promise<void> | undefined;
 
 async function configureNotificationFoundation(): Promise<void> {
+  const Notifications = await loadPushModule();
+  if (!Notifications) return;
+
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldPlaySound: true,
@@ -29,7 +33,8 @@ async function configureNotificationFoundation(): Promise<void> {
 
 /**
  * Configures local notification presentation without requesting permissions,
- * registering a device, or sending notifications.
+ * registering a device, or sending notifications. Resolves silently where push
+ * is unsupported (Expo Go).
  */
 export function initializeNotificationFoundation(): Promise<void> {
   initialization ??= configureNotificationFoundation();
