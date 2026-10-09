@@ -6,6 +6,7 @@ import { WorkerButton, WorkerIcon, WorkerPill, WorkerText, workerColors, workerU
 import { WorkerScreenContainer } from '@/components/worker/worker-screen-container';
 import { useAuth } from '@/features/auth/use-auth';
 import { callMyNextTicket, getWorkerBarberQueue, translateWorkerBarberError, type WorkerTicket } from '@/features/queue/worker-barber-api';
+import { useRemainingTolerance } from '@/features/worker/use-remaining-tolerance';
 import { getSupabase } from '@/lib/supabase';
 
 let queueSubscriptionId = 0;
@@ -55,7 +56,7 @@ export default function WorkerQueueScreen() {
     try {
       const queue = await getWorkerBarberQueue();
       setAvailability(queue.availability);
-      setTickets(waitingTickets(queue.tickets));
+      setTickets(queue.tickets);
       setError(null);
     } catch (reason) {
       setError(translateWorkerBarberError(reason instanceof Error ? reason.message : ''));
@@ -84,6 +85,17 @@ export default function WorkerQueueScreen() {
     };
   }, [profile?.businessId, refresh]);
 
+  // Same short re-sync as En vivo while a llamado ticket is active: the +2 min
+  // extension is computed server-side, so the Cola countdown follows the
+  // client even when the realtime event does not arrive.
+  useEffect(() => {
+    if (!tickets.some((ticket) => ticket.state === 'llamado')) return;
+    const poll = setInterval(() => {
+      void refresh();
+    }, 10_000);
+    return () => clearInterval(poll);
+  }, [tickets, refresh]);
+
   async function call(ticket: WorkerTicket) {
     if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
       setError(null);
@@ -102,6 +114,14 @@ export default function WorkerQueueScreen() {
 
   const canCall = availability === 'disponible';
   const isOffShift = availability === 'fuera_de_turno';
+  const waiting = waitingTickets(tickets);
+  const calledTicket = tickets.find((ticket) => ticket.state === 'llamado') ?? null;
+  const calledRemaining = useRemainingTolerance(calledTicket?.calledDeadlineAt ?? null);
+  const calledResponse = calledTicket?.customerResponse === 'presente'
+    ? 'Cliente: ya está aquí'
+    : calledTicket?.customerResponse === 'llega_en_2_min'
+      ? 'Cliente: llega en 2 minutos'
+      : 'Esperando respuesta del cliente';
 
   return (
     <WorkerScreenContainer activeNavigation="queue">
@@ -115,13 +135,29 @@ export default function WorkerQueueScreen() {
         <View style={styles.summary}>
           <View style={styles.summaryCopy}>
             <WorkerIcon name="queue" color={workerColors.teal} size={20} />
-            <WorkerText variant="label">{tickets.length} turnos disponibles</WorkerText>
+            <WorkerText variant="label">{waiting.length} turnos disponibles</WorkerText>
           </View>
           <WorkerPill
             label={canCall ? 'LISTO PARA LLAMAR' : isOffShift ? 'FUERA DE TURNO' : 'OCUPADO'}
             tone={canCall ? 'teal' : 'neutral'}
           />
         </View>
+
+        {!isLoading && !error && calledTicket ? (
+          <View style={[workerUiStyles.card, styles.calledCard]}>
+            <View style={workerUiStyles.split}>
+              <WorkerText variant="eyebrow" color={workerColors.teal}>Turno llamado</WorkerText>
+              <WorkerPill label="LLAMADO" tone="teal" />
+            </View>
+            <WorkerText variant="metric">{calledTicket.visibleCode}</WorkerText>
+            <WorkerText variant="headline">
+              {calledRemaining ? `${calledRemaining} restantes` : 'Tiempo no disponible'}
+            </WorkerText>
+            <WorkerText color={workerColors.muted}>{calledResponse}</WorkerText>
+            <WorkerText color={workerColors.muted}>El mismo tiempo que ve el cliente, en vivo.</WorkerText>
+            <WorkerButton label="Abrir en En vivo" tone="secondary" onPress={() => router.push('/(app)/worker')} />
+          </View>
+        ) : null}
 
         {isLoading ? (
           <View accessibilityRole="progressbar" style={workerUiStyles.card}>
@@ -142,11 +178,11 @@ export default function WorkerQueueScreen() {
           <EmptyState label="Estás fuera de turno" detail="Marca tu disponibilidad en En vivo para llamar turnos." />
         ) : null}
 
-        {!isLoading && !error && !isOffShift && tickets.length === 0 ? (
+        {!isLoading && !error && !isOffShift && waiting.length === 0 && !calledTicket ? (
           <EmptyState label="No hay turnos compatibles" detail="Los nuevos turnos compatibles aparecerán aquí." />
         ) : null}
 
-        {tickets.map((ticket) => (
+        {waiting.map((ticket) => (
           <TicketCard
             disabled={!canCall || isCalling !== null}
             isCalling={isCalling === ticket.ticketId}
@@ -214,6 +250,7 @@ function EmptyState({ label, detail }: { label: string; detail: string }) {
 
 const styles = StyleSheet.create({
   heading: { gap: 6 },
+  calledCard: { backgroundColor: workerColors.low, gap: 8 },
   summary: {
     alignItems: 'center',
     backgroundColor: workerColors.low,

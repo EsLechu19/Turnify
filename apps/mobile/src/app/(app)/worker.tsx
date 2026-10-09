@@ -25,6 +25,7 @@ import {
   type WorkerTicket,
 } from '@/features/queue/worker-barber-api';
 import { mapWorkerLiveOperations } from '@/features/worker/worker-live-operations';
+import { useRemainingTolerance } from '@/features/worker/use-remaining-tolerance';
 import { getWorkerShops } from '@/features/worker/worker-membership-api';
 import { getSupabase } from '@/lib/supabase';
 
@@ -52,17 +53,6 @@ const servicePrices: Record<string, string> = {
 
 function demoClientName(ticket: WorkerTicket): string {
   return process.env.EXPO_PUBLIC_SKIP_AUTH === '1' ? (demoClientNames[ticket.ticketId] ?? 'Cliente') : 'Cliente';
-}
-
-function useRemainingTolerance(deadline: string | null): string | null {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-  if (!deadline) return null;
-  const seconds = Math.max(0, Math.ceil((new Date(deadline).getTime() - now) / 1000));
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
 const DEMO_STATIONS: ShopStation[] = [
@@ -169,6 +159,17 @@ export default function WorkerScreen() {
       void supabase.removeChannel(channel);
     };
   }, [profile?.businessId, refresh]);
+
+  // The +2 min extension lands server-side on the client response: re-sync on
+  // a short cadence while a llamado ticket is active so the worker countdown
+  // follows even when the realtime event does not arrive.
+  useEffect(() => {
+    if (!tickets.some((ticket) => ticket.state === 'llamado')) return;
+    const poll = setInterval(() => {
+      void refresh();
+    }, 10_000);
+    return () => clearInterval(poll);
+  }, [tickets, refresh]);
 
   if (process.env.EXPO_PUBLIC_SKIP_AUTH !== '1' && !isProfileLoading && (profile?.role !== 'personal' || !profile.businessId)) {
     return <Redirect href={staffLanding(profile)} />;
@@ -314,6 +315,12 @@ function LiveQueue({ availability, tickets, attentionTicket, stations, stationsL
               label="Finalizar atención"
               disabled={isActing}
               onPress={() => void act(() => finishMyService(attentionTicket.ticketId), 'Turno finalizado.')}
+            />
+            <WorkerButton
+              label="Marcar ausente"
+              tone="danger"
+              disabled={isActing}
+              onPress={() => void act(() => markMyTicketAbsent(attentionTicket.ticketId), 'Turno marcado como ausente.')}
             />
           </View>
         </View>

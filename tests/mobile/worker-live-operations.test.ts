@@ -1,7 +1,10 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { mapWorkerLiveOperations } from '../../apps/mobile/src/features/worker/worker-live-operations';
 import { workerNavigationItems } from '../../apps/mobile/src/features/worker/worker-navigation';
+
+const source = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
 const ticket = (state: 'en_espera' | 'notificado' | 'llamado' | 'en_atencion', visibleCode: string) => ({
   ticketId: visibleCode,
@@ -41,5 +44,36 @@ describe('Worker live operations mapping', () => {
       { key: 'history', label: 'Historial', href: '/(app)/worker-history' },
       { key: 'profile', label: 'Perfil', href: '/(app)/worker-profile' },
     ]);
+  });
+
+  it('lets the worker mark the in-service ticket absent from the attention card', () => {
+    const jornada = source('../../apps/mobile/src/app/(app)/worker.tsx');
+
+    expect(jornada).toContain('En atención ahora');
+    expect(jornada).toContain('markMyTicketAbsent(attentionTicket.ticketId)');
+  });
+
+  it('re-syncs the worker screens while a called ticket is active', () => {
+    const jornada = source('../../apps/mobile/src/app/(app)/worker.tsx');
+    const queue = source('../../apps/mobile/src/app/(app)/worker-queue.tsx');
+
+    for (const screen of [jornada, queue]) {
+      expect(screen).toContain("state === 'llamado'");
+      expect(screen).toContain('setInterval');
+      expect(screen).toContain('void refresh()');
+    }
+  });
+
+  it('shows the called ticket with a live synchronized tolerance in the Cola tab', () => {
+    const queue = source('../../apps/mobile/src/app/(app)/worker-queue.tsx');
+    const hook = source('../../apps/mobile/src/features/worker/use-remaining-tolerance.ts');
+    const jornada = source('../../apps/mobile/src/app/(app)/worker.tsx');
+
+    expect(queue).toContain('useRemainingTolerance');
+    expect(queue).toContain('calledDeadlineAt');
+    expect(queue).toContain('LLAMADO');
+    expect(queue).toContain('restantes');
+    expect(hook).toContain('setInterval(() => setNow(Date.now()), 1000)');
+    expect(jornada).toContain('@/features/worker/use-remaining-tolerance');
   });
 });
