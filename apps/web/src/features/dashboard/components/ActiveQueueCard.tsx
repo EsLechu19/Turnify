@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom';
+
 import { Icon } from '@/components/Icon';
 import { Button, Card, CardHead } from '@/components/common';
 import type { QueueTicket } from '@/data/types';
@@ -6,6 +8,10 @@ import type { QueueTicket } from '@/data/types';
  * Called turns lead (they are next to be seated), then waiting ones by longest
  * wait first, so the next customer in line always sits at the top and moves up
  * as the ones ahead are served.
+ *
+ * Read-only board: operations (call, assign) live in the mobile app and the
+ * queue section until their backend counterparts land (S2b). Nothing here
+ * pretends to change the queue.
  */
 function orderForService(tickets: QueueTicket[]): QueueTicket[] {
   return tickets
@@ -19,9 +25,9 @@ function orderForService(tickets: QueueTicket[]): QueueTicket[] {
     });
 }
 
-export function ActiveQueueCard({ tickets, onCall, onAssign, occupiedCount = 0 }: { tickets: QueueTicket[]; onCall: (id: string) => void; onAssign: (id: string) => void; occupiedCount?: number }) {
+export function ActiveQueueCard({ tickets, occupiedCount = 0 }: { tickets: QueueTicket[]; occupiedCount?: number }) {
+  const navigate = useNavigate();
   const ordered = orderForService(tickets);
-  const firstWaitingIndex = ordered.findIndex((t) => t.status === 'espera');
 
   const activeTickets = ordered
     .slice(0, 10)
@@ -32,18 +38,15 @@ export function ActiveQueueCard({ tickets, onCall, onAssign, occupiedCount = 0 }
       service: t.service,
       status: t.status,
       waitedMinutes: t.waitedMinutes,
-      estimatedWait: t.waitedMinutes + (t.status === 'espera' ? 5 : 0),
       barber: t.barber,
       id: t.id,
-      /** Only the next customer in line can be summoned; the rest keep their turn. */
-      isNextInLine: index === firstWaitingIndex,
     }));
 
   return (
     <Card className="card--compact">
       <CardHead
         action={
-          <Button variant="ghost" size="sm" icon="list">
+          <Button variant="ghost" size="sm" icon="list" onClick={() => navigate('/cola')}>
             Ver lista completa
           </Button>
         }
@@ -58,66 +61,51 @@ export function ActiveQueueCard({ tickets, onCall, onAssign, occupiedCount = 0 }
           </div>
         ) : (
           <div className="active-queue__list">
-{activeTickets.map((ticket, index) => {
-                const isFirst = index === 0;
-                const assignedText = ticket.barber || 'Cualquiera disponible';
-                const isWaiting = ticket.status === 'espera';
-                const canCall = isWaiting && ticket.isNextInLine;
+            {activeTickets.map((ticket, index) => {
+              const isFirst = index === 0;
+              const assignedText = ticket.barber || 'Cualquiera disponible';
+              const isWaiting = ticket.status === 'espera';
 
-                return (
-                  <div key={ticket.id} className={`active-queue__item ${isFirst ? 'active-queue__item--first' : ''}`}>
-                    <div className="active-queue__left">
-                      <span className={`active-queue__number ${isFirst ? 'active-queue__number--first' : ''}`}>
-                        #{ticket.position}
-                      </span>
+              return (
+                <div key={ticket.id} className={`active-queue__item ${isFirst ? 'active-queue__item--first' : ''}`}>
+                  <div className="active-queue__left">
+                    <span className={`active-queue__number ${isFirst ? 'active-queue__number--first' : ''}`}>
+                      #{ticket.position}
+                    </span>
+                  </div>
+                  <div className="active-queue__content">
+                    <div className="active-queue__header">
+                      <strong className="active-queue__name">{ticket.customer}</strong>
+                      {ticket.status === 'llamado' ? (
+                        <span className="active-queue__status active-queue__status--called">LLAMADO</span>
+                      ) : (
+                        <span className="active-queue__status active-queue__status--waiting">ESPERANDO</span>
+                      )}
                     </div>
-                    <div className="active-queue__content">
-                      <div className="active-queue__header">
-                        <strong className="active-queue__name">{ticket.customer}</strong>
-                        {ticket.status === 'llamado' || ticket.status === 'atencion' ? (
-                          <Button variant="secondary" size="sm" className="active-queue__status-btn active-queue__status--called">
-                            AVISAR
-                          </Button>
-                        ) : (
-                          <span className="active-queue__status active-queue__status--waiting">ESPERANDO</span>
-                        )}
+                    <div className="active-queue__details">
+                      <div className="active-queue__detail-row">
+                        <Icon name="scissors" size={14} className="active-queue__icon" />
+                        <span className="active-queue__service-name">{ticket.service}</span>
+                        <span className="active-queue__assigned-name">
+                          <Icon name={ticket.barber ? 'user' : 'user-arrows'} size={14} className="active-queue__icon" />
+                          {assignedText}
+                        </span>
                       </div>
-                      <div className="active-queue__details">
-                        <div className="active-queue__detail-row">
-                          <Icon name="scissors" size={14} className="active-queue__icon" />
-                          <span className="active-queue__service-name">{ticket.service}</span>
-                          <span className="active-queue__assigned-name">
-                            <Icon name={ticket.barber ? 'user' : 'user-arrows'} size={14} className="active-queue__icon" />
-                            {assignedText}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="active-queue__right">
-                      <div className="active-queue__time">
-                        <Icon name="clock" size={14} className="active-queue__icon" />
-                        <span>Espera est. {ticket.estimatedWait} min</span>
-                      </div>
-                      {canCall && (
-                        <Button variant="primary" size="sm" icon="bell" onClick={() => onCall(ticket.id)} className="active-queue__call-btn">
-                          LLAMAR
-                        </Button>
-                      )}
-                      {isWaiting && !canCall && (
-                        <span className="active-queue__not-ready">Esperando</span>
-                      )}
-                      {ticket.status === 'llamado' && (
-                        <Button variant="secondary" size="sm" icon="user-plus" onClick={() => onAssign(ticket.id)}>
-                          Asignar
-                        </Button>
-                      )}
-                      {ticket.status === 'atencion' && ticket.barber && (
-                        <span className="active-queue__barber">{ticket.barber}</span>
-                      )}
                     </div>
                   </div>
-                );
-              })}
+                  <div className="active-queue__right">
+                    <div className="active-queue__time">
+                      <Icon name="clock" size={14} className="active-queue__icon" />
+                      <span>Espera {ticket.waitedMinutes} min</span>
+                    </div>
+                    {isWaiting && <span className="active-queue__not-ready">Esperando</span>}
+                    {ticket.status === 'llamado' && ticket.barber && (
+                      <span className="active-queue__barber">{ticket.barber}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

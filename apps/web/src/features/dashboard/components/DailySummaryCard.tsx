@@ -1,15 +1,17 @@
 import { Icon } from '@/components/Icon';
 import { Card, CardHead } from '@/components/common';
+import type { DailySummary } from '@/data/live';
 
-export function DailySummaryCard() {
-  const summary = {
-    attended: 47,
-    punctuality: 92,
-    incidents: 2,
-    lastShiftClose: '20:30',
-    avgServiceTime: 28,
-    satisfaction: 4.8,
-  };
+function display(value: string | null): string {
+  return value ?? '—';
+}
+
+export function DailySummaryCard({ summary }: { summary: DailySummary | null }) {
+  const attended = summary ? String(summary.attended) : '—';
+  const punctuality = summary?.punctuality == null ? '—' : `${summary.punctuality}%`;
+  const incidents = summary ? String(summary.incidents) : '—';
+  const avgService = summary?.avgServiceMinutes == null ? '—' : `${summary.avgServiceMinutes} min`;
+  const satisfaction = summary?.satisfaction == null ? '—' : String(summary.satisfaction);
 
   return (
     <Card>
@@ -21,7 +23,7 @@ export function DailySummaryCard() {
               <Icon name="check-circle" size={36} />
             </span>
             <div>
-              <strong>{summary.attended}</strong>
+              <strong>{attended}</strong>
               <span>Atendidos</span>
             </div>
           </div>
@@ -30,7 +32,7 @@ export function DailySummaryCard() {
               <Icon name="clock" size={36} />
             </span>
             <div>
-              <strong>{summary.punctuality}%</strong>
+              <strong>{punctuality}</strong>
               <span>Puntualidad</span>
             </div>
           </div>
@@ -39,7 +41,7 @@ export function DailySummaryCard() {
               <Icon name="info" size={36} />
             </span>
             <div>
-              <strong>{summary.incidents}</strong>
+              <strong>{incidents}</strong>
               <span>Incidentes</span>
             </div>
           </div>
@@ -48,7 +50,7 @@ export function DailySummaryCard() {
               <Icon name="store" size={36} />
             </span>
             <div>
-              <strong>{summary.lastShiftClose}</strong>
+              <strong>{display(summary?.lastClose ?? null)}</strong>
               <span>Último cierre</span>
             </div>
           </div>
@@ -57,7 +59,7 @@ export function DailySummaryCard() {
               <Icon name="scissors" size={36} />
             </span>
             <div>
-              <strong>{summary.avgServiceTime} min</strong>
+              <strong>{avgService}</strong>
               <span>Tiempo prom.</span>
             </div>
           </div>
@@ -66,7 +68,7 @@ export function DailySummaryCard() {
               <Icon name="star" size={36} />
             </span>
             <div>
-              <strong>{summary.satisfaction}</strong>
+              <strong>{satisfaction}</strong>
               <span>Satisfacción</span>
             </div>
           </div>

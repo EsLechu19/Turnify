@@ -3,9 +3,7 @@ import QRCode from 'qrcode';
 
 import { Badge, Button, CardGrid, CheckboxGroup, Modal, PageHeader, RadioGroup, SectionCard, SegmentedControl, SelectField, StatsRow, SwitchField, TextareaField } from '@/components/common';
 import { Icon } from '@/components/Icon';
-import { panelRepository } from '@/data/repositories';
-
-const business = panelRepository.business();
+import { useShop } from '@/state/ShopContext';
 
 const TEAL = '#0d9488';
 const tealStyle = { background: TEAL, borderColor: TEAL } as const;
@@ -100,6 +98,8 @@ function Divider() {
 }
 
 export function SettingsPage() {
+  const { business } = useShop();
+  const ticketUrl = business?.ticketUrl ?? '';
   const [config, setConfig] = useState<OperationalConfig>(initialConfig);
   const [saved, setSaved] = useState(false);
   const [status, setStatus] = useState<'idle' | 'saving'>('idle');
@@ -109,7 +109,7 @@ export function SettingsPage() {
 
   async function generateQr() {
     try {
-      const dataUrl = await QRCode.toDataURL(business.ticketUrl, {
+      const dataUrl = await QRCode.toDataURL(ticketUrl, {
         width: 200,
         margin: 2,
         color: { dark: '#000000', light: '#ffffff' },
@@ -416,13 +416,13 @@ export function SettingsPage() {
             }}
           >
             <span className="eyebrow">Escanea para tomar turno</span>
-            <strong style={{ font: 'var(--text-headline)' }}>{business.name}</strong>
+            <strong style={{ font: 'var(--text-headline)' }}>{business?.name ?? 'Turnify'}</strong>
             {qrDataUrl ? (
               <img src={qrDataUrl} alt="QR para tomar turno" style={{ width: 200, height: 200 }} />
             ) : (
               <span className="muted">Generando QR...</span>
             )}
-            <span className="muted">{business.ticketUrl}</span>
+            <span className="muted">{ticketUrl}</span>
           </div>
 
           <p className="muted" style={{ margin: 0 }}>

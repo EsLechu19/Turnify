@@ -1,4 +1,4 @@
-import { availabilityLabels } from '@/data/mocks/panel';
+import { availabilityLabels } from '@/data/labels';
 import type { TeamMember } from '@/data/types';
 import { Card, CardHead, Badge } from '@/components/common';
 

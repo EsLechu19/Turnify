@@ -8,24 +8,15 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import type { QueueTicket } from '@/data/types';
+import type { DemandEstimate, QueueTicket } from '@/data/types';
 
-export function HourlyDemandCard({ tickets }: { tickets: QueueTicket[] }) {
-  const estimated = [
-    { hour: '9:00', estimated: 12 },
-    { hour: '10:00', estimated: 18 },
-    { hour: '11:00', estimated: 25 },
-    { hour: '12:00', estimated: 30 },
-    { hour: '13:00', estimated: 22 },
-    { hour: '14:00', estimated: 15 },
-    { hour: '15:00', estimated: 18 },
-    { hour: '16:00', estimated: 28 },
-    { hour: '17:00', estimated: 35 },
-    { hour: '18:00', estimated: 35 },
-    { hour: '19:00', estimated: 32 },
-    { hour: '20:00', estimated: 20 },
-  ];
-
+export function HourlyDemandCard({
+  tickets,
+  estimate,
+}: {
+  tickets: QueueTicket[];
+  estimate?: DemandEstimate[] | null;
+}) {
   const actualByHour: Record<string, number> = {};
 
   tickets.forEach(t => {
@@ -46,17 +37,23 @@ export function HourlyDemandCard({ tickets }: { tickets: QueueTicket[] }) {
     }
   });
 
+  const baseline = estimate && estimate.length > 0 ? estimate : null;
+  const rows = baseline
+    ? baseline.map((entry) => ({ hour: entry.hour, estimated: entry.estimated, actual: actualByHour[entry.hour] ?? 0 }))
+    : Object.keys(actualByHour)
+      .sort()
+      .map((hour) => ({ hour, estimated: 0, actual: actualByHour[hour] }));
+
   return (
     <Card>
-      <CardHead detail="Comparativa estimado vs real del día" title="Demanda por hora: Estimado vs Real" />
+      <CardHead
+        detail={baseline ? 'Comparativa estimado vs real del día' : 'Real del día (sin base histórica aún)'}
+        title="Demanda por hora: Estimado vs Real"
+      />
       <div className="hdc__container">
         <div className="hdc__chart-wrapper">
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={estimated.map((e) => ({
-              hour: e.hour,
-              estimated: e.estimated,
-              actual: actualByHour[e.hour] || 0,
-            }))} margin={{ top: 10, right: 30, left: 20, bottom: 0 }}>
+            <AreaChart data={rows} margin={{ top: 10, right: 30, left: 20, bottom: 0 }}>
               <defs>
                 <linearGradient id="estColor" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#6366f1" stopOpacity="0.3" />
@@ -93,21 +90,18 @@ export function HourlyDemandCard({ tickets }: { tickets: QueueTicket[] }) {
                 formatter={(value: any, name?: string) => [Number(value) || 0, name === 'Estimado' ? 'Estimado' : 'Real']}
                 labelFormatter={(label: any) => String(label)}
               />
-              <Area
-                type="monotone"
-                dataKey="estimated"
-                stroke="#4f46e5"
-                strokeWidth={3}
-                fillOpacity={1}
-                fill="url(#estColor)"
-                strokeDasharray="6 4"
-                name="Estimado"
-              >
-                <linearGradient id="estColor" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#6366f1" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
-                </linearGradient>
-              </Area>
+              {baseline ? (
+                <Area
+                  type="monotone"
+                  dataKey="estimated"
+                  stroke="#4f46e5"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#estColor)"
+                  strokeDasharray="6 4"
+                  name="Estimado"
+                />
+              ) : null}
               <Area
                 type="monotone"
                 dataKey="actual"

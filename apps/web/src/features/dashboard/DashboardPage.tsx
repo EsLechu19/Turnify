@@ -1,53 +1,90 @@
-import { Button, PageHeader, TwoColumnGrid } from '@/components/common';
-import { panelRepository } from '@/data/repositories';
+import { useEffect, useMemo, useState } from 'react';
+
+import { PageHeader, TwoColumnGrid } from '@/components/common';
+import { computeAlerts } from '@/data/compute';
+import { fetchDailySummary, fetchDemandEstimate, fetchRatings, fetchYesterdayCompare, type DailySummary, type RatingByBarber } from '@/data/live';
+import type { DemandEstimate } from '@/data/types';
+import type { StatsCompare } from './components/StatCards';
 import { useQueue } from '@/state/QueueContext';
-
-const business = panelRepository.business();
-
+import { useShop } from '@/state/ShopContext';
 import { ActiveQueueCard } from './components/ActiveQueueCard';
+import { AlertsCard } from './components/AlertsCard';
 import { BarberStationsCard } from './components/BarberStationsCard';
 import { DailySummaryCard } from './components/DailySummaryCard';
+import { RatingsCard } from './components/RatingsCard';
 import { StatCards } from './components/StatCards';
 import { HourlyDemandCard } from '../history/components/HourlyDemandCard';
 
 export function DashboardPage() {
-  const { tickets, team, stats, next, changeStatus } = useQueue();
+  const { tickets, team, stats } = useQueue();
+  const { business } = useShop();
+  const [estimate, setEstimate] = useState<DemandEstimate[] | null>(null);
+  const [summary, setSummary] = useState<DailySummary | null>(null);
+  const [compare, setCompare] = useState<StatsCompare | null>(null);
+  const [ratings, setRatings] = useState<RatingByBarber[] | null>(null);
 
-  const handleCall = (id: string) => changeStatus(id, 'llamado');
-  const handleAssign = (id: string) => changeStatus(id, 'atencion');
+  useEffect(() => {
+    let active = true;
+
+    fetchDemandEstimate()
+      .then((rows) => {
+        if (active) setEstimate(rows);
+      })
+      .catch(() => {
+        if (active) setEstimate(null);
+      });
+    fetchDailySummary()
+      .then((value) => {
+        if (active) setSummary(value);
+      })
+      .catch(() => {
+        if (active) setSummary(null);
+      });
+    fetchYesterdayCompare()
+      .then((value) => {
+        if (active) setCompare(value);
+      })
+      .catch(() => {
+        if (active) setCompare(null);
+      });
+    fetchRatings()
+      .then((rows) => {
+        if (active) setRatings(rows);
+      })
+      .catch(() => {
+        if (active) setRatings(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const alerts = useMemo(() => computeAlerts(tickets, team), [tickets, team]);
 
   return (
     <>
-      <PageHeader
-        title={business.name}
-        subtitle="Panel operativo"
-        actions={
-          <>
-            <Button variant="secondary" icon="pause" onClick={() => {}}>
-              Pausar fila temporal
-            </Button>
-            <Button variant="primary" icon="arrow-right" onClick={() => next && changeStatus(next.id, next.status === 'llamado' ? 'atencion' : 'llamado')}>
-              Llamar siguiente turno
-            </Button>
-          </>
-        }
-      />
+      <PageHeader title={business?.name ?? 'Turnify'} subtitle="Panel operativo" />
 
-      <StatCards stats={stats} />
+      <StatCards stats={stats} compare={compare} />
+
+      <AlertsCard alerts={alerts} />
 
       <TwoColumnGrid>
         <ActiveQueueCard
           tickets={tickets}
-          onCall={handleCall}
-          onAssign={handleAssign}
-          occupiedCount={team.filter(m => m.availability === 'atencion').length}
+          occupiedCount={team.filter((m) => m.availability === 'atencion').length}
         />
         <BarberStationsCard team={team} />
       </TwoColumnGrid>
 
       <TwoColumnGrid>
-        <HourlyDemandCard tickets={tickets} />
-        <DailySummaryCard />
+        <HourlyDemandCard tickets={tickets} estimate={estimate} />
+        <DailySummaryCard summary={summary} />
+      </TwoColumnGrid>
+
+      <TwoColumnGrid>
+        <RatingsCard ratings={ratings} />
       </TwoColumnGrid>
     </>
   );
