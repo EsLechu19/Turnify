@@ -51,4 +51,12 @@ describe('worker history stats', () => {
     expect(formatHistoryDuration(900)).toBe('15 min');
     expect(formatHistoryDuration(null)).toBe('—');
   });
+
+  it('anchors periods to Lima days in any device timezone', () => {
+    const late = new Date('2026-10-08T06:30:00Z');
+    const lateEntry = entry({ ticketId: 'late', completedAt: new Date('2026-10-08T04:00:00Z').toISOString() });
+
+    expect(filterWorkerHistoryByPeriod([lateEntry], 'hoy', late).map((e) => e.ticketId)).toEqual([]);
+    expect(filterWorkerHistoryByPeriod([lateEntry], 'semana', late).map((e) => e.ticketId)).toEqual(['late']);
+  });
 });

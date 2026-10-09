@@ -17,7 +17,7 @@ function formatRemaining(seconds: number): string {
 }
 
 function formatDeadline(deadline: string): string {
-  return new Intl.DateTimeFormat('es-PE', { hour: '2-digit', minute: '2-digit' }).format(new Date(deadline));
+  return new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit' }).format(new Date(deadline));
 }
 
 function initials(name: string): string {

@@ -9,17 +9,33 @@ export type WorkerHistorySummary = {
   averageDurationSeconds: number | null;
 };
 
+/** Fixed Lima offset (America/Lima has no DST). */
+const LIMA_MS = 5 * 3600_000;
+const DAY_MS = 24 * 3600_000;
+
+/** Lima calendar day number (days since epoch) holding the instant. */
+function limaDayNumber(when: Date): number {
+  return Math.floor((when.getTime() - LIMA_MS) / DAY_MS);
+}
+
+/** Absolute instant of a Lima-midnight day number. */
+function limaMidnight(dayNumber: number): Date {
+  return new Date(dayNumber * DAY_MS + LIMA_MS);
+}
+
 export function periodStart(period: WorkerHistoryPeriod, now: Date): Date {
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  if (period === 'hoy') return start;
+  const today = limaDayNumber(now);
+
+  if (period === 'hoy') return limaMidnight(today);
+
   if (period === 'semana') {
-    const day = start.getDay() === 0 ? 7 : start.getDay();
-    start.setDate(start.getDate() - (day - 1));
-    return start;
+    // 1970-01-01 was Thursday, so Monday is offset 0 here.
+    const weekdayMondayFirst = (((today + 3) % 7) + 7) % 7;
+    return limaMidnight(today - weekdayMondayFirst);
   }
-  start.setDate(1);
-  return start;
+
+  const probe = new Date(today * DAY_MS);
+  return new Date(Date.UTC(probe.getUTCFullYear(), probe.getUTCMonth(), 1) + LIMA_MS);
 }
 
 export function isInHistoryPeriod(iso: string | null, period: WorkerHistoryPeriod, now: Date): boolean {
@@ -57,5 +73,5 @@ export function formatHistoryTime(iso: string | null): string {
   if (!iso) return '—';
   const value = new Date(iso);
   if (Number.isNaN(value.getTime())) return '—';
-  return new Intl.DateTimeFormat('es-PE', { hour: '2-digit', minute: '2-digit' }).format(value);
+  return new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit' }).format(value);
 }
