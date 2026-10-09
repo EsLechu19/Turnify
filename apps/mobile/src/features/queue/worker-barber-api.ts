@@ -16,6 +16,7 @@ export type WorkerTicket = {
   calledDeadlineAt: string | null;
   customerResponse: 'presente' | 'llega_en_2_min' | null;
   customerResponseAt: string | null;
+  inicioEn: string | null;
   peopleAhead: number;
   waitMinutes: number;
 };
@@ -52,6 +53,7 @@ type WorkerQueuePayload = {
     llamado_vencimiento_en: string | null;
     respuesta_cliente: WorkerTicket['customerResponse'];
     respuesta_cliente_en: string | null;
+    inicio_en: string | null;
     personas_delante: number;
     espera_min: number;
   }>;
@@ -76,6 +78,7 @@ export async function getWorkerBarberQueue(): Promise<{ availability: WorkerAvai
       calledDeadlineAt: ticket.llamado_vencimiento_en,
       customerResponse: ticket.respuesta_cliente,
       customerResponseAt: ticket.respuesta_cliente_en,
+      inicioEn: ticket.inicio_en,
       peopleAhead: ticket.personas_delante,
       waitMinutes: ticket.espera_min,
     })),

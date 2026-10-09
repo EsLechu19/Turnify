@@ -25,7 +25,7 @@ import {
   type WorkerTicket,
 } from '@/features/queue/worker-barber-api';
 import { mapWorkerLiveOperations } from '@/features/worker/worker-live-operations';
-import { useRemainingTolerance } from '@/features/worker/use-remaining-tolerance';
+import { useElapsedSince, useRemainingTolerance } from '@/features/worker/use-remaining-tolerance';
 import { getWorkerShops } from '@/features/worker/worker-membership-api';
 import { getSupabase } from '@/lib/supabase';
 
@@ -65,25 +65,25 @@ const DEMO_TICKETS: WorkerTicket[] = [
     ticketId: 't1', queueId: 'q1', queueName: 'Cortes', visibleCode: 'A24', state: 'en_atencion',
     serviceName: 'Corte + barba', requestedBarberName: null, assignedBarberName: 'Tú',
     calledDeadlineAt: null, customerResponse: null, customerResponseAt: null,
-    peopleAhead: 0, waitMinutes: 0,
+    inicioEn: null, peopleAhead: 0, waitMinutes: 0,
   },
   {
     ticketId: 't2', queueId: 'q1', queueName: 'Cortes', visibleCode: 'A25', state: 'notificado',
     serviceName: 'Corte clásico', requestedBarberName: 'Carlos', assignedBarberName: null,
     calledDeadlineAt: null, customerResponse: null, customerResponseAt: null,
-    peopleAhead: 0, waitMinutes: 0,
+    inicioEn: null, peopleAhead: 0, waitMinutes: 0,
   },
   {
     ticketId: 't3', queueId: 'q2', queueName: 'Barba', visibleCode: 'B11', state: 'en_espera',
     serviceName: 'Perfilado de barba', requestedBarberName: null, assignedBarberName: null,
     calledDeadlineAt: null, customerResponse: null, customerResponseAt: null,
-    peopleAhead: 1, waitMinutes: 5,
+    inicioEn: null, peopleAhead: 1, waitMinutes: 5,
   },
   {
     ticketId: 't4', queueId: 'q1', queueName: 'Cortes', visibleCode: 'A26', state: 'en_espera',
     serviceName: 'Afeitado clásico', requestedBarberName: null, assignedBarberName: null,
     calledDeadlineAt: null, customerResponse: null, customerResponseAt: null,
-    peopleAhead: 2, waitMinutes: 10,
+    inicioEn: null, peopleAhead: 2, waitMinutes: 10,
   },
 ];
 
@@ -264,6 +264,7 @@ function LiveQueue({ availability, tickets, attentionTicket, stations, stationsL
   const next = tickets[0];
   const [selected, setSelected] = useState<WorkerTicket | null>(null);
   const selectedTolerance = useRemainingTolerance(selected?.calledDeadlineAt ?? null);
+  const attentionElapsed = useElapsedSince(attentionTicket?.inicioEn ?? null);
   const [isCallingNext, setIsCallingNext] = useState(false);
 
   async function callNext() {
@@ -309,6 +310,8 @@ function LiveQueue({ availability, tickets, attentionTicket, stations, stationsL
             <WorkerPill label="EN ATENCIÓN" tone="teal" />
           </View>
           <WorkerText variant="metric">{attentionTicket.visibleCode}</WorkerText>
+          <WorkerText variant="eyebrow" color={workerColors.muted}>Tiempo en atención</WorkerText>
+          <WorkerText variant="headline">{attentionElapsed ? `${attentionElapsed} en curso` : 'Tiempo no disponible'}</WorkerText>
           <TicketDetail ticket={attentionTicket} />
           <View style={styles.attentionActions}>
             <WorkerButton

@@ -18,6 +18,7 @@ const ticket = (state: 'en_espera' | 'notificado' | 'llamado' | 'en_atencion', v
   calledDeadlineAt: null,
   customerResponse: null,
   customerResponseAt: null,
+  inicioEn: null,
 });
 
 describe('Worker live operations mapping', () => {
@@ -62,6 +63,16 @@ describe('Worker live operations mapping', () => {
       expect(screen).toContain('setInterval');
       expect(screen).toContain('void refresh()');
     }
+  });
+
+  it('shows the elapsed attention time on the in-service card', () => {
+    const jornada = source('../../apps/mobile/src/app/(app)/worker.tsx');
+    const hook = source('../../apps/mobile/src/features/worker/use-remaining-tolerance.ts');
+    const api = source('../../apps/mobile/src/features/queue/worker-barber-api.ts');
+
+    expect(api).toContain('inicioEn: ticket.inicio_en');
+    expect(hook).toContain('useElapsedSince');
+    expect(jornada).toContain('useElapsedSince');
   });
 
   it('shows the called ticket with a live synchronized tolerance in the Cola tab', () => {
