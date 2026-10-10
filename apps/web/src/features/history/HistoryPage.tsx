@@ -117,6 +117,7 @@ export function HistoryPage() {
   const [printAll, setPrintAll] = useState(false);
   const [rows, setRows] = useState<HistoryRecord[]>([]);
   const [loadingRows, setLoadingRows] = useState(true);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   useEffect(() => {
     setPage(1);
@@ -130,11 +131,15 @@ export function HistoryPage() {
       .then((records) => {
         if (active) {
           setRows(records);
+          setHistoryError(null);
           setLoadingRows(false);
         }
       })
-      .catch(() => {
-        if (active) setLoadingRows(false);
+      .catch((error: unknown) => {
+        if (active) {
+          setHistoryError(error instanceof Error ? error.message : 'No pudimos cargar el historial del local.');
+          setLoadingRows(false);
+        }
       });
 
     return () => {
@@ -471,6 +476,8 @@ export function HistoryPage() {
 
         {loadingRows ? (
           <EmptyState detail="Trayendo el historial del local…" title="Cargando historial" />
+        ) : historyError ? (
+          <EmptyState detail={historyError} title="No pudimos cargar el historial" />
         ) : filtered.length === 0 ? (
           <EmptyState
             detail="Prueba con otro barbero, servicio o estado."

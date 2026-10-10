@@ -91,7 +91,14 @@ export interface ServiceRecord {
   createdAt: string;
 }
 
-export type HistoryStatus = 'completado' | 'ausencia' | 'cancelado';
+export type HistoryStatus =
+  | 'en_espera'
+  | 'notificado'
+  | 'llamado'
+  | 'en_atencion'
+  | 'completado'
+  | 'ausencia'
+  | 'cancelado';
 
 export interface HistoryRecord {
   id: string;

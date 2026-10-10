@@ -415,14 +415,29 @@ export async function fetchHistory(): Promise<HistoryRecord[]> {
       'id,codigo_visible,servicio_nombre,barbero_asignado_nombre,nombre_invitado,nombre_ref,estado,creado_en,llamado_en,inicio_en,fin_en,cerrado_en,puntuacion',
     )
     .eq('empresa_id', empresaId)
-    .in('estado', ['finalizado', 'ausente', 'cancelado'])
-    .order('cerrado_en', { ascending: false })
+    .order('creado_en', { ascending: false })
     .limit(200);
 
   if (error) throw new Error(error.message);
 
-  const toStatus = (estado: string): HistoryStatus =>
-    estado === 'finalizado' ? 'completado' : estado === 'ausente' ? 'ausencia' : 'cancelado';
+  const toStatus = (estado: string): HistoryStatus => {
+    switch (estado) {
+      case 'finalizado':
+        return 'completado';
+      case 'ausente':
+        return 'ausencia';
+      case 'cancelado':
+        return 'cancelado';
+      case 'notificado':
+        return 'notificado';
+      case 'llamado':
+        return 'llamado';
+      case 'en_atencion':
+        return 'en_atencion';
+      default:
+        return 'en_espera';
+    }
+  };
 
   return ((data ?? []) as Array<{
     id: string;

@@ -24,4 +24,23 @@ describe('professional history and reports', () => {
     expect(page).toContain('ratingCell');
     expect(live).toContain('puntuacion');
   });
+
+  it('includes active tickets in the all-status live history and labels them', () => {
+    const live = read('apps', 'web', 'src', 'data', 'live.ts');
+    const types = read('apps', 'web', 'src', 'data', 'types.ts');
+    const labels = read('apps', 'web', 'src', 'data', 'labels.ts');
+
+    expect(live).not.toContain(".in('estado', ['finalizado', 'ausente', 'cancelado'])");
+    expect(live).toContain("case 'en_atencion':");
+    expect(types).toContain("| 'en_atencion'");
+    expect(labels).toContain("en_atencion: 'En atención'");
+  });
+
+  it('renders a fetch error instead of an empty-history state', () => {
+    const page = read('apps', 'web', 'src', 'features', 'history', 'HistoryPage.tsx');
+
+    expect(page).toContain('const [historyError, setHistoryError] = useState<string | null>(null);');
+    expect(page).toContain('title="No pudimos cargar el historial"');
+    expect(page).toContain('detail={historyError}');
+  });
 });

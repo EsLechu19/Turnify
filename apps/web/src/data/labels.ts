@@ -52,12 +52,20 @@ export const staffAvailabilityTone: Record<StaffAvailability, 'brand' | 'success
 };
 
 export const historyStatusLabels: Record<HistoryStatus, string> = {
+  en_espera: 'En espera',
+  notificado: 'Notificado',
+  llamado: 'Llamado',
+  en_atencion: 'En atención',
   completado: 'Completado',
   ausencia: 'Ausencia',
   cancelado: 'Cancelado',
 };
 
-export const historyStatusTone: Record<HistoryStatus, 'success' | 'danger' | 'neutral'> = {
+export const historyStatusTone: Record<HistoryStatus, 'success' | 'danger' | 'neutral' | 'brand' | 'gold'> = {
+  en_espera: 'neutral',
+  notificado: 'gold',
+  llamado: 'gold',
+  en_atencion: 'brand',
   completado: 'success',
   ausencia: 'danger',
   cancelado: 'neutral',
