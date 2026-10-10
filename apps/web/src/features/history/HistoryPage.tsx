@@ -18,6 +18,7 @@ import { Badge, Button, Card, CardHead, EmptyState, PageHeader, StatsRow } from 
 import { averageOf, historyStatusLabels, historyStatusTone } from '@/data/labels';
 import { historyRepository } from '@/data/repositories';
 import type { HistoryRecord, HistoryStatus } from '@/data/types';
+import { limaToday } from '@/utils/format';
 
 const CHART_COLORS = ['#1264e8', '#22c55e', '#f59e0b', '#8b5cf6', '#ef4444'];
 
@@ -32,6 +33,7 @@ const selectStyle = {
 } as const;
 
 type StatusFilter = 'todos' | HistoryStatus;
+type RangeFilter = 'hoy' | '7d' | '30d' | 'todo';
 
 const STATUS_OPTIONS: { label: string; value: StatusFilter }[] = [
   { label: 'Todos', value: 'todos' },
@@ -39,6 +41,27 @@ const STATUS_OPTIONS: { label: string; value: StatusFilter }[] = [
   { label: 'Ausencia', value: 'ausencia' },
   { label: 'Cancelado', value: 'cancelado' },
 ];
+
+const RANGE_OPTIONS: { label: string; value: RangeFilter }[] = [
+  { label: 'Hoy', value: 'hoy' },
+  { label: '7 días', value: '7d' },
+  { label: '30 días', value: '30d' },
+  { label: 'Todo', value: 'todo' },
+];
+
+const RANGE_LABELS: Record<RangeFilter, string> = {
+  hoy: 'hoy',
+  '7d': 'últimos 7 días',
+  '30d': 'últimos 30 días',
+  todo: 'todo el historial',
+};
+
+function rangeCutoff(range: RangeFilter): string | null {
+  if (range === 'todo') return null;
+  if (range === 'hoy') return limaToday();
+  const days = range === '7d' ? 6 : 29;
+  return limaToday(new Date(Date.now() - days * 86400_000));
+}
 
 const PAGE_SIZE = 10;
 
@@ -50,12 +73,17 @@ function csvCell(value: string | number): string {
   return `"${String(value).replace(/"/g, '""')}"`;
 }
 
+function ratingCell(rating: number | null | undefined): string {
+  return typeof rating === 'number' ? `★ ${rating}` : 'Sin voto';
+}
+
 function downloadCsv(rows: HistoryRecord[]) {
-  const header = ['Código', 'Ingreso', 'Cliente', 'Servicio', 'Barbero', 'Espera (min)', 'Duración (min)', 'Estado'];
+  const header = ['Fecha', 'Código', 'Ingreso', 'Cliente', 'Servicio', 'Barbero', 'Espera (min)', 'Duración (min)', 'Satisfacción', 'Estado'];
   const lines = [
     header.map(csvCell).join(';'),
     ...rows.map((row) =>
       [
+        row.date,
         row.code,
         row.arrival,
         row.customer,
@@ -63,6 +91,7 @@ function downloadCsv(rows: HistoryRecord[]) {
         row.barber ?? 'Sin asignar',
         row.waitMinutes,
         row.durationMinutes,
+        ratingCell(row.rating),
         historyStatusLabels[row.status],
       ]
         .map(csvCell)
@@ -83,6 +112,7 @@ export function HistoryPage() {
   const [barberFilter, setBarberFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
+  const [rangeFilter, setRangeFilter] = useState<RangeFilter>('todo');
   const [page, setPage] = useState(1);
   const [printAll, setPrintAll] = useState(false);
   const [rows, setRows] = useState<HistoryRecord[]>([]);
@@ -90,7 +120,7 @@ export function HistoryPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [barberFilter, serviceFilter, statusFilter]);
+  }, [barberFilter, serviceFilter, statusFilter, rangeFilter]);
 
   useEffect(() => {
     let active = true;
@@ -137,6 +167,7 @@ export function HistoryPage() {
 
   const serviceNames = useMemo(() => [...new Set(rows.map((row) => row.service))].sort(), [rows]);
 
+  const cutoff = useMemo(() => rangeCutoff(rangeFilter), [rangeFilter]);
   const filtered = useMemo(
     () =>
       rows.filter((row) => {
@@ -144,10 +175,11 @@ export function HistoryPage() {
           barberFilter === 'all' || (barberFilter === 'none' ? row.barber === null : row.barber === barberFilter);
         const matchesService = serviceFilter === 'all' || row.service === serviceFilter;
         const matchesStatus = statusFilter === 'todos' || row.status === statusFilter;
+        const matchesRange = cutoff === null || row.date >= cutoff;
 
-        return matchesBarber && matchesService && matchesStatus;
+        return matchesBarber && matchesService && matchesStatus && matchesRange;
       }),
-    [barberFilter, serviceFilter, statusFilter],
+    [barberFilter, serviceFilter, statusFilter, cutoff],
   );
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -204,11 +236,37 @@ export function HistoryPage() {
 
   const completionRate = stats.total === 0 ? 0 : Math.round((stats.completed / stats.total) * 100);
 
+  const perBarber = useMemo(() => {
+    const byBarber = new Map<string, HistoryRecord[]>();
+
+    for (const row of filtered) {
+      const key = row.barber ?? 'Sin asignar';
+      const list = byBarber.get(key) ?? [];
+      list.push(row);
+      byBarber.set(key, list);
+    }
+
+    return [...byBarber.entries()]
+      .map(([name, list]) => {
+        const done = list.filter((row) => row.status === 'completado');
+        const ratings = list.map((row) => row.rating).filter((value): value is number => typeof value === 'number');
+
+        return {
+          name,
+          turnos: list.length,
+          duracion: averageOf(done.map((row) => row.durationMinutes)),
+          satisfaccion:
+            ratings.length === 0 ? null : Math.round((ratings.reduce((sum, value) => sum + value, 0) / ratings.length) * 10) / 10,
+        };
+      })
+      .sort((left, right) => right.turnos - left.turnos);
+  }, [filtered]);
+
   return (
     <>
       <PageHeader
         title="Historial y reportes"
-        subtitle={`${stats.total} turnos en el día · asistencia, tiempos y servicios atendidos.`}
+        subtitle={`${stats.total} turnos · ${RANGE_LABELS[rangeFilter]} · asistencia, tiempos y servicios atendidos.`}
         actions={
           <>
             <Button icon="download" onClick={() => downloadCsv(filtered)} variant="secondary">
@@ -257,6 +315,19 @@ export function HistoryPage() {
               aria-pressed={statusFilter === option.value}
               key={option.value}
               onClick={() => setStatusFilter(option.value)}
+              type="button"
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="segment">
+          {RANGE_OPTIONS.map((option) => (
+            <button
+              aria-pressed={rangeFilter === option.value}
+              key={option.value}
+              onClick={() => setRangeFilter(option.value)}
               type="button"
             >
               {option.label}
@@ -361,6 +432,38 @@ export function HistoryPage() {
       </div>
 
       <Card>
+        <CardHead action={<Badge tone="brand">{perBarber.length} barberos</Badge>} title="Rendimiento por barbero" />
+        {perBarber.length === 0 ? (
+          <EmptyState detail="Ajusta los filtros para ver el rendimiento." title="Sin datos" />
+        ) : (
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Barbero</th>
+                  <th>Turnos</th>
+                  <th>Duración prom.</th>
+                  <th>Satisfacción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {perBarber.map((entry) => (
+                  <tr key={entry.name}>
+                    <td>
+                      <strong>{entry.name}</strong>
+                    </td>
+                    <td>{entry.turnos}</td>
+                    <td>{entry.duracion === 0 ? '—' : `${entry.duracion} min`}</td>
+                    <td>{entry.satisfaccion == null ? '—' : `★ ${entry.satisfaccion}`}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <Card>
         <CardHead
           action={<Badge tone="brand">{filtered.length} registros</Badge>}
           title="Detalle de turnos"
@@ -386,6 +489,7 @@ export function HistoryPage() {
                     <th>Barbero</th>
                     <th>Espera</th>
                     <th>Duración</th>
+                    <th>Satisfacción</th>
                     <th>Estado</th>
                   </tr>
                 </thead>
@@ -401,6 +505,7 @@ export function HistoryPage() {
                       <td>{row.barber ?? 'Sin asignar'}</td>
                       <td>{row.waitMinutes} min</td>
                       <td>{row.status === 'completado' ? `${row.durationMinutes} min` : '—'}</td>
+                      <td>{typeof row.rating === 'number' ? `★ ${row.rating}` : '—'}</td>
                       <td>
                         <Badge tone={historyStatusTone[row.status]}>
                           {historyStatusLabels[row.status]}

@@ -104,6 +104,7 @@ export interface HistoryRecord {
   waitMinutes: number;
   durationMinutes: number;
   status: HistoryStatus;
+  rating?: number | null;
 }
 
 export interface PanelStats {

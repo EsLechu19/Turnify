@@ -412,7 +412,7 @@ export async function fetchHistory(): Promise<HistoryRecord[]> {
   const { data, error } = await supabase
     .from('tickets')
     .select(
-      'id,codigo_visible,servicio_nombre,barbero_asignado_nombre,nombre_invitado,nombre_ref,estado,creado_en,llamado_en,inicio_en,fin_en,cerrado_en',
+      'id,codigo_visible,servicio_nombre,barbero_asignado_nombre,nombre_invitado,nombre_ref,estado,creado_en,llamado_en,inicio_en,fin_en,cerrado_en,puntuacion',
     )
     .eq('empresa_id', empresaId)
     .in('estado', ['finalizado', 'ausente', 'cancelado'])
@@ -437,6 +437,7 @@ export async function fetchHistory(): Promise<HistoryRecord[]> {
     inicio_en: string | null;
     fin_en: string | null;
     cerrado_en: string | null;
+    puntuacion: number | null;
   }>).map((ticket) => ({
     id: ticket.id,
     code: ticket.codigo_visible,
@@ -449,6 +450,7 @@ export async function fetchHistory(): Promise<HistoryRecord[]> {
     durationMinutes:
       ticket.fin_en && ticket.inicio_en ? Math.max(0, Math.round((new Date(ticket.fin_en).getTime() - new Date(ticket.inicio_en).getTime()) / 60000)) : 0,
     status: toStatus(ticket.estado),
+    rating: ticket.puntuacion,
   }));
 }
 
