@@ -75,6 +75,14 @@ describe('Worker live operations mapping', () => {
     expect(jornada).toContain('useElapsedSince');
   });
 
+  it('re-syncs Mis barberias while waiting for approval', () => {
+    const shops = source('../../apps/mobile/src/app/(app)/worker-shops.tsx');
+
+    expect(shops).toContain('setInterval');
+    expect(shops).toContain('clearInterval');
+    expect(shops).toContain('pending.length');
+  });
+
   it('shows the called ticket with a live synchronized tolerance in the Cola tab', () => {
     const queue = source('../../apps/mobile/src/app/(app)/worker-queue.tsx');
     const hook = source('../../apps/mobile/src/features/worker/use-remaining-tolerance.ts');
@@ -86,5 +94,16 @@ describe('Worker live operations mapping', () => {
     expect(queue).toContain('restantes');
     expect(hook).toContain('setInterval(() => setNow(Date.now()), 1000)');
     expect(jornada).toContain('@/features/worker/use-remaining-tolerance');
+  });
+
+  it('renders only server-consistent called-ticket actions and explains the effective tolerance', () => {
+    const jornada = source('../../apps/mobile/src/app/(app)/worker.tsx');
+
+    expect(jornada).toContain("ticket.customerResponse !== 'presente'");
+    expect(jornada).toContain('Llega en 2 minutos extiende la tolerancia efectiva una sola vez.');
+    expect(jornada).not.toContain('Llamar a la estación');
+    expect(jornada).not.toContain('markMyTicketAbsent(current.ticketId)');
+    expect(jornada).toContain('const refreshed = await refresh();');
+    expect(jornada).toContain('if (refreshed) setNotice(success ?? null);');
   });
 });

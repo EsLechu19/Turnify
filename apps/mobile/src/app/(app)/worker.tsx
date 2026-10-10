@@ -107,14 +107,16 @@ export default function WorkerScreen() {
       setStations(DEMO_STATIONS);
       setError(null);
       setIsLoading(false);
-      return;
+      return true;
     }
     setIsLoading(true);
+    let queueRefreshed = false;
     try {
       const next = await getWorkerBarberQueue();
       setAvailability(next.availability);
       setTickets(next.tickets);
       setError(null);
+      queueRefreshed = true;
     } catch (reason) {
       setError(translateWorkerBarberError(reason instanceof Error ? reason.message : ''));
     } finally {
@@ -125,6 +127,7 @@ export default function WorkerScreen() {
     } catch {
       setStations([]);
     }
+    return queueRefreshed;
   }, []);
 
   const refreshShop = useCallback(async () => {
@@ -188,8 +191,8 @@ export default function WorkerScreen() {
     setNotice(null);
     try {
       await action();
-      await refresh();
-      setNotice(success ?? null);
+      const refreshed = await refresh();
+      if (refreshed) setNotice(success ?? null);
     } catch (reason) {
       setError(translateWorkerBarberError(reason instanceof Error ? reason.message : ''));
       await refresh();
@@ -228,7 +231,6 @@ export default function WorkerScreen() {
             availability={availability}
             isActing={isActing}
             isLoading={isLoading}
-            setNotice={setNotice}
             shopName={shopName}
             stations={stations}
             stationsLoading={isLoading}
@@ -249,7 +251,7 @@ export default function WorkerScreen() {
   );
 }
 
-function LiveQueue({ availability, tickets, attentionTicket, stations, stationsLoading, isLoading, isActing, act, shopName, setNotice }: {
+function LiveQueue({ availability, tickets, attentionTicket, stations, stationsLoading, isLoading, isActing, act, shopName }: {
   availability: WorkerAvailability | null;
   tickets: WorkerTicket[];
   attentionTicket: WorkerTicket | null;
@@ -259,7 +261,6 @@ function LiveQueue({ availability, tickets, attentionTicket, stations, stationsL
   isActing: boolean;
   act(action: () => Promise<void>, success?: string): Promise<void>;
   shopName: string | null;
-  setNotice: (value: string | null) => void;
 }) {
   const next = tickets[0];
   const [selected, setSelected] = useState<WorkerTicket | null>(null);
@@ -393,9 +394,7 @@ function LiveQueue({ availability, tickets, attentionTicket, stations, stationsL
               <WorkerText variant="label">Barbero asignado: {selected.assignedBarberName ?? 'Por asignar'}</WorkerText>
               <WorkerText variant="label">Tolerancia: {selectedTolerance ?? '-'}</WorkerText>
               <WorkerText variant="label">Pago: {servicePrices[selected.serviceName ?? ''] ?? '-'}</WorkerText>
-              <WorkerButton label="Llamar a la estación" disabled={isActing} onPress={() => void callSelectedStation(selected)} />
-              <WorkerButton label="Marcar ausente" tone="danger" disabled={isActing} onPress={() => void markSelectedAbsent(selected)} />
-              <WorkerButton label="Retroceder" tone="secondary" disabled={isActing} onPress={() => dismissSelected(selected)} />
+              <WorkerButton label="Cerrar" tone="secondary" disabled={isActing} onPress={() => setSelected(null)} />
             </Pressable>
           </Pressable>
         </Modal>
@@ -403,28 +402,6 @@ function LiveQueue({ availability, tickets, attentionTicket, stations, stationsL
     </>
   );
 
-  function callSelectedStation(current: WorkerTicket) {
-    if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
-      setNotice(`Demo: turno ${current.visibleCode} llamado a la estación.`);
-      setSelected(null);
-      return Promise.resolve();
-    }
-    return act(() => callMyNextTicket(current.queueId), `Llamaste el turno ${current.visibleCode}.`).then(() => setSelected(null));
-  }
-
-  function markSelectedAbsent(current: WorkerTicket) {
-    if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
-      setNotice(`Demo: turno ${current.visibleCode} marcado como ausente.`);
-      setSelected(null);
-      return Promise.resolve();
-    }
-    return act(() => markMyTicketAbsent(current.ticketId), 'Turno marcado como ausente.').then(() => setSelected(null));
-  }
-
-  function dismissSelected(current: WorkerTicket) {
-    if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') setNotice(`Demo: turno ${current.visibleCode} devuelto a la cola.`);
-    setSelected(null);
-  }
 }
 
 function LifecycleScreen({ ticket, candidates, showCandidates, isActing, act, openCandidates, reassign }: {
@@ -462,10 +439,12 @@ function LifecycleScreen({ ticket, candidates, showCandidates, isActing, act, op
         <WorkerText variant="eyebrow" color={workerColors.teal}>Tolerancia de llegada</WorkerText>
         <WorkerText variant="headline">{remainingTolerance ? `${remainingTolerance} restantes` : 'Tiempo no disponible'}</WorkerText>
         <WorkerText color={workerColors.muted}>{responseLabel}</WorkerText>
-        <WorkerText color={workerColors.muted}>La respuesta no inicia ni extiende la atención.</WorkerText>
+        <WorkerText color={workerColors.muted}>La respuesta no inicia la atención. Llega en 2 minutos extiende la tolerancia efectiva una sola vez.</WorkerText>
       </View>
 
-      <WorkerButton label="Iniciar atención" disabled={isActing} onPress={() => void act(() => startMyService(ticket.ticketId))} />
+      {ticket.customerResponse !== 'presente' ? (
+        <WorkerButton label="Iniciar atención" disabled={isActing} onPress={() => void act(() => startMyService(ticket.ticketId))} />
+      ) : null}
       <WorkerButton label="Marcar ausente" tone="danger" disabled={isActing} onPress={() => void act(() => markMyTicketAbsent(ticket.ticketId), 'Turno marcado como ausente.')} />
       <WorkerButton label="Ver cola completa" tone="secondary" onPress={() => router.push('/(app)/worker-queue')} />
       <WorkerButton label="Reasignar turno" tone="secondary" disabled={isActing} onPress={openCandidates} />
