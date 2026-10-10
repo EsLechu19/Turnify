@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react';
 
 import { panelRepository } from '@/data/repositories';
 import { computeStats } from '@/data/compute';
@@ -28,6 +28,8 @@ interface QueueState {
   queues: QueueSummary[];
   activity: ActivityEvent[];
   loading: boolean;
+  error: string | null;
+  refreshVersion: number;
 }
 
 type QueueAction =
@@ -35,13 +37,16 @@ type QueueAction =
     type: 'loaded';
     state: { tickets: QueueTicket[]; team: TeamMember[]; queues: QueueSummary[]; activity: ActivityEvent[] };
   }
+  | { type: 'failed'; error: string }
   | { type: 'status-changed'; id: string; status: TicketStatus }
   | { type: 'ticket-assigned'; id: string; barber: string }
   | { type: 'reset' };
 
 function emptyState(): QueueState {
-  return { tickets: [], team: [], queues: [], activity: [], loading: true };
+  return { tickets: [], team: [], queues: [], activity: [], loading: true, error: null, refreshVersion: 0 };
 }
+
+const OPERATIONAL_REFRESH_MS = 15_000;
 
 /** Fields each transition resets, mirroring what the panel showed before. */
 const resetsWait: Partial<Record<TicketStatus, true>> = {
@@ -99,8 +104,13 @@ function reducer(state: QueueState, action: QueueAction): QueueState {
           scheduleAvailability: member.availability,
         })),
         loading: false,
+        error: null,
+        refreshVersion: state.refreshVersion + 1,
       };
     }
+
+    case 'failed':
+      return { ...state, loading: false, error: action.error };
 
     case 'status-changed': {
       const tickets = state.tickets.map((ticket) => {
@@ -154,33 +164,48 @@ interface QueueContextValue extends QueueState {
   next: QueueTicket | null;
   changeStatus: (id: string, status: TicketStatus) => void;
   assignTicket: (id: string, barber: string) => void;
+  refresh: () => void;
 }
 
 const QueueContext = createContext<QueueContextValue | null>(null);
 
 export function QueueProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, emptyState);
+  const requestIdRef = useRef(0);
 
-  useEffect(() => {
-    let active = true;
+  const refresh = useCallback(() => {
+    const requestId = ++requestIdRef.current;
 
-    Promise.all([
+    void Promise.all([
       panelRepository.tickets(),
       panelRepository.team(),
       panelRepository.queues(),
       panelRepository.activity(),
     ])
       .then(([tickets, team, queues, activity]) => {
-        if (active) dispatch({ type: 'loaded', state: { tickets, team, queues, activity } });
+        if (requestId !== requestIdRef.current) return;
+        dispatch({ type: 'loaded', state: { tickets, team, queues, activity } });
       })
-      .catch(() => {
-        if (active) dispatch({ type: 'loaded', state: { tickets: [], team: [], queues: [], activity: [] } });
+      .catch((error: unknown) => {
+        if (requestId !== requestIdRef.current) return;
+        dispatch({
+          type: 'failed',
+          error: error instanceof Error ? error.message : 'No pudimos actualizar la operación.',
+        });
       });
+  }, []);
+
+  useEffect(() => {
+    refresh();
+    window.addEventListener('focus', refresh);
+    const intervalId = window.setInterval(refresh, OPERATIONAL_REFRESH_MS);
 
     return () => {
-      active = false;
+      requestIdRef.current += 1;
+      window.removeEventListener('focus', refresh);
+      window.clearInterval(intervalId);
     };
-  }, []);
+  }, [refresh]);
 
   const value = useMemo<QueueContextValue>(
     () => ({
@@ -189,8 +214,9 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       next: nextActionableTicket(state.tickets),
       changeStatus: (id, status) => dispatch({ type: 'status-changed', id, status }),
       assignTicket: (id, barber) => dispatch({ type: 'ticket-assigned', id, barber }),
+      refresh,
     }),
-    [state],
+    [state, refresh],
   );
 
   return <QueueContext.Provider value={value}>{children}</QueueContext.Provider>;

@@ -16,55 +16,44 @@ import { StatCards } from './components/StatCards';
 import { HourlyDemandCard } from '../history/components/HourlyDemandCard';
 
 export function DashboardPage() {
-  const { tickets, team, stats } = useQueue();
+  const { tickets, team, stats, loading, error, refreshVersion } = useQueue();
   const { business } = useShop();
   const [estimate, setEstimate] = useState<DemandEstimate[] | null>(null);
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [compare, setCompare] = useState<StatsCompare | null>(null);
   const [ratings, setRatings] = useState<RatingByBarber[] | null>(null);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
 
-    fetchDemandEstimate()
-      .then((rows) => {
-        if (active) setEstimate(rows);
+    Promise.all([fetchDemandEstimate(), fetchDailySummary(), fetchYesterdayCompare(), fetchRatings()])
+      .then(([nextEstimate, nextSummary, nextCompare, nextRatings]) => {
+        if (!active) return;
+        setEstimate(nextEstimate);
+        setSummary(nextSummary);
+        setCompare(nextCompare);
+        setRatings(nextRatings);
+        setMetricsError(null);
       })
-      .catch(() => {
-        if (active) setEstimate(null);
-      });
-    fetchDailySummary()
-      .then((value) => {
-        if (active) setSummary(value);
-      })
-      .catch(() => {
-        if (active) setSummary(null);
-      });
-    fetchYesterdayCompare()
-      .then((value) => {
-        if (active) setCompare(value);
-      })
-      .catch(() => {
-        if (active) setCompare(null);
-      });
-    fetchRatings()
-      .then((rows) => {
-        if (active) setRatings(rows);
-      })
-      .catch(() => {
-        if (active) setRatings(null);
+      .catch((fetchError: unknown) => {
+        if (!active) return;
+        setMetricsError(fetchError instanceof Error ? fetchError.message : 'No pudimos actualizar las métricas.');
       });
 
     return () => {
       active = false;
     };
-  }, []);
+  }, [refreshVersion]);
 
   const alerts = useMemo(() => computeAlerts(tickets, team), [tickets, team]);
 
   return (
     <>
       <PageHeader title={business?.name ?? 'Turnify'} subtitle="Panel operativo" />
+
+      {loading ? <p className="muted" role="status">Actualizando la operación…</p> : null}
+      {error || metricsError ? <p className="auth__error" role="alert">{error ?? metricsError}</p> : null}
 
       <StatCards stats={stats} compare={compare} />
 
