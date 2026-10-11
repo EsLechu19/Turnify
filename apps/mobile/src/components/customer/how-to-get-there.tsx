@@ -6,9 +6,8 @@ import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import { requestCustomerLocation } from '@/features/location/customer-location';
 import type { ShopCoordinates } from '@/features/location/shop-coordinates';
 import {
-  HaversineRouteProvider,
-  OpenRouteServiceProvider,
-  RouteUnavailableError,
+  createDefaultRouteProvider,
+  getDrivingRouteWithFallback,
   formatRouteSummary,
   type RouteEstimate,
 } from '@/features/routing/route-provider';
@@ -35,20 +34,9 @@ async function resolveEstimate(
   origin: ShopCoordinates,
   destination: ShopCoordinates,
 ): Promise<RouteEstimate> {
-  const key = openRouteServiceKey();
-  if (!key.trim()) {
-    return new HaversineRouteProvider().getDrivingRoute(origin, destination);
-  }
-  try {
-    return await new OpenRouteServiceProvider({ apiKey: key }).getDrivingRoute(origin, destination);
-  } catch (error) {
-    if (error instanceof RouteUnavailableError && error.reason === 'sin-clave') {
-      return new HaversineRouteProvider().getDrivingRoute(origin, destination);
-    }
-    // The routing service failed (red / sin-ruta): degrade to the honest
-    // offline estimate instead of hiding the card.
-    return new HaversineRouteProvider().getDrivingRoute(origin, destination);
-  }
+  return getDrivingRouteWithFallback(origin, destination, {
+    provider: createDefaultRouteProvider({ apiKey: openRouteServiceKey() }),
+  });
 }
 
 export function HowToGetThere({ shopName, shop }: { shopName: string; shop: ShopCoordinates | null }) {

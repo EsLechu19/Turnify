@@ -14,7 +14,11 @@ import { requestCustomerLocation } from '../../apps/mobile/src/features/location
 import {
   HaversineRouteProvider,
   OpenRouteServiceProvider,
+  OsrmRouteProvider,
+  createDefaultRouteProvider,
   formatRouteSummary,
+  getDrivingRouteWithFallback,
+  resolveRoutingProviderKind,
 } from '../../apps/mobile/src/features/routing/route-provider';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -114,6 +118,70 @@ describe('routing provider abstraction', () => {
     ] as const) {
       expect(read(...file).toLowerCase()).not.toContain('google');
     }
+  });
+
+  it('uses OSRM as the temporary default and keeps ORS dormant behind env', () => {
+    expect(resolveRoutingProviderKind({})).toBe('osrm');
+    expect(resolveRoutingProviderKind({ EXPO_PUBLIC_ROUTING_PROVIDER: 'openrouteservice' })).toBe(
+      'openrouteservice',
+    );
+    expect(createDefaultRouteProvider({ env: {} })).toBeInstanceOf(OsrmRouteProvider);
+    expect(
+      createDefaultRouteProvider({
+        env: { EXPO_PUBLIC_ROUTING_PROVIDER: 'openrouteservice' },
+        apiKey: 'free-key',
+        fetchImpl: vi.fn(),
+      }),
+    ).toBeInstanceOf(OpenRouteServiceProvider);
+  });
+
+  it('reads driving distance and duration from the OSRM public demo server', async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(JSON.stringify({ routes: [{ distance: 9600, duration: 730 }] }), { status: 200 }),
+    );
+    const estimate = await new OsrmRouteProvider({ fetchImpl }).getDrivingRoute(PLAZA_MAYOR, MIRAFLORES);
+    expect(estimate.source).toBe('osrm');
+    expect(estimate.distanceMeters).toBe(9600);
+    expect(estimate.durationSeconds).toBe(730);
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    const url = String(fetchImpl.mock.calls[0][0]);
+    expect(url).toContain('router.project-osrm.org/route/v1/driving/');
+    expect(url).toContain('overview=false');
+    // OSRM expects lng,lat order for both points.
+    expect(url).toContain(`${PLAZA_MAYOR.longitude},${PLAZA_MAYOR.latitude};${MIRAFLORES.longitude},${MIRAFLORES.latitude}`);
+  });
+
+  it('degrades gracefully when OSRM is unreachable or returns no route', async () => {
+    const failingFetch = vi.fn(async () => {
+      throw new Error('offline');
+    });
+    await expect(
+      new OsrmRouteProvider({ fetchImpl: failingFetch }).getDrivingRoute(PLAZA_MAYOR, MIRAFLORES),
+    ).rejects.toMatchObject({ reason: 'red' });
+    const emptyFetch = vi.fn(async () => new Response(JSON.stringify({ routes: [] }), { status: 200 }));
+    await expect(
+      new OsrmRouteProvider({ fetchImpl: emptyFetch }).getDrivingRoute(PLAZA_MAYOR, MIRAFLORES),
+    ).rejects.toMatchObject({ reason: 'sin-ruta' });
+  });
+
+  it('falls back to the haversine estimate when the OSRM default fails', async () => {
+    const failingFetch = vi.fn(async () => {
+      throw new Error('offline');
+    });
+    const estimate = await getDrivingRouteWithFallback(PLAZA_MAYOR, MIRAFLORES, {
+      provider: new OsrmRouteProvider({ fetchImpl: failingFetch }),
+    });
+    expect(estimate.source).toBe('estimate');
+    expect(estimate.distanceMeters).toBeGreaterThan(0);
+    expect(estimate.durationSeconds).toBeGreaterThan(0);
+    const summary = formatRouteSummary(estimate);
+    expect(summary).toContain('sin tráfico en vivo');
+  });
+
+  it('keeps a single request per card render (no polling, no prefetching)', () => {
+    const card = read('apps', 'mobile', 'src', 'components', 'customer', 'how-to-get-there.tsx');
+    expect(card).not.toContain('setInterval');
+    expect(card.toLowerCase()).not.toContain('prefetch');
   });
 });
 
