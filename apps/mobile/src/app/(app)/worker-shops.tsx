@@ -1,5 +1,5 @@
 import { Redirect, router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AuthErrorMessage } from '@/components/auth/auth-ui';
@@ -34,6 +34,16 @@ export default function WorkerShopsScreen() {
   useFocusEffect(useCallback(() => {
     void load();
   }, [load]));
+
+  // The approval lands server-side at any moment: re-sync on a short cadence
+  // while there is nothing approved or something still pending.
+  useEffect(() => {
+    if (shops.length > 0 && pending.length === 0) return;
+    const poll = setInterval(() => {
+      void load();
+    }, 10_000);
+    return () => clearInterval(poll);
+  }, [shops.length, pending.length, load]);
 
   if (!isProfileLoading && profile?.role !== 'personal') return <Redirect href="/" />;
 
@@ -79,6 +89,18 @@ export default function WorkerShopsScreen() {
         <Text style={[TypeScale.body, { color: Palette.inkMuted }]}>
           Elige dónde operar hoy. Puedes pertenecer a varias y cambiar cuando quieras.
         </Text>
+      </Card>
+
+      <Card padding="lg" style={styles.section}>
+        <OptionCard
+          accessibilityLabel="Mi perfil, editar foto, nombre y teléfono"
+          badge="EDITAR"
+          badgeTone="brand"
+          detail="Foto, nombre y teléfono: se muestran igual en todas tus barberías."
+          icon="user"
+          onPress={() => router.push('/(app)/worker-profile')}
+          title="Mi perfil"
+        />
       </Card>
 
       {shops.length > 0 ? (

@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 
@@ -6,6 +6,7 @@ import { WorkerButton, WorkerPill, WorkerText, workerColors, workerUiStyles } fr
 import { WorkerScreenContainer } from '@/components/worker/worker-screen-container';
 import { useAuth } from '@/features/auth/use-auth';
 import { formatReferencePrice } from '@/features/queue/commercial-booking';
+import { getMyWorkerAvatar, pickWorkerAvatar, uploadWorkerAvatar } from '@/features/worker/worker-avatar';
 import { getMyWorkerProfileDetails, getMyWorkerServices, updateMyWorkerProfileDetails, type WorkerAssignedService } from '@/features/worker/worker-profile-api';
 import { getWorkerShops, selectWorkerShop, type WorkerShop } from '@/features/worker/worker-membership-api';
 
@@ -18,6 +19,8 @@ export default function WorkerProfileScreen() {
   const [servicesError, setServicesError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [fotoUrl, setFotoUrl] = useState<string | null>(null);
+  const [isPhotoLoading, setIsPhotoLoading] = useState(false);
 
   useFocusEffect(useCallback(() => {
     if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
@@ -35,7 +38,28 @@ export default function WorkerProfileScreen() {
     void getWorkerShops().then(setShops).catch(() => setShops([]));
     void getMyWorkerProfileDetails().then((details) => { setName(details.name); setPhone(details.phone); }).catch(() => setNotice(null));
     void getMyWorkerServices().then((next) => { setServices(next); setServicesError(null); }).catch(() => setServicesError('No pudimos cargar tus servicios.'));
+    void getMyWorkerAvatar().then(setFotoUrl).catch(() => setFotoUrl(null));
   }, []));
+
+  async function changePhoto() {
+    if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
+      setNotice('Demo: foto simulada.');
+      return;
+    }
+    if (isPhotoLoading) return;
+    setIsPhotoLoading(true);
+    setNotice(null);
+    try {
+      const base64 = await pickWorkerAvatar();
+      if (!base64) return;
+      setFotoUrl(await uploadWorkerAvatar(base64));
+      setNotice('Foto actualizada.');
+    } catch (reason) {
+      setNotice(reason instanceof Error ? reason.message : 'No pudimos actualizar tu foto.');
+    } finally {
+      setIsPhotoLoading(false);
+    }
+  }
 
   async function save() {
     if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') { setNotice('Datos guardados en demo.'); return; }
@@ -72,14 +96,26 @@ export default function WorkerProfileScreen() {
         </View>
 
         <View style={[workerUiStyles.card, styles.heroCard]}>
-          <View style={styles.avatar}>
-            <WorkerText variant="metric" color="#FFFFFF">{email.trim().charAt(0).toUpperCase() || 'U'}</WorkerText>
-          </View>
+          {fotoUrl ? (
+            <Image accessibilityLabel="Tu foto de perfil" source={{ uri: fotoUrl }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.avatar}>
+              <WorkerText variant="metric" color="#FFFFFF">{email.trim().charAt(0).toUpperCase() || 'U'}</WorkerText>
+            </View>
+          )}
           <View style={{ flex: 1, gap: 2 }}>
             <WorkerText variant="headline">{name || email}</WorkerText>
             <WorkerText color={workerColors.muted}>{email}</WorkerText>
           </View>
         </View>
+
+        <WorkerButton
+          label={isPhotoLoading ? 'Subiendo foto…' : 'Cambiar foto'}
+          tone="secondary"
+          disabled={isPhotoLoading}
+          onPress={() => void changePhoto()}
+        />
+        <WorkerText color={workerColors.muted}>Tu foto, nombre y teléfono se muestran igual en todas tus barberías.</WorkerText>
 
         <View style={workerUiStyles.card}>
           <WorkerText variant="headline">Datos personales</WorkerText>
@@ -171,6 +207,7 @@ export default function WorkerProfileScreen() {
 const styles = StyleSheet.create({
   heroCard: { alignItems: 'center', flexDirection: 'row', gap: 12 },
   avatar: { alignItems: 'center', backgroundColor: workerColors.ink, borderRadius: 999, height: 54, justifyContent: 'center', width: 54 },
+  avatarImage: { borderRadius: 999, height: 54, width: 54 },
   field: { gap: 6 },
   input: { backgroundColor: workerColors.low, borderColor: workerColors.outline, borderRadius: 8, borderWidth: 1, color: workerColors.body, fontFamily: 'Work Sans', fontSize: 16, minHeight: 52, paddingHorizontal: 12 },
   currentShop: { backgroundColor: workerColors.low, borderRadius: 12, gap: 4, padding: 14 },
