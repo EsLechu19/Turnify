@@ -8,9 +8,10 @@ const read = (...parts: string[]) => readFileSync(join(root, ...parts), 'utf8');
 
 const dashboardPath = ['apps', 'web', 'src', 'features', 'dashboard', 'DashboardPage.tsx'];
 const verdictPath = ['apps', 'web', 'src', 'features', 'dashboard', 'components', 'OperatingVerdict.tsx'];
+const overviewPath = ['apps', 'web', 'src', 'features', 'dashboard', 'components', 'SectionOverview.tsx'];
 
 describe('dashboard administrator scanability', () => {
-  it('leads with a Tier 1 operating verdict before any KPI, trend, or detail block', () => {
+  it('leads with a Tier 1 operating verdict before any KPI, trend, or overview block', () => {
     const dashboard = read(...dashboardPath);
 
     expect(dashboard).toContain('OperatingVerdict');
@@ -18,37 +19,45 @@ describe('dashboard administrator scanability', () => {
     const verdictAt = dashboard.indexOf('<OperatingVerdict');
     expect(verdictAt).toBeGreaterThan(-1);
 
-    for (const later of ['<StatCards', '<AlertsCard', '<HourlyDemandCard', '<ActiveQueueCard', '<RatingsCard']) {
+    for (const later of ['<StatCards', '<AlertsCard', '<HourlyDemandCard', '<RatingsCard']) {
       const at = dashboard.indexOf(later);
       expect(at).toBeGreaterThan(verdictAt);
     }
   });
 
-  it('orders tiers as verdict first, trends center, operational detail last', () => {
+  it('orders tiers as verdict first, trends center, section overview last', () => {
     const dashboard = read(...dashboardPath);
 
     const verdictAt = dashboard.indexOf('<OperatingVerdict');
     const trendsAt = dashboard.indexOf('aria-label="Tendencias"');
-    const detailAt = dashboard.indexOf('aria-label="Detalle operativo"');
+    const overviewAt = dashboard.indexOf('aria-label="Secciones del panel"');
 
     expect(trendsAt).toBeGreaterThan(verdictAt);
-    expect(detailAt).toBeGreaterThan(trendsAt);
-
-    const queueAt = dashboard.indexOf('<ActiveQueueCard');
-    const stationsAt = dashboard.indexOf('<BarberStationsCard');
-    expect(queueAt).toBeGreaterThan(detailAt);
-    expect(stationsAt).toBeGreaterThan(detailAt);
+    expect(overviewAt).toBeGreaterThan(trendsAt);
+    expect(dashboard).not.toContain('aria-label="Detalle operativo"');
   });
 
-  it('keeps Tier 3 operational detail behind progressive disclosure', () => {
+  it('has no expandable Tier 3 detail and duplicates no queue or team detail', () => {
     const dashboard = read(...dashboardPath);
 
-    expect(dashboard).toContain('<details');
-    expect(dashboard).toContain('<summary');
+    expect(dashboard).not.toContain('<details');
+    expect(dashboard).not.toContain('<summary');
+    expect(dashboard).not.toContain('<ActiveQueueCard');
+    expect(dashboard).not.toContain('<BarberStationsCard');
+  });
 
-    const detailsAt = dashboard.indexOf('<details');
-    expect(dashboard.indexOf('<ActiveQueueCard')).toBeGreaterThan(detailsAt);
-    expect(dashboard.indexOf('<BarberStationsCard')).toBeGreaterThan(detailsAt);
+  it('orients to every panel section with links instead of a dead queue route', () => {
+    const dashboard = read(...dashboardPath);
+    const overview = read(...overviewPath);
+
+    expect(dashboard).toContain('<SectionOverview');
+    expect(dashboard).not.toContain('/cola');
+
+    for (const section of ['/equipo', '/servicios', '/historial', '/configuracion']) {
+      expect(overview).toContain(section);
+    }
+
+    expect(overview).not.toContain('/cola');
   });
 
   it('derives the Tier 1 verdict from already-live numbers and reserves color for state', () => {

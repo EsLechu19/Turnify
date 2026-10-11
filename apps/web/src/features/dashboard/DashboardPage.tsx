@@ -7,12 +7,11 @@ import type { DemandEstimate } from '@/data/types';
 import type { StatsCompare } from './components/StatCards';
 import { useQueue } from '@/state/QueueContext';
 import { useShop } from '@/state/ShopContext';
-import { ActiveQueueCard } from './components/ActiveQueueCard';
 import { AlertsCard } from './components/AlertsCard';
-import { BarberStationsCard } from './components/BarberStationsCard';
 import { DailySummaryCard } from './components/DailySummaryCard';
 import { OperatingVerdict } from './components/OperatingVerdict';
 import { RatingsCard } from './components/RatingsCard';
+import { SectionOverview } from './components/SectionOverview';
 import { StatCards } from './components/StatCards';
 import { HourlyDemandCard } from '../history/components/HourlyDemandCard';
 
@@ -80,17 +79,11 @@ export function DashboardPage() {
         </TwoColumnGrid>
       </section>
 
-      <section aria-label="Detalle operativo">
-        <details>
-          <summary>Detalle operativo: cola activa y equipo</summary>
-          <TwoColumnGrid>
-            <ActiveQueueCard
-              tickets={tickets}
-              occupiedCount={team.filter((m) => m.availability === 'atencion').length}
-            />
-            <BarberStationsCard team={team} />
-          </TwoColumnGrid>
-        </details>
+      <section aria-label="Secciones del panel">
+        <SectionOverview
+          availableCount={team.filter((m) => m.availability === 'disponible').length}
+          teamSize={team.length}
+        />
       </section>
     </>
   );
