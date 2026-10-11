@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AuthErrorMessage } from '@/components/auth/auth-ui';
+import { WorkerAccountContainer } from '@/components/worker/worker-account-container';
 import { Button, Card, Icon, OptionCard, Pill, Row, Screen, TextField } from '@/components/ui';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import { useAuth } from '@/features/auth/use-auth';
@@ -76,7 +77,8 @@ export default function WorkerShopsScreen() {
   }
 
   return (
-    <Screen>
+    <WorkerAccountContainer activeNavigation="shops">
+      <Screen>
       <Card elevated padding="lg" tone="brand">
         <View style={styles.heroTop}>
           <View style={styles.heroIcon}>
@@ -89,18 +91,6 @@ export default function WorkerShopsScreen() {
         <Text style={[TypeScale.body, { color: Palette.inkMuted }]}>
           Elige dónde operar hoy. Puedes pertenecer a varias y cambiar cuando quieras.
         </Text>
-      </Card>
-
-      <Card padding="lg" style={styles.section}>
-        <OptionCard
-          accessibilityLabel="Mi perfil, editar foto, nombre y teléfono"
-          badge="EDITAR"
-          badgeTone="brand"
-          detail="Foto, nombre y teléfono: se muestran igual en todas tus barberías."
-          icon="user"
-          onPress={() => router.push('/(app)/worker-profile')}
-          title="Mi perfil"
-        />
       </Card>
 
       {shops.length > 0 ? (
@@ -190,7 +180,8 @@ export default function WorkerShopsScreen() {
         onPress={() => { void signOut(); }}
         variant="ghost"
       />
-    </Screen>
+      </Screen>
+    </WorkerAccountContainer>
   );
 }
 

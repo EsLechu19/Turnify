@@ -1,18 +1,18 @@
-import { Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 
 import { WorkerButton, WorkerPill, WorkerText, workerColors, workerUiStyles } from '@/components/worker/worker-ui';
-import { WorkerScreenContainer } from '@/components/worker/worker-screen-container';
+import { WorkerAccountContainer } from '@/components/worker/worker-account-container';
 import { useAuth } from '@/features/auth/use-auth';
 import { formatReferencePrice } from '@/features/queue/commercial-booking';
 import { getMyWorkerAvatar, pickWorkerAvatar, uploadWorkerAvatar } from '@/features/worker/worker-avatar';
 import { getMyWorkerProfileDetails, getMyWorkerServices, updateMyWorkerProfileDetails, type WorkerAssignedService } from '@/features/worker/worker-profile-api';
-import { getWorkerShops, selectWorkerShop, type WorkerShop } from '@/features/worker/worker-membership-api';
+import { getWorkerShops, type WorkerShop } from '@/features/worker/worker-membership-api';
 
 export default function WorkerProfileScreen() {
-  const { session, signOut, reloadProfile } = useAuth();
-  const [shops, setShops] = useState<WorkerShop[]>([]);
+  const { session, signOut } = useAuth();
+  const [currentShop, setCurrentShop] = useState<WorkerShop | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [services, setServices] = useState<WorkerAssignedService[]>([]);
@@ -24,7 +24,7 @@ export default function WorkerProfileScreen() {
 
   useFocusEffect(useCallback(() => {
     if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
-      setShops([{ businessId: 'demo', name: 'Barbería Demo', isCurrent: true }]);
+      setCurrentShop({ businessId: 'demo', name: 'Barbería Demo', isCurrent: true });
       setName('Esau S');
       setPhone('987 654 321');
       setServices([
@@ -35,7 +35,7 @@ export default function WorkerProfileScreen() {
       return;
     }
 
-    void getWorkerShops().then(setShops).catch(() => setShops([]));
+    void getWorkerShops().then((next) => setCurrentShop(next.find((shop) => shop.isCurrent) ?? null)).catch(() => setCurrentShop(null));
     void getMyWorkerProfileDetails().then((details) => { setName(details.name); setPhone(details.phone); }).catch(() => setNotice(null));
     void getMyWorkerServices().then((next) => { setServices(next); setServicesError(null); }).catch(() => setServicesError('No pudimos cargar tus servicios.'));
     void getMyWorkerAvatar().then(setFotoUrl).catch(() => setFotoUrl(null));
@@ -78,16 +78,8 @@ export default function WorkerProfileScreen() {
   }
 
   const email = session?.user.email ?? 'No disponible';
-  const currentShop = shops.find((shop) => shop.isCurrent) ?? null;
-
-  async function switchShop(shop: WorkerShop) {
-    await selectWorkerShop(shop.businessId);
-    await reloadProfile();
-    router.replace('/(app)/worker');
-  }
-
   return (
-    <WorkerScreenContainer activeNavigation="profile">
+    <WorkerAccountContainer activeNavigation="profile">
       <ScrollView contentContainerStyle={workerUiStyles.page} keyboardShouldPersistTaps="handled">
         <View style={{ gap: 4 }}>
           <WorkerText variant="eyebrow" color={workerColors.teal}>Cuenta</WorkerText>
@@ -145,34 +137,8 @@ export default function WorkerProfileScreen() {
             <WorkerText color={workerColors.muted}>Tu acceso aún espera aprobación o necesitas elegir una barbería.</WorkerText>
           )}
           {currentShop ? (
-            <WorkerButton label="Salir de la barbería" tone="secondary" onPress={() => router.replace('/(app)/worker-shops')} />
+            <WorkerButton label="Cambiar de barbería" tone="secondary" onPress={() => router.replace('/(app)/worker-shops')} />
           ) : null}
-        </View>
-
-        <View style={workerUiStyles.card}>
-          <View style={workerUiStyles.split}>
-            <WorkerText variant="eyebrow" color={workerColors.muted}>Barberías disponibles</WorkerText>
-            <WorkerPill label={`${shops.length}`} tone="neutral" />
-          </View>
-          {shops.length === 0 ? (
-            <WorkerText color={workerColors.muted}>Cuando un administrador apruebe tu acceso, la barbería aparecerá aquí.</WorkerText>
-          ) : (
-            shops.map((shop) => (
-              <Pressable
-                key={shop.businessId}
-                accessibilityRole="button"
-                accessibilityState={{ selected: shop.isCurrent }}
-                onPress={() => void switchShop(shop)}
-                style={[styles.shopRow, shop.isCurrent ? styles.shopRowSelected : null]}
-              >
-                <View style={{ flex: 1, gap: 2 }}>
-                  <WorkerText variant="headline">{shop.name}</WorkerText>
-                  <WorkerText color={workerColors.muted}>{shop.isCurrent ? 'Actualmente seleccionada' : 'Toca para usar esta barbería'}</WorkerText>
-                </View>
-                {shop.isCurrent ? <WorkerPill label="ACTUAL" tone="teal" /> : <WorkerPill label="CAMBIAR" tone="neutral" />}
-              </Pressable>
-            ))
-          )}
         </View>
 
         <View style={workerUiStyles.card}>
@@ -200,7 +166,7 @@ export default function WorkerProfileScreen() {
 
         <WorkerButton label="Cerrar sesión" tone="danger" onPress={() => { void signOut(); }} />
       </ScrollView>
-    </WorkerScreenContainer>
+    </WorkerAccountContainer>
   );
 }
 
@@ -211,7 +177,5 @@ const styles = StyleSheet.create({
   field: { gap: 6 },
   input: { backgroundColor: workerColors.low, borderColor: workerColors.outline, borderRadius: 8, borderWidth: 1, color: workerColors.body, fontFamily: 'Work Sans', fontSize: 16, minHeight: 52, paddingHorizontal: 12 },
   currentShop: { backgroundColor: workerColors.low, borderRadius: 12, gap: 4, padding: 14 },
-  shopRow: { alignItems: 'center', borderTopColor: workerColors.outline, borderTopWidth: 1, flexDirection: 'row', gap: 12, paddingTop: 12 },
-  shopRowSelected: { backgroundColor: workerColors.low, borderRadius: 12, borderTopWidth: 0, marginTop: 4, padding: 12 },
   serviceRow: { alignItems: 'center', borderTopColor: workerColors.outline, borderTopWidth: 1, flexDirection: 'row', gap: 12, paddingTop: 12 },
 });

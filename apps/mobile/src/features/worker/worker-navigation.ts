@@ -36,6 +36,9 @@ export function appRouteNameFromSegments(segments: readonly string[]): AppRouteN
 
 export function roleCanAccessAppRoute(profile: AuthProfile | null | undefined, route: AppRouteName): boolean {
   if (profile?.role === 'cliente') return customerRoutes.has(route);
-  if (profile?.role === 'personal') return route === 'worker-shops' || (typeof profile.businessId === 'string' && profile.businessId.length > 0 && workerRoutes.has(route));
+  if (profile?.role === 'personal') {
+    if (route === 'worker-shops' || route === 'worker-profile') return true;
+    return typeof profile.businessId === 'string' && profile.businessId.length > 0 && workerRoutes.has(route);
+  }
   return false;
 }

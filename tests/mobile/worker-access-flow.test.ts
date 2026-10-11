@@ -65,15 +65,16 @@ describe('Worker authenticated access flow', () => {
     expect(roleCanAccessAppRoute({ role: 'admin', businessId: 'shop' }, 'worker')).toBe(false);
     expect(roleCanAccessAppRoute({ role: 'cliente', businessId: null }, 'worker')).toBe(false);
     const profile = source('../../apps/mobile/src/app/(app)/worker-profile.tsx');
-    expect(profile).toContain('selectWorkerShop(shop.businessId)');
-    expect(profile).toContain("router.replace('/(app)/worker')");
-    expect(profile).toContain('Salir de la barbería');
+    expect(profile).toContain('WorkerAccountContainer');
+    expect(profile).not.toContain('selectWorkerShop(shop.businessId)');
     expect(profile).toContain("router.replace('/(app)/worker-shops')");
+    expect(profile).toContain('Cambiar de barbería');
   });
 
-  it('permits an unselected personal account only to Worker Shops', () => {
+  it('permits an unselected personal account only to account destinations', () => {
     const worker = { role: 'personal' as const, businessId: null };
     expect(roleCanAccessAppRoute(worker, 'worker-shops')).toBe(true);
+    expect(roleCanAccessAppRoute(worker, 'worker-profile')).toBe(true);
     expect(roleCanAccessAppRoute(worker, 'worker')).toBe(false);
     expect(source('../../apps/mobile/src/app/(app)/worker-shops.tsx')).toContain('requestWorkerInvitation(code)');
     expect(source('../../apps/mobile/src/app/(app)/worker-shops.tsx')).toContain("router.replace('/(app)/worker')");
@@ -108,5 +109,27 @@ describe('Worker authenticated access flow', () => {
     expect(dashboard).not.toContain('EN COLA');
     expect(dashboard).not.toContain('progressFill');
     expect(dashboard).not.toContain('elapsedModule');
+  });
+
+  it('splits worker account navigation from the operational worker tabs', () => {
+    const accountNavigation = source('../../apps/mobile/src/features/worker/worker-account-navigation.ts');
+    const accountContainer = source('../../apps/mobile/src/components/worker/worker-account-container.tsx');
+    const shops = source('../../apps/mobile/src/app/(app)/worker-shops.tsx');
+    const profile = source('../../apps/mobile/src/app/(app)/worker-profile.tsx');
+    const operationalNavigation = source('../../apps/mobile/src/features/worker/worker-navigation.ts');
+
+    expect(accountNavigation).toContain("label: 'Mis barberías'");
+    expect(accountNavigation).toContain("label: 'Mi perfil'");
+    expect(accountNavigation.match(/label: '/g)).toHaveLength(2);
+    expect(accountContainer).toContain('accountNavigationItems');
+    expect(shops).toContain('WorkerAccountContainer');
+    expect(profile).toContain('WorkerAccountContainer');
+    expect(shops).toContain('Mis barberías');
+    expect(shops).not.toContain('Mi perfil, editar foto, nombre y teléfono');
+    expect(operationalNavigation).toContain("label: 'En vivo'");
+    expect(operationalNavigation).toContain("label: 'Cola'");
+    expect(operationalNavigation).toContain("label: 'Historial'");
+    expect(operationalNavigation).toContain("label: 'Perfil'");
+    expect(operationalNavigation.match(/label: '/g)).toHaveLength(4);
   });
 });

@@ -4,14 +4,17 @@ import { describe, expect, it } from 'vitest';
 const source = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
 describe('Worker global profile', () => {
-  it('offers a Mi perfil entry from Mis barberias without losing shop flows', () => {
+  it('uses the account navigation without losing shop flows', () => {
     const shops = source('../../apps/mobile/src/app/(app)/worker-shops.tsx');
+    const accountNavigation = source('../../apps/mobile/src/features/worker/worker-account-navigation.ts');
 
-    expect(shops).toContain('Mi perfil');
-    expect(shops).toContain('worker-profile');
+    expect(shops).toContain('WorkerAccountContainer');
+    expect(accountNavigation).toContain("label: 'Mi perfil'");
+    expect(accountNavigation).toContain("href: '/(app)/worker-profile'");
     expect(shops).toContain('requestWorkerInvitation(code)');
     expect(shops).toContain('SOLICITUDES PENDIENTES');
     expect(shops).toContain("router.replace('/(app)/worker')");
+    expect(shops).not.toContain('Mi perfil, editar foto, nombre y teléfono');
   });
 
   it('states the photo is shared across every barbershop', () => {
