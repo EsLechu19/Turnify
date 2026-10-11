@@ -39,6 +39,17 @@ describe('Worker authenticated access flow', () => {
     expect(login).toContain('Entrar como invitado');
   });
 
+  it('wires the register form to the real sign-up with worker intent', () => {
+    const register = source('../../apps/mobile/src/app/(auth)/register.tsx');
+    const context = source('../../apps/mobile/src/features/auth/use-auth.tsx');
+
+    expect(register).toContain('signUp(');
+    expect(register).toContain('validateWorkerRegistration');
+    expect(register).toContain('AuthErrorMessage');
+    expect(context).toContain('auth.signUp');
+    expect(context).toContain('worker_intent');
+  });
+
   it('wires the login form to the real sign-in with validation and visible errors', () => {
     const login = source('../../apps/mobile/src/app/(auth)/login.tsx');
     const context = source('../../apps/mobile/src/features/auth/use-auth.tsx');
@@ -74,7 +85,7 @@ describe('Worker authenticated access flow', () => {
     const workerShops = source('../../apps/mobile/src/app/(app)/worker-shops.tsx');
 
     for (const screen of [profile, workerProfile, workerShops]) {
-      expect(screen).toContain("router.replace('/')");
+      expect(screen).toContain('signOut()');
       expect(screen).not.toContain("router.replace('/(auth)/login')");
     }
   });

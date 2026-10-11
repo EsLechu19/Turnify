@@ -1,5 +1,5 @@
 import type { Session } from '@supabase/supabase-js';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { translateAuthError } from '@/features/auth/auth-errors';
@@ -38,6 +38,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isRestoring, setIsRestoring] = useState(!isDemoSkipAuth);
   const [profile, setProfile] = useState<AuthProfile | null>(isDemoSkipAuth ? demoProfile : null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const signOutPromise = useRef<Promise<void> | null>(null);
+  const isSigningOut = useRef(false);
 
   useEffect(() => {
     if (isDemoSkipAuth) {
@@ -58,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // getSession reads the session persisted by the secure storage adapter,
     // which is what keeps the user signed in across launches.
     void supabase.auth.getSession().then(({ data }) => {
-      if (!active) {
+      if (!active || isSigningOut.current) {
         return;
       }
       setSession(data.session ?? null);
@@ -66,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (active) {
+      if (active && !isSigningOut.current) {
         setSession(nextSession);
       }
     });
@@ -117,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!data.session) {
         return translateAuthError('email not confirmed');
       }
+      isSigningOut.current = false;
       setSession(data.session);
       try {
         setProfile(await fetchProfileData(data.session.user.id));
@@ -129,11 +132,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchProfileData]);
 
-  const signUp = useCallback<AuthContextValue['signUp']>(async () => null, []);
+  const signUp = useCallback<AuthContextValue['signUp']>(async (email, password, metadata) => {
+    if (isDemoSkipAuth) {
+      return 'La demostración no usa correo y contraseña.';
+    }
+    if (!isSupabaseConfigured) {
+      return 'Falta configurar Supabase. Copia apps/mobile/.env.example a apps/mobile/.env y completa los valores.';
+    }
+    try {
+      const { data, error } = await getSupabase().auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: {
+            nombre: metadata?.name?.trim() || null,
+            worker_intent: metadata?.workerIntent ?? false,
+          },
+        },
+      });
+      if (error) {
+        return translateAuthError(error.message);
+      }
+      if (data.session) {
+        isSigningOut.current = false;
+        setSession(data.session);
+        try {
+          setProfile(await fetchProfileData(data.session.user.id));
+        } catch {
+          setProfile(null);
+        }
+      }
+      return null;
+    } catch (reason) {
+      return translateAuthError(reason instanceof Error ? reason.message : '');
+    }
+  }, [fetchProfileData]);
 
   const signOut = useCallback(async () => {
     if (isDemoSkipAuth) return;
-    await getSupabase().auth.signOut();
+    if (signOutPromise.current) return signOutPromise.current;
+
+    // Clear local state before waiting for Supabase or its auth listener. The
+    // app guard can then perform the only navigation back to public launch.
+    isSigningOut.current = true;
+    setSession(null);
+    setProfile(null);
+    setIsRestoring(false);
+    setIsProfileLoading(false);
+
+    const promise = getSupabase().auth.signOut().then(() => undefined, () => undefined).finally(() => {
+      signOutPromise.current = null;
+    });
+    signOutPromise.current = promise;
+    return promise;
   }, []);
 
   const reloadProfile = useCallback(async (): Promise<AuthProfile | null> => {

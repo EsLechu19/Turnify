@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 
@@ -84,7 +84,7 @@ export default function ProfileScreen() {
               {feedback ? <Text style={[TypeScale.caption, { color: Palette.successInk }]}>{feedback}</Text> : null}
               {error ? <Text style={[TypeScale.caption, { color: Palette.dangerInk }]}>{error}</Text> : null}
             </CustomerCard>
-            <CustomerButton label="Cerrar sesión" variant="destructive" onPress={async () => { await signOut(); router.replace('/'); }} />
+            <CustomerButton label="Cerrar sesión" variant="destructive" onPress={() => { void signOut(); }} />
           </>
         )}
       </CustomerPage>

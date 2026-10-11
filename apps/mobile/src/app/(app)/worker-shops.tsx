@@ -187,9 +187,7 @@ export default function WorkerShopsScreen() {
         fullWidth
         icon="logout"
         label="Cerrar sesión"
-        onPress={() => {
-          void signOut().then(() => router.replace('/'));
-        }}
+        onPress={() => { void signOut(); }}
         variant="ghost"
       />
     </Screen>
