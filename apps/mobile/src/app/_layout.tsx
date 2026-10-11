@@ -14,7 +14,7 @@ function AuthNavigationBoundary() {
 
   useEffect(() => {
     if (isSigningOut) {
-      router.replace('/');
+      router.replace('/(auth)/login');
     }
   }, [isSigningOut]);
 

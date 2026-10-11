@@ -80,7 +80,7 @@ describe('Worker authenticated access flow', () => {
     expect(source('../../apps/mobile/src/app/(app)/worker-shops.tsx')).toContain("router.replace('/(app)/worker')");
   });
 
-  it('returns signed-out users to the public launch screen', () => {
+  it('returns signed-out users to the login screen', () => {
     const profile = source('../../apps/mobile/src/app/(app)/profile.tsx');
     const workerProfile = source('../../apps/mobile/src/app/(app)/worker-profile.tsx');
     const workerShops = source('../../apps/mobile/src/app/(app)/worker-shops.tsx');

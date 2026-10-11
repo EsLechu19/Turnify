@@ -38,7 +38,7 @@ describe('mobile logout regression', () => {
     const shops = source('../../apps/mobile/src/app/(app)/worker-shops.tsx');
     const profile = source('../../apps/mobile/src/app/(app)/worker-profile.tsx');
 
-    expect(rootLayout).toContain("router.replace('/');");
+    expect(rootLayout).toContain("router.replace('/(auth)/login');");
     expect(rootLayout).toContain('isSigningOut');
     expect(appLayout).toContain('if (isSigningOut)');
     expect(appLayout.indexOf('if (isSigningOut)')).toBeLessThan(appLayout.indexOf('if (!session)'));
