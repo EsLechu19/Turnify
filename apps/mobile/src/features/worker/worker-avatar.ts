@@ -58,10 +58,16 @@ export async function uploadWorkerAvatar(base64: string): Promise<string> {
   if (uploadError) throw new Error(uploadError.message);
 
   const { data } = supabase.storage.from('avatares-barberos').getPublicUrl(`${id}/avatar.jpg`);
-  const { error: saveError } = await supabase.rpc('actualizar_mi_foto_barbero', { p_foto_url: data.publicUrl });
+  const uploadedAt = Date.now();
+  const publicUrl = addAvatarCacheBust(data.publicUrl, uploadedAt);
+  const { error: saveError } = await supabase.rpc('actualizar_mi_foto_barbero', { p_foto_url: publicUrl });
 
   if (saveError) throw new Error(saveError.message);
-  return data.publicUrl;
+  return publicUrl;
+}
+
+export function addAvatarCacheBust(publicUrl: string, uploadedAt: number): string {
+  return `${publicUrl}${publicUrl.includes('?') ? '&' : '?'}v=${uploadedAt}`;
 }
 
 function userIdOk(value: unknown): value is string {
