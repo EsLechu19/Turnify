@@ -8,9 +8,8 @@ import type {
 /**
  * Pure presentation labels and derivations for the panel.
  *
- * These used to live inside `data/mocks/*`, which forced features to import
- * fixtures to reach them. Labels live here now; mocks re-export them so
- * nothing else changes. Features must import from `@/data/labels`.
+ * Features import presentation labels from this module rather than coupling
+ * them to a data source. Features must import from `@/data/labels`.
  */
 
 /** Short copy for the station and team cards. `staffAvailabilityLabels` is the wording used by the staff form. */

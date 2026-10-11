@@ -1,10 +1,8 @@
 /**
  * Data boundary for the panel.
  *
- * Features never import from `data/mocks` directly: they go through these
- * ports. Today the implementation reads fixtures; swapping in Supabase means
- * replacing the bodies below (and awaiting them) without touching a single
- * feature, because the interfaces already describe the read model.
+ * Features consume these ports rather than Supabase calls directly. The
+ * implementations below always return Supabase-backed operational data.
  */
 
 import type {
@@ -18,12 +16,7 @@ import type {
   StaffRecord,
   TeamMember,
 } from './types';
-import { business, branchAccessCode, branchLocation, branchSlug, initialActivity, initialTeam, initialTickets, queues, serviceMix } from './mocks/panel';
-import { mockAccounts } from './mocks/accounts';
 import { getSupabase, isSupabaseConfigured } from './supabase';
-import { initialServices } from './mocks/services';
-import { initialStaff } from './mocks/staff';
-import { initialHistory } from './mocks/history';
 import * as live from './live';
 
 export interface BranchLocation {
@@ -59,8 +52,9 @@ export interface PanelRepository {
 
 export interface ServiceRepository {
   list(): Promise<ServiceRecord[]>;
-  save(service: ServiceRecord): ServiceRecord;
-  remove(id: string): void;
+  create(input: live.ServiceInput): Promise<ServiceRecord>;
+  update(id: string, input: live.ServiceInput): Promise<ServiceRecord>;
+  remove(id: string): Promise<void>;
 }
 
 export interface StaffRepository {
@@ -81,42 +75,29 @@ export interface AuthRepository {
   signOut(): void;
 }
 
-/**
- * Read ports: live Supabase when configured, fixtures otherwise. Writes
- * (`save`/`remove`, page-local staff edits) stay local until S2b, which owns
- * the missing backend counterparts (invitations, shifts, stations).
- */
 export const panelRepository: PanelRepository = {
-  business: () => (isSupabaseConfigured() ? live.fetchBusiness() : Promise.resolve(business)),
-  branch: () =>
-    isSupabaseConfigured()
-      ? live.fetchBranch()
-      : Promise.resolve({
-        name: branchLocation.name,
-        city: branchLocation.city,
-        code: branchLocation.code,
-        slug: branchSlug,
-        accessCode: branchAccessCode,
-      }),
-  queues: () => (isSupabaseConfigured() ? live.fetchQueues() : Promise.resolve(queues)),
-  tickets: () => (isSupabaseConfigured() ? live.fetchTickets() : Promise.resolve(initialTickets)),
-  team: () => (isSupabaseConfigured() ? live.fetchTeam() : Promise.resolve(initialTeam)),
-  activity: () => (isSupabaseConfigured() ? live.fetchActivity() : Promise.resolve(initialActivity)),
-  serviceMix: () => (isSupabaseConfigured() ? live.fetchServiceMix() : Promise.resolve(serviceMix)),
+  business: live.fetchBusiness,
+  branch: live.fetchBranch,
+  queues: live.fetchQueues,
+  tickets: live.fetchTickets,
+  team: live.fetchTeam,
+  activity: live.fetchActivity,
+  serviceMix: live.fetchServiceMix,
 };
 
 export const serviceRepository: ServiceRepository = {
-  list: () => (isSupabaseConfigured() ? live.fetchServices() : Promise.resolve(initialServices)),
-  save: (service) => service,
-  remove: () => undefined,
+  list: live.fetchServices,
+  create: (input) => live.createServiceRecord(input),
+  update: (id, input) => live.updateServiceRecord(id, input),
+  remove: (id) => live.removeServiceRecord(id),
 };
 
 export const staffRepository: StaffRepository = {
-  list: () => (isSupabaseConfigured() ? live.fetchStaff() : Promise.resolve(initialStaff)),
+  list: live.fetchStaff,
 };
 
 export const historyRepository: HistoryRepository = {
-  list: () => (isSupabaseConfigured() ? live.fetchHistory() : Promise.resolve(initialHistory)),
+  list: live.fetchHistory,
 };
 
 const SESSION_KEY = 'turnify.panel.session';
@@ -134,37 +115,6 @@ function forget(): void {
     window.localStorage.removeItem(SESSION_KEY);
   } catch {
     /* storage unavailable (private mode); the in-memory session still drops */
-  }
-}
-
-/**
- * Demo auth without backend: matches the demo accounts and keeps the session
- * in `localStorage`. Only used while Supabase is not configured.
- */
-async function mockSignIn(email: string, password: string): Promise<SignInResult> {
-  const account = mockAccounts.find(
-    (candidate) => candidate.email.toLowerCase() === email.trim().toLowerCase(),
-  );
-
-  if (!account || account.password !== password) {
-    return { ok: false, message: 'Correo o contraseña incorrectos.' };
-  }
-
-  const session: AuthSession = {
-    user: { email: account.email, name: account.name, role: account.role },
-    issuedAt: new Date().toISOString(),
-  };
-
-  persist(session);
-  return { ok: true, session };
-}
-
-function mockRestore(): Promise<AuthSession | null> {
-  try {
-    const raw = window.localStorage.getItem(SESSION_KEY);
-    return Promise.resolve(raw ? (JSON.parse(raw) as AuthSession) : null);
-  } catch {
-    return Promise.resolve(null);
   }
 }
 
@@ -201,12 +151,14 @@ function toPanelSession(email: string, profile: PanelProfile): AuthSession {
 }
 
 /**
- * Panel auth: Supabase when configured, demo accounts otherwise.
- * Only `admin` and `personal` profiles enter; `cliente` has no panel.
+ * Panel auth uses Supabase. Only `admin` and `personal` profiles enter;
+ * `cliente` has no panel.
  */
 export const authRepository: AuthRepository = {
   async signIn(email, password) {
-    if (!isSupabaseConfigured()) return mockSignIn(email, password);
+    if (!isSupabaseConfigured()) {
+      return { ok: false, message: 'El panel no está disponible: falta configurar Supabase.' };
+    }
 
     const supabase = getSupabase();
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -231,7 +183,9 @@ export const authRepository: AuthRepository = {
   },
 
   async restore() {
-    if (!isSupabaseConfigured()) return mockRestore();
+    if (!isSupabaseConfigured()) {
+      return null;
+    }
 
     const supabase = getSupabase();
     const { data } = await supabase.auth.getSession();

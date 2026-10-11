@@ -2,8 +2,8 @@
  * Shapes of the read model the panel renders.
  *
  * Every type the features consume lives here so there is a single source of
- * truth. Fixtures live in `data/mocks/`, derivations in `data/compute.ts` and
- * the access boundary in `data/repositories.ts`.
+ * truth. Derivations live in `data/compute.ts` and the Supabase access
+ * boundary in `data/repositories.ts`.
  */
 
 export type TicketStatus = 'espera' | 'llamado' | 'atencion' | 'finalizado' | 'ausente';

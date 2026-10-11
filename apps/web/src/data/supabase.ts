@@ -5,9 +5,25 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undef
 
 let client: SupabaseClient | null = null;
 
-/** True when the panel can talk to the real backend; otherwise fixtures rule. */
+function hasValidSupabaseUrl(value: string | undefined): boolean {
+  if (!value?.trim()) return false;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+/** True when both public Supabase values are present and the URL is usable. */
 export function isSupabaseConfigured(): boolean {
-  return Boolean(supabaseUrl && supabaseAnonKey);
+  return hasValidSupabaseUrl(supabaseUrl) && Boolean(supabaseAnonKey?.trim());
+}
+
+/** The panel is unavailable in every runtime mode without valid Supabase configuration. */
+export function isSupabaseConfigurationUnavailable(): boolean {
+  return !isSupabaseConfigured();
 }
 
 export function getSupabase(): SupabaseClient {
@@ -16,7 +32,7 @@ export function getSupabase(): SupabaseClient {
   }
 
   if (!client) {
-    client = createClient(supabaseUrl as string, supabaseAnonKey as string);
+    client = createClient(supabaseUrl!.trim(), supabaseAnonKey!.trim());
   }
 
   return client;
