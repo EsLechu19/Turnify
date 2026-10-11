@@ -1,5 +1,5 @@
-import { Redirect, router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AuthErrorMessage } from '@/components/auth/auth-ui';
@@ -14,26 +14,32 @@ import { getMyPendingWorkerRequests, getWorkerShops, requestWorkerInvitation, se
  * the admin, pending requests listed. Choosing a shop enters the worker panel.
  */
 export default function WorkerShopsScreen() {
-  const { profile, isProfileLoading, reloadProfile, signOut } = useAuth();
+  const { reloadProfile, signOut } = useAuth();
   const [shops, setShops] = useState<WorkerShop[]>([]);
   const [pending, setPending] = useState<PendingWorkerRequest[]>([]);
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isActing, setIsActing] = useState(false);
+  const isMounted = useRef(false);
 
   const load = useCallback(async () => {
     try {
       const [nextShops, nextPending] = await Promise.all([getWorkerShops(), getMyPendingWorkerRequests()]);
+      if (!isMounted.current) return;
       setShops(nextShops);
       setPending(nextPending);
       setError(null);
     } catch {
-      setError('No pudimos cargar tus barberías. Inténtalo nuevamente.');
+      if (isMounted.current) setError('No pudimos cargar tus barberías. Inténtalo nuevamente.');
     }
   }, []);
 
   useFocusEffect(useCallback(() => {
+    isMounted.current = true;
     void load();
+    return () => {
+      isMounted.current = false;
+    };
   }, [load]));
 
   // The approval lands server-side at any moment: re-sync on a short cadence
@@ -45,8 +51,6 @@ export default function WorkerShopsScreen() {
     }, 10_000);
     return () => clearInterval(poll);
   }, [shops.length, pending.length, load]);
-
-  if (!isProfileLoading && profile?.role !== 'personal') return <Redirect href="/" />;
 
   async function submitCode() {
     setIsActing(true);

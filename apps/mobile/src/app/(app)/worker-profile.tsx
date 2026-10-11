@@ -23,6 +23,8 @@ export default function WorkerProfileScreen() {
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
 
   useFocusEffect(useCallback(() => {
+    let active = true;
+
     if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
       setCurrentShop({ businessId: 'demo', name: 'Barbería Demo', isCurrent: true });
       setName('Esau S');
@@ -32,13 +34,41 @@ export default function WorkerProfileScreen() {
         { serviceId: 'demo-2', name: 'Perfilado de barba', description: null, durationSeconds: 1200, priceCents: 1500 },
       ]);
       setServicesError(null);
-      return;
+      return () => {
+        active = false;
+      };
     }
 
-    void getWorkerShops().then((next) => setCurrentShop(next.find((shop) => shop.isCurrent) ?? null)).catch(() => setCurrentShop(null));
-    void getMyWorkerProfileDetails().then((details) => { setName(details.name); setPhone(details.phone); }).catch(() => setNotice(null));
-    void getMyWorkerServices().then((next) => { setServices(next); setServicesError(null); }).catch(() => setServicesError('No pudimos cargar tus servicios.'));
-    void getMyWorkerAvatar().then(setFotoUrl).catch(() => setFotoUrl(null));
+    void getWorkerShops().then((next) => {
+      if (active) setCurrentShop(next.find((shop) => shop.isCurrent) ?? null);
+    }).catch(() => {
+      if (active) setCurrentShop(null);
+    });
+    void getMyWorkerProfileDetails().then((details) => {
+      if (active) {
+        setName(details.name);
+        setPhone(details.phone);
+      }
+    }).catch(() => {
+      if (active) setNotice(null);
+    });
+    void getMyWorkerServices().then((next) => {
+      if (active) {
+        setServices(next);
+        setServicesError(null);
+      }
+    }).catch(() => {
+      if (active) setServicesError('No pudimos cargar tus servicios.');
+    });
+    void getMyWorkerAvatar().then((next) => {
+      if (active) setFotoUrl(next);
+    }).catch(() => {
+      if (active) setFotoUrl(null);
+    });
+
+    return () => {
+      active = false;
+    };
   }, []));
 
   async function changePhoto() {

@@ -29,6 +29,20 @@ describe('mobile logout regression', () => {
     }
   });
 
+  it('keeps logout navigation in the app guard and stops account loads on unmount', () => {
+    const appLayout = source('../../apps/mobile/src/app/(app)/_layout.tsx');
+    const shops = source('../../apps/mobile/src/app/(app)/worker-shops.tsx');
+    const profile = source('../../apps/mobile/src/app/(app)/worker-profile.tsx');
+
+    expect(appLayout.match(/<Redirect href="\/" \/>/g)).toHaveLength(1);
+    expect(shops).not.toContain("import { Redirect");
+    expect(shops).not.toContain('<Redirect href="/" />');
+    expect(profile).toContain('let active = true;');
+    expect(profile).toContain('active = false;');
+    expect(shops).toContain('isMounted.current = true;');
+    expect(shops).toContain('isMounted.current = false;');
+  });
+
   it('keeps customer logout wired to auth and demo mode as a no-op', () => {
     const profile = source('../../apps/mobile/src/app/(app)/profile.tsx');
     const auth = source('../../apps/mobile/src/features/auth/use-auth.tsx');
