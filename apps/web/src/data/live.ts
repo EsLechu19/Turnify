@@ -476,6 +476,90 @@ export type RatingByBarber = {
   average: number | null;
 };
 
+
+export type ShopSettings = {
+  name: string;
+  code: string;
+  timezone: string;
+  open: boolean;
+  graceMinutes: number;
+  noticeAhead: number;
+  preferentialEvery: number;
+  /** Nullable shop point for the guest "how to get there" card. */
+  shopLatitude: number | null;
+  shopLongitude: number | null;
+};
+
+/** Reglas vivas del local (columnas reales de `empresas`). */
+export async function fetchShopSettings(): Promise<ShopSettings> {
+  const supabase = getSupabase();
+  const empresaId = await companyId();
+  const { data, error } = await supabase
+    .from('empresas')
+    .select('nombre,codigo,zona_horaria,abierta,minutos_gracia,aviso_posiciones,preferencial_cada,latitud,longitud')
+    .eq('id', empresaId)
+    .maybeSingle();
+
+  if (error || !data) throw new Error('No pudimos leer la configuraciÃ³n del local.');
+
+  const row = data as {
+    nombre: string;
+    codigo: string;
+    zona_horaria: string;
+    abierta: boolean;
+    minutos_gracia: number;
+    aviso_posiciones: number;
+    preferencial_cada: number;
+    latitud: number | null;
+    longitud: number | null;
+  };
+
+  return {
+    name: row.nombre,
+    code: row.codigo,
+    timezone: row.zona_horaria,
+    open: row.abierta,
+    graceMinutes: row.minutos_gracia,
+    noticeAhead: row.aviso_posiciones,
+    preferentialEvery: row.preferencial_cada,
+    shopLatitude: typeof row.latitud === 'number' ? row.latitud : null,
+    shopLongitude: typeof row.longitud === 'number' ? row.longitud : null,
+  };
+}
+
+export async function saveShopSettings(input: {
+  open: boolean;
+  graceMinutes: number;
+  noticeAhead: number;
+  preferentialEvery: number;
+  shopLatitude?: number | null;
+  shopLongitude?: number | null;
+}): Promise<void> {
+  const supabase = getSupabase();
+  const empresaId = await companyId();
+  const update: {
+    abierta: boolean;
+    minutos_gracia: number;
+    aviso_posiciones: number;
+    preferencial_cada: number;
+    latitud?: number | null;
+    longitud?: number | null;
+  } = {
+    abierta: input.open,
+    minutos_gracia: Math.max(1, Math.round(input.graceMinutes)),
+    aviso_posiciones: Math.max(1, Math.round(input.noticeAhead)),
+    preferencial_cada: Math.max(1, Math.round(input.preferentialEvery)),
+  };
+
+  // Coordinates are optional so callers that do not manage the map point
+  // never wipe it: undefined leaves the stored point untouched.
+  if (input.shopLatitude !== undefined) update.latitud = input.shopLatitude;
+  if (input.shopLongitude !== undefined) update.longitud = input.shopLongitude;
+
+  const { error } = await supabase.from('empresas').update(update).eq('id', empresaId);
+
+  if (error) throw new Error(error.message);
+}
 /** Hourly demand baseline for the dashboard card (same weekday, recent weeks). */
 export async function fetchDemandEstimate(): Promise<DemandEstimate[]> {
   const supabase = getSupabase();
