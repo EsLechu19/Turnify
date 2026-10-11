@@ -103,6 +103,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const clearAuthenticatedState = useCallback(async () => {
+    isSigningOut.current = true;
+    profileResolutionSessionId.current = null;
+    setSession(null);
+    setProfile(null);
+    await getSupabase().auth.signOut().catch(() => undefined);
+  }, []);
+
   const signIn = useCallback<AuthContextValue['signIn']>(async (email, password) => {
     // A new login attempt must be allowed to update auth state even if the
     // previous logout was still completing.
@@ -134,9 +142,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profileResolutionSessionId.current = data.session.user.id;
       setSession(data.session);
       try {
-        setProfile(await fetchProfileData(data.session.user.id));
+        const nextProfile = await fetchProfileData(data.session.user.id);
+        if (!nextProfile) {
+          throw new Error('profile load failed');
+        }
+        setProfile(nextProfile);
       } catch {
-        setProfile(null);
+        await clearAuthenticatedState();
+        return translateAuthError('profile load failed');
       }
       return null;
     } catch (reason) {
@@ -145,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isSigningIn.current = false;
       setIsProfileLoading(false);
     }
-  }, [fetchProfileData]);
+  }, [clearAuthenticatedState, fetchProfileData]);
 
   const signUp = useCallback<AuthContextValue['signUp']>(async (email, password, metadata) => {
     if (isDemoSkipAuth) {
@@ -172,16 +185,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isSigningOut.current = false;
         setSession(data.session);
         try {
-          setProfile(await fetchProfileData(data.session.user.id));
+          const nextProfile = await fetchProfileData(data.session.user.id);
+          if (!nextProfile) {
+            throw new Error('profile load failed');
+          }
+          setProfile(nextProfile);
         } catch {
-          setProfile(null);
+          await clearAuthenticatedState();
+          return translateAuthError('profile load failed');
         }
       }
       return null;
     } catch (reason) {
       return translateAuthError(reason instanceof Error ? reason.message : '');
     }
-  }, [fetchProfileData]);
+  }, [clearAuthenticatedState, fetchProfileData]);
 
   const signOut = useCallback(async () => {
     if (isDemoSkipAuth) return;

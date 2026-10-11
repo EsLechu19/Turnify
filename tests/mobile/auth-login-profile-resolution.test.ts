@@ -31,4 +31,23 @@ describe('mobile login profile resolution', () => {
     expect(signIn).toContain('translateAuthError(error.message)');
     expect(auth).toContain('if (isDemoSkipAuth) return;');
   });
+
+  it('does not report profile-query success when profile resolution fails', () => {
+    const auth = source('../../apps/mobile/src/features/auth/use-auth.tsx');
+    const signIn = auth.slice(auth.indexOf('const signIn ='), auth.indexOf('const signUp ='));
+
+    expect(signIn).toContain("return translateAuthError('profile load failed');");
+    expect(signIn).toContain('clearAuthenticatedState();');
+    expect(auth).toContain('setSession(null);');
+    expect(auth).toContain('setProfile(null);');
+    expect(auth).toContain('auth.signOut()');
+  });
+
+  it('applies the same profile failure rule to an immediately authenticated sign-up', () => {
+    const auth = source('../../apps/mobile/src/features/auth/use-auth.tsx');
+    const signUp = auth.slice(auth.indexOf('const signUp ='), auth.indexOf('const signOut ='));
+
+    expect(signUp).toContain("return translateAuthError('profile load failed');");
+    expect(signUp).toContain('clearAuthenticatedState();');
+  });
 });
