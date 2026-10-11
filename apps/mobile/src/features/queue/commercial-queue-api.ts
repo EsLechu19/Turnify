@@ -1,5 +1,7 @@
 import { getSupabase } from '@/lib/supabase';
 
+import { parseShopCoordinates, type ShopCoordinates } from '@/features/location/shop-coordinates';
+
 export type BarberOperationalState = 'disponible' | 'ocupado';
 
 export type CommercialService = {
@@ -22,6 +24,8 @@ export type CommercialCatalog = {
   open: boolean;
   services: CommercialService[];
   barbers: CommercialBarber[];
+  /** Nullable shop point for the guest "how to get there" card. */
+  shopLocation?: ShopCoordinates | null;
 };
 
 type CatalogPayload = {
@@ -29,6 +33,8 @@ type CatalogPayload = {
   abierta: boolean;
   servicios: Array<{
     servicio_id: string;
+  latitud: number | null;
+  longitud: number | null;
     nombre: string;
     descripcion: string | null;
     duracion_estimada_seg: number;
@@ -57,6 +63,7 @@ export async function getCommercialCatalog(companyCode: string): Promise<Commerc
       serviceId: service.servicio_id,
       name: service.nombre,
       description: service.descripcion,
+    shopLocation: parseShopCoordinates({ latitud: payload.latitud, longitud: payload.longitud }),
       estimatedDurationSeconds: service.duracion_estimada_seg,
       referencePriceCents: service.precio_referencia_centavos,
     })),

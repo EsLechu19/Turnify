@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { HowToGetThere } from '@/components/customer/how-to-get-there';
 
 import { BrandBar, Button, Card, Icon, Metric, Pill, StateBlock } from '@/components/ui';
 import { Palette, Radius, Shadows, space, TypeScale } from '@/constants/theme';
@@ -148,6 +149,8 @@ export default function ShopScreen() {
                 Al confirmarlo recibirás un código visible. La barbería lo muestra o llama en el local cuando corresponde tu turno.
               </Text>
             </Card>
+            <HowToGetThere shop={catalog.shopLocation ?? null} shopName={catalog.name} />
+
 
             <Button
               accessibilityLabel="Elegir un servicio"
