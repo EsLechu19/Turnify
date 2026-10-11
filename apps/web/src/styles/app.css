@@ -521,7 +521,17 @@ select {
   border-radius: var(--radius-lg);
   display: grid;
   gap: 16px;
+  max-width: 100%;
+  min-width: 0;
   padding: 20px;
+}
+
+/* Viewport containment: flex/grid ancestors must shrink below the intrinsic
+   table width so `.table-wrap` absorbs overflow instead of the card growing
+   past the dashboard viewport. */
+.shell__body > *,
+.card > * {
+  min-width: 0;
 }
 
 .card--flush {
@@ -705,6 +715,8 @@ select {
 /* ---------------------------------------------------------------- table -- */
 
 .table-wrap {
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
 }
 
@@ -748,9 +760,60 @@ select {
 }
 
 .table__actions {
-  display: flex;
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: nowrap;
   gap: 8px;
   justify-content: flex-end;
+}
+
+.table__actions > * {
+  flex: none;
+}
+
+/* Icon columns keep their intrinsic width so automatic table layout never
+   squeezes action/status icons into text or each other. The scroll container
+   (`.table-wrap`) absorbs narrow viewports instead. */
+.table th.cell--nowrap,
+.table td.cell--nowrap {
+  white-space: nowrap;
+  width: 1%;
+}
+
+/* FontAwesome icons render with `overflow: visible`; pinning them against
+   flex shrinking keeps glyphs from painting over sibling text/icons. */
+.badge > svg,
+.btn > svg {
+  flex: none;
+}
+
+/* Long names yield with an ellipsis instead of competing with icon columns. */
+.cell--truncate {
+  display: block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Split rows (requests, assignment lists): text takes available space and may
+   wrap, trailing buttons/badges keep intrinsic size and wrap below on phones
+   instead of overlapping the text. */
+.row-split {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.row-split > :first-child {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.row-split > :last-child {
+  flex: none;
 }
 
 .table__name {

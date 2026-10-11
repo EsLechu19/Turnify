@@ -38,6 +38,40 @@ describe('services catalog no-overlap contract', () => {
   });
 });
 
+describe('services catalog viewport containment contract', () => {
+  it('keeps the catalog table inside a scroll container', () => {
+    const page = read('apps', 'web', 'src', 'features', 'services', 'ServicesPage.tsx');
+
+    expect(page).toContain('table-wrap');
+    expect(page).toMatch(/table-wrap[\s\S]*<table/);
+  });
+
+  it('lets the scroll container absorb overflow instead of growing the page', () => {
+    const css = read('apps', 'web', 'src', 'styles', 'app.css');
+
+    expect(css).toMatch(/\.table-wrap[^{]*\{[^}]*overflow-x:\s*auto/);
+    expect(css).toMatch(/\.table-wrap[^{]*\{[^}]*max-width:\s*100%/);
+    expect(css).toMatch(/\.table-wrap[^{]*\{[^}]*min-width:\s*0/);
+  });
+
+  it('lets grid and flex ancestors shrink below intrinsic table width', () => {
+    const css = read('apps', 'web', 'src', 'styles', 'app.css');
+
+    expect(css).toMatch(/\.card[^{]*\{[^}]*min-width:\s*0/);
+    expect(css).toMatch(/\.card[^{]*\{[^}]*max-width:\s*100%/);
+    expect(css).toMatch(/(\.shell__body\s*>\s*\*|\.card\s*>\s*\*)[^{]*\{[^}]*min-width:\s*0/);
+  });
+
+  it('truncates long catalog content so it never forces page growth', () => {
+    const page = read('apps', 'web', 'src', 'features', 'services', 'ServicesPage.tsx');
+    const css = read('apps', 'web', 'src', 'styles', 'app.css');
+
+    expect(page).toContain('cell--truncate');
+    expect(css).toMatch(/\.cell--truncate[^{]*\{[^}]*overflow:\s*hidden/);
+    expect(css).toMatch(/\.cell--truncate[^{]*\{[^}]*text-overflow:\s*ellipsis/);
+  });
+});
+
 describe('services catalog behavior contract', () => {
   it('keeps real Supabase data with refresh, loading, error and empty states in Spanish', () => {
     const page = read('apps', 'web', 'src', 'features', 'services', 'ServicesPage.tsx');
