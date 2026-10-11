@@ -10,7 +10,7 @@ import { appRouteNameFromSegments, roleCanAccessAppRoute } from '@/features/work
  * launch via `staffLanding`.
  */
 export default function AppLayout() {
-  const { isRestoring, session, profile, isProfileLoading } = useAuth();
+  const { isRestoring, isSigningOut, session, profile, isProfileLoading } = useAuth();
   const segments = useSegments();
 
   if (isRestoring) {
@@ -19,6 +19,10 @@ export default function AppLayout() {
 
   if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
     return <Stack screenOptions={{ headerShown: false }} />;
+  }
+
+  if (isSigningOut) {
+    return null;
   }
 
   if (!session) {

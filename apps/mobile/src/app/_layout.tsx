@@ -1,13 +1,25 @@
-import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DefaultTheme, router, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { AuthProvider } from '@/features/auth/use-auth';
+import { AuthProvider, useAuth } from '@/features/auth/use-auth';
 import { useNotificationLifecycle } from '@/features/notifications/use-notification-lifecycle';
 import { GuestFlowProvider } from '@/features/public/guest-flow-session';
 import { initializeNotificationFoundation } from '@/lib/notifications';
 import { Palette } from '@/constants/theme';
+
+function AuthNavigationBoundary() {
+  const { isSigningOut } = useAuth();
+
+  useEffect(() => {
+    if (isSigningOut) {
+      router.replace('/');
+    }
+  }, [isSigningOut]);
+
+  return null;
+}
 
 function NotificationLifecycle() {
   useNotificationLifecycle();
@@ -35,6 +47,7 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
+      <AuthNavigationBoundary />
       <GuestFlowProvider>
         <NotificationLifecycle />
         <SafeAreaProvider>

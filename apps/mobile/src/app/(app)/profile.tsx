@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 
 import { CustomerScreenContainer } from '@/components/customer/customer-screen-container';
@@ -16,6 +16,7 @@ export default function ProfileScreen() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const isMounted = useRef(false);
 
   const load = useCallback(async () => {
     if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
@@ -29,17 +30,25 @@ export default function ProfileScreen() {
     setIsLoading(true);
     try {
       const profile = await getCustomerProfile(session.user.id);
+      if (!isMounted.current) return;
       setName(profile?.name ?? '');
       setPhone(profile?.phone ?? '');
       setError(null);
     } catch {
+      if (!isMounted.current) return;
       setError('No pudimos cargar tu perfil. Intenta de nuevo.');
     } finally {
-      setIsLoading(false);
+      if (isMounted.current) setIsLoading(false);
     }
   }, [session?.user.id]);
 
-  useFocusEffect(useCallback(() => { void load(); }, [load]));
+  useFocusEffect(useCallback(() => {
+    isMounted.current = true;
+    void load();
+    return () => {
+      isMounted.current = false;
+    };
+  }, [load]));
 
   async function save() {
     if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') { setFeedback('Datos guardados en modo demo.'); return; }

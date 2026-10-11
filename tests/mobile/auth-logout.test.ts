@@ -16,12 +16,15 @@ describe('mobile logout regression', () => {
     expect(auth).toContain('setProfile(null)');
     expect(auth).toContain('setIsRestoring(false)');
     expect(auth).toContain('setIsProfileLoading(false)');
+    expect(auth).toContain('setIsSigningOut(true)');
+    expect(auth).toContain('isSigningOut: boolean');
   });
 
-  it('lets the worker guard perform the single public navigation after logout', () => {
+  it('routes every logout button through the shared auth transition', () => {
     for (const path of [
       '../../apps/mobile/src/app/(app)/worker-profile.tsx',
       '../../apps/mobile/src/app/(app)/worker-shops.tsx',
+      '../../apps/mobile/src/app/(app)/profile.tsx',
     ]) {
       const screen = source(path);
       expect(screen).toContain('void signOut();');
@@ -29,12 +32,16 @@ describe('mobile logout regression', () => {
     }
   });
 
-  it('keeps logout navigation in the app guard and stops account loads on unmount', () => {
+  it('has one logout navigation owner and suppresses the app guard during transition', () => {
+    const rootLayout = source('../../apps/mobile/src/app/_layout.tsx');
     const appLayout = source('../../apps/mobile/src/app/(app)/_layout.tsx');
     const shops = source('../../apps/mobile/src/app/(app)/worker-shops.tsx');
     const profile = source('../../apps/mobile/src/app/(app)/worker-profile.tsx');
 
-    expect(appLayout.match(/<Redirect href="\/" \/>/g)).toHaveLength(1);
+    expect(rootLayout).toContain("router.replace('/');");
+    expect(rootLayout).toContain('isSigningOut');
+    expect(appLayout).toContain('if (isSigningOut)');
+    expect(appLayout.indexOf('if (isSigningOut)')).toBeLessThan(appLayout.indexOf('if (!session)'));
     expect(shops).not.toContain("import { Redirect");
     expect(shops).not.toContain('<Redirect href="/" />');
     expect(profile).toContain('let active = true;');

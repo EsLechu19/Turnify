@@ -17,6 +17,7 @@ export interface AuthContextValue {
   isRestoring: boolean;
   session: Session | null;
   isSupabaseConfigured: boolean;
+  isSigningOut: boolean;
   profile: AuthProfile | null;
   isProfileLoading: boolean;
   reloadProfile(): Promise<AuthProfile | null>;
@@ -40,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const signOutPromise = useRef<Promise<void> | null>(null);
   const isSigningOut = useRef(false);
+  const [isSigningOutState, setIsSigningOut] = useState(false);
   const isSigningIn = useRef(false);
   const profileResolutionSessionId = useRef<string | null>(null);
 
@@ -115,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // A new login attempt must be allowed to update auth state even if the
     // previous logout was still completing.
     isSigningOut.current = false;
+    setIsSigningOut(false);
     if (isDemoSkipAuth) {
       return 'La demostración no usa correo y contraseña.';
     }
@@ -183,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (data.session) {
         isSigningOut.current = false;
+        setIsSigningOut(false);
         setSession(data.session);
         try {
           const nextProfile = await fetchProfileData(data.session.user.id);
@@ -208,6 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Clear local state before waiting for Supabase or its auth listener. The
     // app guard can then perform the only navigation back to public launch.
     isSigningOut.current = true;
+    setIsSigningOut(true);
     setSession(null);
     setProfile(null);
     setIsRestoring(false);
@@ -263,6 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isRestoring,
       session,
       isSupabaseConfigured,
+      isSigningOut: isSigningOutState,
       profile,
       isProfileLoading,
       reloadProfile,
@@ -270,7 +276,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signOut,
     }),
-    [isRestoring, session, profile, isProfileLoading, reloadProfile, signIn, signUp, signOut]
+    [isRestoring, session, isSigningOutState, profile, isProfileLoading, reloadProfile, signIn, signUp, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
