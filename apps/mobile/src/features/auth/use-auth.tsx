@@ -40,6 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const signOutPromise = useRef<Promise<void> | null>(null);
   const isSigningOut = useRef(false);
+  const isSigningIn = useRef(false);
+  const profileResolutionSessionId = useRef<string | null>(null);
 
   useEffect(() => {
     if (isDemoSkipAuth) {
@@ -102,12 +104,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback<AuthContextValue['signIn']>(async (email, password) => {
+    // A new login attempt must be allowed to update auth state even if the
+    // previous logout was still completing.
+    isSigningOut.current = false;
     if (isDemoSkipAuth) {
       return 'La demostración no usa correo y contraseña.';
     }
     if (!isSupabaseConfigured) {
       return 'Falta configurar Supabase. Copia apps/mobile/.env.example a apps/mobile/.env y completa los valores.';
     }
+    isSigningIn.current = true;
+    profileResolutionSessionId.current = null;
+    setIsProfileLoading(true);
+    setProfile(null);
     try {
       const { data, error } = await getSupabase().auth.signInWithPassword({
         email: email.trim(),
@@ -119,7 +128,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!data.session) {
         return translateAuthError('email not confirmed');
       }
-      isSigningOut.current = false;
+      // The auth listener can publish this session before signInWithPassword
+      // resolves. Mark it as owned by this flow so the session effect does not
+      // issue a second profile request.
+      profileResolutionSessionId.current = data.session.user.id;
       setSession(data.session);
       try {
         setProfile(await fetchProfileData(data.session.user.id));
@@ -129,6 +141,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     } catch (reason) {
       return translateAuthError(reason instanceof Error ? reason.message : '');
+    } finally {
+      isSigningIn.current = false;
+      setIsProfileLoading(false);
     }
   }, [fetchProfileData]);
 
@@ -212,6 +227,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!session) {
       setProfile(null);
       setIsProfileLoading(false);
+      return;
+    }
+
+    if (isSigningIn.current || profileResolutionSessionId.current === session.user.id) {
+      profileResolutionSessionId.current = null;
       return;
     }
 
