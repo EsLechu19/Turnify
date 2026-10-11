@@ -20,7 +20,9 @@ import {
  * Fast paths besides the map: address search via the free Nominatim endpoint
  * (https://nominatim.openstreetmap.org, no key, debounced) and the browser
  * geolocation ("Usar mi ubicación actual"). The map stays as visual
- * confirmation only; persistence flows through onChange as before.
+ * confirmation only; persistence flows through onChange as before. The
+ * selected display address is a separate durable value; typing alone never
+ * changes it.
  */
 
 /** Delay before firing the address search while the admin keeps typing. */
@@ -41,10 +43,14 @@ function createPin(): L.DivIcon {
 export function ShopLocationPicker({
   value,
   onChange,
+  address,
+  onAddressChange,
   disabled = false,
 }: {
   value: ShopPoint | null;
   onChange: (point: ShopPoint | null) => void;
+  address: string | null;
+  onAddressChange: (address: string) => void;
   disabled?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -52,14 +58,20 @@ export function ShopLocationPicker({
   const markerRef = useRef<L.Marker | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onAddressChangeRef = useRef(onAddressChange);
+  onAddressChangeRef.current = onAddressChange;
 
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(address ?? '');
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const searchSeqRef = useRef(0);
+
+  useEffect(() => {
+    setQuery(address ?? '');
+  }, [address]);
 
   useEffect(() => {
     const text = query.trim();
@@ -101,6 +113,7 @@ export function ShopLocationPicker({
     setSuggestions([]);
     setSearchError(null);
     onChangeRef.current(suggestion.point);
+    onAddressChangeRef.current(suggestion.label);
   }
 
   function useCurrentLocation() {
@@ -306,7 +319,7 @@ export function ShopLocationPicker({
               padding: '0 12px',
             }}
           >
-            Quitar punto
+             Quitar punto (solo quita las coordenadas; conserva la dirección)
           </button>
         </div>
       ) : null}

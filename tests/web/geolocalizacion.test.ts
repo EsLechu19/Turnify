@@ -43,6 +43,45 @@ describe('admin picker persistence contract', () => {
     expect(live).toContain('saveShopSettings');
   });
 
+  it('saves the selected Nominatim display address in the settings payload', () => {
+    const picker = read('apps', 'web', 'src', 'features', 'settings', 'ShopLocationPicker.tsx');
+    const page = read('apps', 'web', 'src', 'features', 'settings', 'SettingsPage.tsx');
+    const live = read('apps', 'web', 'src', 'data', 'live.ts');
+
+    expect(picker).toContain('onAddressChange');
+    expect(picker).toContain('suggestion.label');
+    expect(page).toContain('shopAddress');
+    expect(live).toContain('direccion');
+  });
+
+  it('restores the saved address when fetching settings', () => {
+    const live = read('apps', 'web', 'src', 'data', 'live.ts');
+    const page = read('apps', 'web', 'src', 'features', 'settings', 'SettingsPage.tsx');
+
+    expect(live).toContain('latitud,longitud,direccion');
+    expect(live).toContain('shopAddress: row.direccion');
+    expect(page).toContain('shopAddress: settings.shopAddress');
+  });
+
+  it('keeps the saved address when only coordinates are updated', () => {
+    const live = read('apps', 'web', 'src', 'data', 'live.ts');
+    const picker = read('apps', 'web', 'src', 'features', 'settings', 'ShopLocationPicker.tsx');
+
+    expect(live).toContain('if (input.shopAddress !== undefined) update.direccion = input.shopAddress;');
+    expect(picker).toContain('onChangeRef.current(point);');
+    expect(picker).toContain('Quitar punto');
+    expect(picker).toContain('solo quita las coordenadas');
+  });
+
+  it('replaces the previous address only when the admin selects a new one', () => {
+    const picker = read('apps', 'web', 'src', 'features', 'settings', 'ShopLocationPicker.tsx');
+    const live = read('apps', 'web', 'src', 'data', 'live.ts');
+
+    expect(picker).toContain('onAddressChangeRef.current(suggestion.label)');
+    expect(live).toContain('shopAddress?: string | null');
+    expect(live).toContain('direccion?: string | null');
+  });
+
   it('renders a Leaflet + OpenStreetMap picker with Spanish copy and no key', () => {
     const picker = read('apps', 'web', 'src', 'features', 'settings', 'ShopLocationPicker.tsx');
     const page = read('apps', 'web', 'src', 'features', 'settings', 'SettingsPage.tsx');

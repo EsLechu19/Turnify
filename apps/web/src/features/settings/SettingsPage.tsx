@@ -19,9 +19,18 @@ interface ShopConfig {
   preferentialEvery: number;
   shopLatitude: number | null;
   shopLongitude: number | null;
+  shopAddress: string | null;
 }
 
-const demoConfig: ShopConfig = { open: true, graceMinutes: 5, noticeAhead: 2, preferentialEvery: 3, shopLatitude: null, shopLongitude: null };
+const demoConfig: ShopConfig = {
+  open: true,
+  graceMinutes: 5,
+  noticeAhead: 2,
+  preferentialEvery: 3,
+  shopLatitude: null,
+  shopLongitude: null,
+  shopAddress: null,
+};
 
 function CardIcon({ name }: { name: 'clock' | 'users' | 'store' | 'bell' }) {
   return (
@@ -79,6 +88,7 @@ export function SettingsPage() {
           preferentialEvery: settings.preferentialEvery,
           shopLatitude: settings.shopLatitude,
           shopLongitude: settings.shopLongitude,
+          shopAddress: settings.shopAddress,
         });
         setIdentity({ name: settings.name, code: settings.code, timezone: settings.timezone });
         setLoading(false);
@@ -162,8 +172,9 @@ export function SettingsPage() {
           graceMinutes: settings.graceMinutes,
           noticeAhead: settings.noticeAhead,
           preferentialEvery: settings.preferentialEvery,
-          shopLatitude: settings.shopLatitude,
-          shopLongitude: settings.shopLongitude,
+           shopLatitude: settings.shopLatitude,
+           shopLongitude: settings.shopLongitude,
+            shopAddress: settings.shopAddress,
         });
         setLoading(false);
       })
@@ -286,7 +297,7 @@ export function SettingsPage() {
               ? { lat: config.shopLatitude, lng: config.shopLongitude }
               : null
           }
-          onChange={(point: ShopPoint | null) => {
+           onChange={(point: ShopPoint | null) => {
             setSaved(false);
             setError(null);
             setConfig((current) => ({
@@ -294,8 +305,10 @@ export function SettingsPage() {
               shopLatitude: point?.lat ?? null,
               shopLongitude: point?.lng ?? null,
             }));
-          }}
-          disabled={status === 'saving'}
+           }}
+           address={config.shopAddress}
+           onAddressChange={(address) => update('shopAddress', address)}
+           disabled={status === 'saving'}
         />
       </SectionCard>
 

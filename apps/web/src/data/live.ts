@@ -1,4 +1,5 @@
 import { getSupabase } from './supabase';
+import { suggestDuration } from './compute';
 import type { BranchLocation, BusinessProfile } from './repositories';
 import type {
   ActivityEvent,
@@ -249,16 +250,43 @@ export async function fetchStaff(): Promise<StaffRecord[]> {
   const empresaId = await companyId();
   const team = await fetchTeam();
 
-  const [{ data: barbers }, { data: profiles }] = await Promise.all([
-    supabase.from('barberos').select('id,activo,perfil_id').eq('empresa_id', empresaId),
-    supabase.from('perfiles').select('id,rol').eq('empresa_id', empresaId),
+  const [{ data: barbers }, { data: profiles }, { data: finished }] = await Promise.all([
+    supabase.from('barberos').select('id,activo,perfil_id,foto_url').eq('empresa_id', empresaId),
+    supabase.from('perfiles').select('id,rol,foto_url').eq('empresa_id', empresaId),
+    supabase
+      .from('tickets')
+      .select('barbero_asignado_id,inicio_en,fin_en')
+      .eq('empresa_id', empresaId)
+      .eq('estado', 'finalizado')
+      .order('fin_en', { ascending: false })
+      .limit(1000),
   ]);
 
   const activeById = new Map(((barbers ?? []) as Array<{ id: string; activo: boolean }>).map((row) => [row.id, row.activo]));
+  const fotoById = new Map(
+    ((barbers ?? []) as Array<{ id: string; foto_url: string | null }>).map((row) => [row.id, row.foto_url]),
+  );
   const roleByPerfil = new Map(((profiles ?? []) as Array<{ id: string; rol: string }>).map((row) => [row.id, row.rol]));
+  const globalFotoByPerfil = new Map(
+    ((profiles ?? []) as Array<{ id: string; foto_url: string | null }>).map((row) => [row.id, row.foto_url]),
+  );
   const perfilByBarber = new Map(
     ((barbers ?? []) as Array<{ id: string; perfil_id: string | null }>).map((row) => [row.id, row.perfil_id]),
   );
+  const minutesByBarber = new Map<string, number[]>();
+
+  for (const row of (finished ?? []) as Array<{
+    barbero_asignado_id: string | null;
+    inicio_en: string | null;
+    fin_en: string | null;
+  }>) {
+    if (!row.barbero_asignado_id || !row.inicio_en || !row.fin_en) continue;
+    const minutes = Math.round((new Date(row.fin_en).getTime() - new Date(row.inicio_en).getTime()) / 60000);
+    if (!Number.isFinite(minutes) || minutes < 0) continue;
+    const list = minutesByBarber.get(row.barbero_asignado_id) ?? [];
+    list.push(minutes);
+    minutesByBarber.set(row.barbero_asignado_id, list);
+  }
 
   return team.map((member) => {
     const perfilId = perfilByBarber.get(member.id) ?? null;
@@ -279,6 +307,8 @@ export async function fetchStaff(): Promise<StaffRecord[]> {
       restStart: '',
       restEnd: '',
       createdAt: '',
+      fotoUrl: (perfilId ? globalFotoByPerfil.get(perfilId) : null) ?? fotoById.get(member.id) ?? null,
+      paceMinutes: suggestDuration(minutesByBarber.get(member.id) ?? []).suggested,
     } as StaffRecord;
   });
 }
@@ -476,6 +506,198 @@ export type RatingByBarber = {
   average: number | null;
 };
 
+export type ServiceInput = {
+  name: string;
+  description: string;
+  durationSeconds: number;
+  priceCents: number;
+  active: boolean;
+  barberIds: string[];
+};
+
+function toServiceRecord(
+  row: {
+    id: string;
+    nombre: string;
+    descripcion: string | null;
+    duracion_estimada_seg: number;
+    precio_referencia_centavos: number | null;
+    activo: boolean;
+    creado_en: string;
+  },
+  empresaId: string,
+  barberIds: string[],
+): ServiceRecord {
+  return {
+    id: row.id,
+    companyId: empresaId,
+    name: row.nombre,
+    description: row.descripcion ?? '',
+    durationSeconds: row.duracion_estimada_seg,
+    priceCents: row.precio_referencia_centavos ?? 0,
+    active: row.activo,
+    barberIds,
+    createdAt: row.creado_en.slice(0, 10),
+  };
+}
+
+/** Creates a catalog service with its authorized barbers. */
+export async function createServiceRecord(input: ServiceInput): Promise<ServiceRecord> {
+  const supabase = getSupabase();
+  const empresaId = await companyId();
+  const { data, error } = await supabase
+    .from('servicios')
+    .insert({
+      id: crypto.randomUUID(),
+      empresa_id: empresaId,
+      nombre: input.name,
+      descripcion: input.description || null,
+      duracion_estimada_seg: input.durationSeconds,
+      precio_referencia_centavos: input.priceCents,
+      activo: input.active,
+    })
+    .select('id,nombre,descripcion,duracion_estimada_seg,precio_referencia_centavos,activo,creado_en')
+    .single();
+
+  if (error || !data) throw new Error(error?.message ?? 'No pudimos crear el servicio.');
+
+  if (input.barberIds.length > 0) {
+    const { error: pivotError } = await supabase
+      .from('barbero_servicios')
+      .insert(input.barberIds.map((barbero_id) => ({ barbero_id, servicio_id: (data as { id: string }).id })));
+
+    if (pivotError) throw new Error(pivotError.message);
+  }
+
+  return toServiceRecord(
+    data as {
+      id: string;
+      nombre: string;
+      descripcion: string | null;
+      duracion_estimada_seg: number;
+      precio_referencia_centavos: number | null;
+      activo: boolean;
+      creado_en: string;
+    },
+    empresaId,
+    input.barberIds,
+  );
+}
+
+/** Updates a catalog service and replaces its authorized barbers. */
+export async function updateServiceRecord(id: string, input: ServiceInput): Promise<ServiceRecord> {
+  const supabase = getSupabase();
+  const empresaId = await companyId();
+  const { data, error } = await supabase
+    .from('servicios')
+    .update({
+      nombre: input.name,
+      descripcion: input.description || null,
+      duracion_estimada_seg: input.durationSeconds,
+      precio_referencia_centavos: input.priceCents,
+      activo: input.active,
+    })
+    .eq('id', id)
+    .eq('empresa_id', empresaId)
+    .select('id,nombre,descripcion,duracion_estimada_seg,precio_referencia_centavos,activo,creado_en')
+    .maybeSingle();
+
+  if (error || !data) throw new Error(error?.message ?? 'No pudimos guardar el servicio.');
+
+  const { error: deleteError } = await supabase.from('barbero_servicios').delete().eq('servicio_id', id);
+
+  if (deleteError) throw new Error(deleteError.message);
+
+  if (input.barberIds.length > 0) {
+    const { error: pivotError } = await supabase
+      .from('barbero_servicios')
+      .insert(input.barberIds.map((barbero_id) => ({ barbero_id, servicio_id: id })));
+
+    if (pivotError) throw new Error(pivotError.message);
+  }
+
+  return toServiceRecord(
+    data as {
+      id: string;
+      nombre: string;
+      descripcion: string | null;
+      duracion_estimada_seg: number;
+      precio_referencia_centavos: number | null;
+      activo: boolean;
+      creado_en: string;
+    },
+    empresaId,
+    input.barberIds,
+  );
+}
+
+export async function removeServiceRecord(id: string): Promise<void> {
+  const supabase = getSupabase();
+  const empresaId = await companyId();
+  const { error } = await supabase.from('servicios').delete().eq('id', id).eq('empresa_id', empresaId);
+
+  if (error) throw new Error(error.message);
+}
+
+export type ShopWorkerRequest = {
+  requestId: string;
+  name: string | null;
+  requestedAt: string;
+};
+
+/** Solicitudes pendientes de ingreso (solo las ve el admin de su empresa). */
+export async function fetchShopWorkerRequests(): Promise<ShopWorkerRequest[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.rpc('solicitudes_personal_de_mi_empresa');
+
+  if (error) throw new Error(error.message);
+
+  return ((data ?? []) as Array<{ solicitud_id: string; nombre: string | null; solicitada_en: string }>).map(
+    (row) => ({ requestId: row.solicitud_id, name: row.nombre, requestedAt: row.solicitada_en }),
+  );
+}
+
+/** Genera el código nominativo para un email (un solo uso práctico, 7 días). */
+export async function generateWorkerInvitation(email: string): Promise<string> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.rpc('generar_codigo_invitacion_personal', { p_correo: email.trim() });
+
+  if (error) throw new Error(error.message);
+
+  return data as string;
+}
+
+export async function resolveWorkerRequest(requestId: string, approve: boolean): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase.rpc('resolver_solicitud_invitacion_personal', {
+    p_solicitud_id: requestId,
+    p_aprobar: approve,
+  });
+
+  if (error) throw new Error(error.message);
+}
+
+export type StaffRosterUpdate = {
+  barberId: string;
+  name: string;
+  availability: 'disponible' | 'fuera_de_turno';
+  active: boolean;
+  serviceIds: string[];
+};
+
+/** Persists roster edits through the admin RPC (names, availability, roster state, services). */
+export async function updateStaff(input: StaffRosterUpdate): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase.rpc('actualizar_barbero_personal', {
+    p_barbero_id: input.barberId,
+    p_nombre: input.name,
+    p_disponibilidad: input.availability,
+    p_activo: input.active,
+    p_servicios: input.serviceIds,
+  });
+
+  if (error) throw new Error(error.message);
+}
 
 export type ShopSettings = {
   name: string;
@@ -488,6 +710,8 @@ export type ShopSettings = {
   /** Nullable shop point for the guest "how to get there" card. */
   shopLatitude: number | null;
   shopLongitude: number | null;
+  /** Canonical address selected by the admin from Nominatim. */
+  shopAddress: string | null;
 };
 
 /** Reglas vivas del local (columnas reales de `empresas`). */
@@ -496,11 +720,11 @@ export async function fetchShopSettings(): Promise<ShopSettings> {
   const empresaId = await companyId();
   const { data, error } = await supabase
     .from('empresas')
-    .select('nombre,codigo,zona_horaria,abierta,minutos_gracia,aviso_posiciones,preferencial_cada,latitud,longitud')
+    .select('nombre,codigo,zona_horaria,abierta,minutos_gracia,aviso_posiciones,preferencial_cada,latitud,longitud,direccion')
     .eq('id', empresaId)
     .maybeSingle();
 
-  if (error || !data) throw new Error('No pudimos leer la configuraciÃ³n del local.');
+  if (error || !data) throw new Error('No pudimos leer la configuración del local.');
 
   const row = data as {
     nombre: string;
@@ -512,6 +736,7 @@ export async function fetchShopSettings(): Promise<ShopSettings> {
     preferencial_cada: number;
     latitud: number | null;
     longitud: number | null;
+    direccion: string | null;
   };
 
   return {
@@ -524,6 +749,7 @@ export async function fetchShopSettings(): Promise<ShopSettings> {
     preferentialEvery: row.preferencial_cada,
     shopLatitude: typeof row.latitud === 'number' ? row.latitud : null,
     shopLongitude: typeof row.longitud === 'number' ? row.longitud : null,
+    shopAddress: row.direccion,
   };
 }
 
@@ -534,6 +760,7 @@ export async function saveShopSettings(input: {
   preferentialEvery: number;
   shopLatitude?: number | null;
   shopLongitude?: number | null;
+  shopAddress?: string | null;
 }): Promise<void> {
   const supabase = getSupabase();
   const empresaId = await companyId();
@@ -544,6 +771,7 @@ export async function saveShopSettings(input: {
     preferencial_cada: number;
     latitud?: number | null;
     longitud?: number | null;
+    direccion?: string | null;
   } = {
     abierta: input.open,
     minutos_gracia: Math.max(1, Math.round(input.graceMinutes)),
@@ -555,11 +783,81 @@ export async function saveShopSettings(input: {
   // never wipe it: undefined leaves the stored point untouched.
   if (input.shopLatitude !== undefined) update.latitud = input.shopLatitude;
   if (input.shopLongitude !== undefined) update.longitud = input.shopLongitude;
+  // Address is optional so coordinate-only edits preserve the canonical address.
+  if (input.shopAddress !== undefined) update.direccion = input.shopAddress;
 
   const { error } = await supabase.from('empresas').update(update).eq('id', empresaId);
 
   if (error) throw new Error(error.message);
 }
+
+export type ServicePerformance = {
+  suggestedMinutes: number | null;
+  measuredCount: number;
+  todayCount: number;
+  avgRating: number | null;
+  votes: number;
+};
+
+/** Desempeño medido por servicio (sin migración nueva: sale de los tickets). */
+export async function fetchServicePerformance(): Promise<Record<string, ServicePerformance>> {
+  const supabase = getSupabase();
+  const empresaId = await companyId();
+  const today = limaISODate();
+  const { data, error } = await supabase
+    .from('tickets')
+    .select('servicio_nombre,inicio_en,fin_en,puntuacion,fecha_operativa')
+    .eq('empresa_id', empresaId)
+    .eq('estado', 'finalizado')
+    .order('cerrado_en', { ascending: false })
+    .limit(1000);
+
+  if (error) throw new Error(error.message);
+
+  const byService = new Map<string, { minutes: number[]; today: number; ratings: number[] }>();
+
+  for (const row of (data ?? []) as Array<{
+    servicio_nombre: string | null;
+    inicio_en: string | null;
+    fin_en: string | null;
+    puntuacion: number | null;
+    fecha_operativa: string;
+  }>) {
+    const name = row.servicio_nombre ?? 'Servicio';
+    const entry = byService.get(name) ?? { minutes: [], today: 0, ratings: [] };
+
+    if (row.inicio_en && row.fin_en) {
+      const minutes = Math.round((new Date(row.fin_en).getTime() - new Date(row.inicio_en).getTime()) / 60000);
+      if (Number.isFinite(minutes) && minutes >= 0) entry.minutes.push(minutes);
+    }
+
+    if (row.fecha_operativa === today) entry.today += 1;
+    if (typeof row.puntuacion === 'number') entry.ratings.push(row.puntuacion);
+
+    byService.set(name, entry);
+  }
+
+  const mean = (values: number[]): number | null =>
+    values.length === 0 ? null : Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 10) / 10;
+
+  return Object.fromEntries(
+    [...byService.entries()].map(([name, entry]) => {
+      const suggestion = suggestDuration(entry.minutes);
+
+      return [
+        name,
+        {
+          suggestedMinutes: suggestion.suggested,
+          measuredCount: suggestion.measured,
+          todayCount: entry.today,
+          avgRating: mean(entry.ratings),
+          votes: entry.ratings.length,
+        },
+      ];
+    }),
+  );
+}
+
 /** Hourly demand baseline for the dashboard card (same weekday, recent weeks). */
 export async function fetchDemandEstimate(): Promise<DemandEstimate[]> {
   const supabase = getSupabase();
