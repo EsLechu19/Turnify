@@ -420,7 +420,6 @@ export function ServicesPage() {
               <thead>
                 <tr>
                   <th scope="col">Servicio</th>
-                  <th scope="col">Detalle</th>
                   <th scope="col">Duración estimada</th>
                   <th scope="col">Precio</th>
                   <th scope="col">Barberos</th>
@@ -436,19 +435,6 @@ export function ServicesPage() {
                       <strong className="cell--truncate" title={service.name}>
                         {service.name}
                       </strong>
-                    </td>
-                    <td className="muted">
-                      <span
-                        style={{
-                          display: 'block',
-                          maxWidth: 240,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {service.description}
-                      </span>
                     </td>
                     <td>
                       <span style={{ display: 'grid', gap: 2 }}>

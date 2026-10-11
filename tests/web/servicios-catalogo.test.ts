@@ -70,6 +70,13 @@ describe('services catalog viewport containment contract', () => {
     expect(css).toMatch(/\.cell--truncate[^{]*\{[^}]*overflow:\s*hidden/);
     expect(css).toMatch(/\.cell--truncate[^{]*\{[^}]*text-overflow:\s*ellipsis/);
   });
+
+  it('omits the Detalle column so key data fits without lateral scrolling', () => {
+    const page = read('apps', 'web', 'src', 'features', 'services', 'ServicesPage.tsx');
+
+    expect(page).not.toContain('<th scope="col">Detalle</th>');
+    expect(page).toContain('label="Detalle"');
+  });
 });
 
 describe('services catalog behavior contract', () => {
