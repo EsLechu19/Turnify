@@ -1,9 +1,10 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import { Icon } from '@/components/Icon';
 import { Badge, Button, ConfirmModal, DetailRow, EmptyState, FormModal, IconButton, Modal, PageHeader, SectionCard, StatsRow } from '@/components/common';
 import { availabilityLabels } from '@/data/labels';
 import { computeServiceMix } from '@/data/compute';
+import { fetchServicePerformance, type ServicePerformance } from '@/data/live';
 import { formatDuration, formatPrice } from '@/utils/format';
 import { useServices } from '@/state/ServicesContext';
 import { useQueue } from '@/state/QueueContext';
@@ -176,32 +177,56 @@ function ServiceForm({
 }
 
 export function ServicesPage() {
-  const { services, saveService, removeService } = useServices();
+  const { services, createService, updateService, removeService } = useServices();
   const { tickets, team } = useQueue();
   const serviceMix = useMemo(() => computeServiceMix(tickets), [tickets]);
+  const [performance, setPerformance] = useState<Record<string, ServicePerformance>>({});
+
+  useEffect(() => {
+    let active = true;
+
+    fetchServicePerformance()
+      .then((rows) => {
+        if (active) setPerformance(rows);
+      })
+      .catch(() => {
+        if (active) setPerformance({});
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const measuredAverages = Object.values(performance)
+    .map((entry) => entry.suggestedMinutes)
+    .filter((value): value is number => typeof value === 'number');
+  const measuredAvg =
+    measuredAverages.length === 0
+      ? null
+      : Math.round(measuredAverages.reduce((sum, value) => sum + value, 0) / measuredAverages.length);
+  const totalVotes = Object.values(performance).reduce((sum, entry) => sum + entry.votes, 0);
+  const ratedAverages = Object.values(performance)
+    .map((entry) => entry.avgRating)
+    .filter((value): value is number => typeof value === 'number');
+  const globalRating =
+    ratedAverages.length === 0
+      ? null
+      : Math.round((ratedAverages.reduce((sum, value) => sum + value, 0) / ratedAverages.length) * 10) / 10;
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
   const [barberFilter, setBarberFilter] = useState('all');
   const [modal, setModal] = useState<ModalState>(null);
   const [draft, setDraft] = useState<ServiceDraft>(emptyDraft);
   const [formError, setFormError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [acting, setActing] = useState(false);
 
   function barberName(id: string): string {
     return team.find((member) => member.id === id)?.name ?? 'Barbero no disponible';
   }
 
   const activeCount = services.filter((service) => service.active).length;
-  const avgDuration =
-    services.length === 0
-      ? 0
-      : Math.round(services.reduce((sum, service) => sum + service.durationSeconds, 0) / services.length);
-  const pricedServices = services.filter((service) => service.priceCents > 0);
-  const avgTicket =
-    pricedServices.length === 0
-      ? 0
-      : Math.round(
-          pricedServices.reduce((sum, service) => sum + service.priceCents, 0) / pricedServices.length,
-        );
 
   const filtered = services.filter((service) => {
     const needle = query.trim().toLowerCase();
@@ -239,8 +264,10 @@ export function ServicesPage() {
     setDraft((current) => ({ ...current, ...patch }));
   }
 
-  function handleSave(event: FormEvent) {
+  async function handleSave(event: FormEvent) {
     event.preventDefault();
+
+    if (acting) return;
 
     const name = draft.name.trim();
     const durationMinutes = Number(draft.durationMinutes);
@@ -256,7 +283,7 @@ export function ServicesPage() {
     }
 
     const priceSoles = Number.isFinite(Number(draft.priceSoles)) ? Number(draft.priceSoles) : 0;
-    const payload = {
+    const input = {
       active: draft.active,
       barberIds: draft.barberIds,
       description: draft.description.trim(),
@@ -265,28 +292,41 @@ export function ServicesPage() {
       priceCents: Math.max(0, Math.round(priceSoles * 100)),
     };
 
-    if (modal?.type === 'form' && modal.id && modalService) {
-      saveService({ ...modalService, ...payload });
-    } else {
-      saveService({
-        ...payload,
-        companyId: services[0]?.companyId ?? 'emp-turnify-01',
-        createdAt: new Date().toISOString().slice(0, 10),
-        id: `svc-${Date.now()}`,
-      });
-    }
+    setActing(true);
+    setFormError('');
 
-    setModal(null);
+    try {
+      if (modal?.type === 'form' && modal.id && modalService) {
+        await updateService(modal.id, input);
+      } else {
+        await createService(input);
+      }
+
+      setModal(null);
+    } catch {
+      setFormError('No pudimos guardar el servicio. Revisa el nombre duplicado e intenta de nuevo.');
+    } finally {
+      setActing(false);
+    }
   }
 
-  function handleDelete() {
-    if (!modalService) {
+  async function handleDelete() {
+    if (!modalService || acting) {
       return;
     }
 
     const id = modalService.id;
-    removeService(id);
-    setModal(null);
+    setActing(true);
+    setDeleteError('');
+
+    try {
+      await removeService(id);
+      setModal(null);
+    } catch {
+      setDeleteError('No pudimos eliminar el servicio. Intenta de nuevo.');
+    } finally {
+      setActing(false);
+    }
   }
 
   return (
@@ -304,14 +344,13 @@ export function ServicesPage() {
       <StatsRow
         stats={[
           { label: 'Servicios registrados', value: String(services.length), icon: 'ticket', foot: `${activeCount} activos · ${services.length - activeCount} inactivos` },
-          { label: 'Duración promedio', value: formatDuration(avgDuration), icon: 'clock', foot: 'Promedio por servicio' },
-          { label: 'Ticket medio (base)', value: formatPrice(avgTicket), icon: 'star', foot: 'Precio promedio de referencia' },
+          { label: 'Tiempo medido prom.', value: measuredAvg == null ? '—' : formatDuration(measuredAvg * 60), icon: 'clock', foot: 'Medido en atención' },
+          { label: 'Satisfacción global', value: globalRating == null ? '—' : String(globalRating), icon: 'star', foot: totalVotes === 0 ? 'Sin votos aún' : `${totalVotes} votos` },
         ]}
       />
-
       <SectionCard
         title="Catálogo de servicios"
-        detail="Duración, precio, barberos habilitados y estado de cada servicio."
+        detail="Duración, precio, barberos habilitados y estado de cada servicio. La duración estimada mueve las esperas que ve el cliente en la app."
         action={<Badge icon="list" tone="brand">{services.length} en catálogo</Badge>}
       >
 
@@ -320,6 +359,7 @@ export function ServicesPage() {
             <div className="search">
               <Icon name="search" size={17} />
               <input
+                aria-label="Buscar servicios"
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Buscar por nombre o detalle..."
                 type="search"
@@ -379,22 +419,23 @@ export function ServicesPage() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Servicio</th>
-                  <th>Detalle</th>
-                  <th>Duración estimada</th>
-                  <th>Precio</th>
-                  <th>Barberos</th>
-                  <th>Estado</th>
-                  <th>Acciones</th>
+                  <th scope="col">Servicio</th>
+                  <th scope="col">Detalle</th>
+                  <th scope="col">Duración estimada</th>
+                  <th scope="col">Precio</th>
+                  <th scope="col">Barberos</th>
+                  <th scope="col">Satisfacción</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((service) => (
                   <tr key={service.id}>
                     <td>
-                      <span style={{ display: 'grid', gap: 4 }}>
-                        <strong>{service.name}</strong>
-                      </span>
+                      <strong className="cell--truncate" title={service.name}>
+                        {service.name}
+                      </strong>
                     </td>
                     <td className="muted">
                       <span
@@ -409,9 +450,18 @@ export function ServicesPage() {
                         {service.description}
                       </span>
                     </td>
-                    <td>{formatDuration(service.durationSeconds)}</td>
-                    <td>{formatPrice(service.priceCents)}</td>
                     <td>
+                      <span style={{ display: 'grid', gap: 2 }}>
+                        <span>{formatDuration(service.durationSeconds)}</span>
+                        <span className="muted" style={{ font: 'var(--text-caption)' }}>
+                          {performance[service.name]?.suggestedMinutes == null
+                            ? 'Medido: —'
+                            : `Sugerido ${performance[service.name]?.suggestedMinutes} min · hoy ${performance[service.name]?.todayCount ?? 0}`}
+                        </span>
+                      </span>
+                    </td>
+                    <td>{formatPrice(service.priceCents)}</td>
+                    <td className="cell--nowrap">
                       {service.barberIds.length === 0 ? (
                         <span className="muted">Sin asignar</span>
                       ) : service.barberIds.length === 1 ? (
@@ -430,12 +480,24 @@ export function ServicesPage() {
                       )}
                     </td>
                     <td>
+                      {performance[service.name]?.avgRating == null ? (
+                        <span className="muted">—</span>
+                      ) : (
+                        <span style={{ display: 'grid', gap: 2 }}>
+                          <span>★ {performance[service.name]?.avgRating?.toFixed(1)}</span>
+                          <span className="muted" style={{ font: 'var(--text-caption)' }}>
+                            {performance[service.name]?.votes} {performance[service.name]?.votes === 1 ? 'voto' : 'votos'}
+                          </span>
+                        </span>
+                      )}
+                    </td>
+                    <td className="cell--nowrap">
                       <Badge tone={service.active ? 'success' : 'neutral'} icon={service.active ? 'check-circle' : 'pause'}>
                         {service.active ? 'Activo' : 'Inactivo'}
                       </Badge>
                     </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 4 }}>
+                    <td className="cell--nowrap">
+                      <div className="table__actions">
                         <IconButton
                           icon="eye"
                           label={`Ver detalle de ${service.name}`}
@@ -499,6 +561,22 @@ export function ServicesPage() {
           <div style={{ display: 'grid', gap: 10 }}>
             <DetailRow label="Detalle" value={modalService.description || 'Sin descripción'} />
             <DetailRow label="Duración estimada" value={formatDuration(modalService.durationSeconds)} />
+            <DetailRow
+              label="Duración medida"
+              value={
+                performance[modalService.name]?.suggestedMinutes == null
+                  ? 'Sin mediciones aún'
+                  : `${performance[modalService.name]?.suggestedMinutes} min (últimas ${performance[modalService.name]?.measuredCount ?? 0} atenciones)`
+              }
+            />
+            <DetailRow
+              label="Satisfacción"
+              value={
+                performance[modalService.name]?.avgRating == null
+                  ? 'Sin votos aún'
+                  : `${performance[modalService.name]?.avgRating?.toFixed(1)} · ${performance[modalService.name]?.votes} votos`
+              }
+            />
             <DetailRow label="Precio base" value={formatPrice(modalService.priceCents)} />
             <DetailRow label="Estado" value={modalService.active ? 'Activo' : 'Inactivo'} />
             <DetailRow
@@ -546,14 +624,11 @@ export function ServicesPage() {
                 return (
                   <div
                     key={id}
+                    className="row-split"
                     style={{
-                      alignItems: 'center',
                       background: 'var(--surface-muted)',
                       border: '1px solid var(--border)',
                       borderRadius: 'var(--radius-sm)',
-                      display: 'flex',
-                      gap: 12,
-                      justifyContent: 'space-between',
                       padding: '10px 14px',
                     }}
                   >
@@ -606,6 +681,11 @@ export function ServicesPage() {
           <p className="muted" style={{ font: 'var(--text-caption)', margin: 0 }}>
             Dejará de estar disponible para tomar turnos. Los tickets ya generados conservan su copia del servicio.
           </p>
+          {deleteError ? (
+            <p role="alert" style={{ color: 'var(--danger)', font: 'var(--text-body)', margin: 0 }}>
+              {deleteError}
+            </p>
+          ) : null}
         </ConfirmModal>
       ) : null}
     </>

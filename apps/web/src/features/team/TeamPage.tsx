@@ -3,10 +3,11 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Icon } from '@/components/Icon';
 import { Badge, Button, ConfirmModal, DetailRow, EmptyState, FormModal, IconButton, Modal, PageHeader, SectionCard, StatsRow } from '@/components/common';
 import { formatDuration, formatPrice, initialsOf } from '@/utils/format';
-import { paceOf, staffAvailabilityLabels, staffAvailabilityTone } from '@/data/labels';
+import { staffAvailabilityLabels, staffAvailabilityTone } from '@/data/labels';
+import { fetchShopWorkerRequests, generateWorkerInvitation, resolveWorkerRequest, updateStaff, type ShopWorkerRequest } from '@/data/live';
 import { staffRepository } from '@/data/repositories';
 import { useServices } from '@/state/ServicesContext';
-import type { ServiceRecord, StaffAvailability, StaffRecord, StaffRole } from '@/data/types';
+import type { ServiceRecord, StaffAvailability, StaffRecord } from '@/data/types';
 
 type AvailabilityFilter = 'todas' | 'disponible' | 'atencion' | 'pausa';
 type StatusFilter = 'todos' | 'activo' | 'inactivo';
@@ -14,19 +15,12 @@ type StatusFilter = 'todos' | 'activo' | 'inactivo';
 type StaffModal =
   | { type: 'detail'; id: string }
   | { type: 'edit'; id: string }
-  | { type: 'register' }
   | { type: 'services'; id: string }
   | { type: 'delete'; id: string }
   | null;
 
 interface StaffDraft {
   name: string;
-  email: string;
-  role: StaffRole;
-  station: number;
-  shift: string;
-  restStart: string;
-  restEnd: string;
   active: boolean;
   availability: StaffAvailability;
   serviceIds: string[];
@@ -45,35 +39,17 @@ const statusOptions: { label: string; value: StatusFilter }[] = [
   { label: 'Inactivos', value: 'inactivo' },
 ];
 
-function restStateOf(member: StaffRecord): { label: string; tone: 'success' | 'brand' | 'gold' | 'neutral' } {
-  if (member.availability === 'descanso') {
-    return { label: 'En curso', tone: 'gold' };
-  }
-
-  if (!member.active) {
-    return { label: 'Inactivo', tone: 'neutral' };
-  }
-
-  return { label: 'Programado', tone: 'brand' };
-}
-
 function emptyDraft(member: StaffRecord, serviceIds: string[]): StaffDraft {
-  return {
-    active: member.active,
-    availability: member.availability,
-    email: member.email,
-    name: member.name,
-    restEnd: member.restEnd,
-    restStart: member.restStart,
-    role: member.role,
-    serviceIds,
-    shift: member.shift,
-    station: member.station,
-  };
-}
+    return {
+      active: member.active,
+      availability: member.availability === 'disponible' || member.availability === 'fuera' ? member.availability : 'disponible',
+      name: member.name,
+      serviceIds,
+    };
+  }
 
 export function TeamPage() {
-  const { services, saveService } = useServices();
+  const { services, reloadServices } = useServices();
   const [staff, setStaff] = useState<StaffRecord[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(true);
   const [query, setQuery] = useState('');
@@ -82,49 +58,94 @@ export function TeamPage() {
   const [modal, setModal] = useState<StaffModal>(null);
   const [draft, setDraft] = useState<StaffDraft | null>(null);
   const [formError, setFormError] = useState('');
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState('');
+  const [copiedInvite, setCopiedInvite] = useState(false);
+  const [requests, setRequests] = useState<ShopWorkerRequest[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(true);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
-
+  function loadStaff() {
+    setLoadingStaff(true);
     staffRepository
       .list()
       .then((members) => {
-        if (active) {
-          setStaff(members);
-          setLoadingStaff(false);
-        }
+        setStaff(members);
+        setLoadingStaff(false);
       })
-      .catch(() => {
-        if (active) setLoadingStaff(false);
-      });
+      .catch(() => setLoadingStaff(false));
+  }
 
-    return () => {
-      active = false;
-    };
+  function loadRequests() {
+    setLoadingRequests(true);
+    fetchShopWorkerRequests()
+      .then((rows) => {
+        setRequests(rows);
+        setLoadingRequests(false);
+      })
+      .catch(() => setLoadingRequests(false));
+  }
+
+  useEffect(() => {
+    loadStaff();
+    loadRequests();
   }, []);
+
+  async function handleInvite(event: FormEvent) {
+    event.preventDefault();
+
+    if (!inviteEmail.includes('@') || inviting) {
+      if (!inviteEmail.includes('@')) setInviteError('Ingresa un correo válido.');
+      return;
+    }
+
+    setInviting(true);
+    setInviteError('');
+    setCopiedInvite(false);
+
+    try {
+      setInviteCode(await generateWorkerInvitation(inviteEmail));
+    } catch {
+      setInviteError('No pudimos generar la invitación. Intenta de nuevo.');
+    } finally {
+      setInviting(false);
+    }
+  }
+
+  function copyInviteCode() {
+    if (!inviteCode || !navigator.clipboard) {
+      return;
+    }
+
+    navigator.clipboard
+      .writeText(inviteCode)
+      .then(() => {
+        setCopiedInvite(true);
+        window.setTimeout(() => setCopiedInvite(false), 1600);
+      })
+      .catch(() => undefined);
+  }
+
+  async function handleResolve(requestId: string, approve: boolean) {
+    if (resolvingId) return;
+    setResolvingId(requestId);
+
+    try {
+      await resolveWorkerRequest(requestId, approve);
+      loadRequests();
+      loadStaff();
+    } finally {
+      setResolvingId(null);
+    }
+  }
 
   const modalMember = modal && 'id' in modal ? (staff.find((member) => member.id === modal.id) ?? null) : null;
 
   function servicesOf(memberId: string): ServiceRecord[] {
     return services.filter((service) => service.barberIds.includes(memberId));
-  }
-
-  function applyServiceIds(memberId: string, serviceIds: string[]) {
-    services.forEach((service) => {
-      const shouldInclude = serviceIds.includes(service.id);
-      const hasMember = service.barberIds.includes(memberId);
-
-      if (shouldInclude === hasMember) {
-        return;
-      }
-
-      saveService({
-        ...service,
-        barberIds: shouldInclude
-          ? [...service.barberIds, memberId]
-          : service.barberIds.filter((id) => id !== memberId),
-      });
-    });
   }
 
   const inLocal = staff.filter((member) => member.active && member.availability !== 'fuera').length;
@@ -137,9 +158,7 @@ export function TeamPage() {
   const filtered = staff.filter((member) => {
     const needle = query.trim().toLowerCase();
     const matchesQuery =
-      needle.length === 0 ||
-      member.name.toLowerCase().includes(needle) ||
-      member.email.toLowerCase().includes(needle);
+      needle.length === 0 || member.name.toLowerCase().includes(needle);
     const matchesStatus =
       statusFilter === 'todos' ||
       (statusFilter === 'activo' && member.active) ||
@@ -159,23 +178,6 @@ export function TeamPage() {
     setModal({ id: member.id, type: 'edit' });
   }
 
-  function openRegister() {
-    setDraft({
-      active: true,
-      availability: 'disponible',
-      email: '',
-      name: '',
-      restEnd: '13:00',
-      restStart: '12:00',
-      role: 'barbero',
-      serviceIds: [],
-      shift: 'Mañana (8:00 - 14:00)',
-      station: 0,
-    });
-    setFormError('');
-    setModal({ type: 'register' });
-  }
-
   function handleDraftChange(patch: Partial<StaffDraft>) {
     setDraft((current) => (current ? { ...current, ...patch } : current));
   }
@@ -192,85 +194,66 @@ export function TeamPage() {
     handleDraftChange({ serviceIds: next });
   }
 
-  function handleSave(event: FormEvent) {
+  async function handleSave(event: FormEvent) {
     event.preventDefault();
 
-    if (!draft) {
+    if (!draft || !modalMember || savingDraft) {
       return;
     }
 
     const name = draft.name.trim();
-    const email = draft.email.trim();
 
     if (!name) {
       setFormError('El nombre es obligatorio.');
       return;
     }
 
-    if (!email.includes('@')) {
-      setFormError('Ingresa un correo válido.');
-      return;
-    }
+    setSavingDraft(true);
+    setFormError('');
 
-    if (modal?.type === 'register') {
-      const newMember: StaffRecord = {
-        companyId: 'emp-turnify-01',
-        completedToday: 0,
-        createdAt: new Date().toISOString().slice(0, 10),
-        currentTicket: null,
-        email,
-        id: `staff-${Date.now()}`,
+    try {
+      await updateStaff({
+        barberId: modalMember.id,
         name,
-        restEnd: draft.restEnd,
-        restStart: draft.restStart,
-        role: draft.role,
-        shift: draft.shift,
-        station: Number(draft.station) || 0,
+        availability: draft.availability === 'fuera' ? 'fuera_de_turno' : 'disponible',
         active: draft.active,
-        availability: draft.availability,
-      };
-      setStaff((current) => [...current, newMember]);
-      applyServiceIds(newMember.id, draft.serviceIds);
+        serviceIds: draft.serviceIds,
+      });
       setModal(null);
-      return;
+      loadStaff();
+      reloadServices();
+    } catch {
+      setFormError('No pudimos guardar. Si atiende un turno, terminalo antes de cambiar su estado.');
+    } finally {
+      setSavingDraft(false);
     }
-
-    if (!modalMember) {
-      return;
-    }
-
-    const id = modalMember.id;
-    setStaff((current) =>
-      current.map((member) =>
-        member.id === id
-          ? {
-              ...member,
-              active: draft.active,
-              availability: draft.availability,
-              email,
-              name,
-              restEnd: draft.restEnd,
-              restStart: draft.restStart,
-              role: draft.role,
-              shift: draft.shift,
-              station: Number(draft.station) || 0,
-            }
-          : member,
-      ),
-    );
-    applyServiceIds(id, draft.serviceIds);
-    setModal(null);
   }
 
-  function handleDeactivate() {
-    if (!modalMember) {
+  async function handleDeactivate() {
+    if (!modalMember || savingDraft) {
       return;
     }
 
-    const id = modalMember.id;
     const nextActive = !modalMember.active;
-    setStaff((current) => current.map((member) => (member.id === id ? { ...member, active: nextActive } : member)));
-    setModal(null);
+    setSavingDraft(true);
+
+    try {
+      await updateStaff({
+        barberId: modalMember.id,
+        name: modalMember.name,
+        availability: 'fuera_de_turno',
+        active: nextActive,
+        serviceIds: servicesOf(modalMember.id).map((service) => service.id),
+      });
+      setModal(null);
+      loadStaff();
+      reloadServices();
+    } catch {
+      setFormError('No pudimos cambiar su estado. Si atiende un turno, terminalo antes.');
+      setModal(null);
+    } finally {
+      setSavingDraft(false);
+    }
   }
 
   const filteredServices = useMemo(() => services, [services]);
@@ -281,14 +264,9 @@ export function TeamPage() {
         title="Barberos y empleados"
         subtitle={`${inLocal} en el local · ${available} disponibles para llamar · ${completedToday} cortes completados hoy.`}
         actions={
-          <>
-            <Badge icon="users" tone="brand">
-              {activeCount} activos
-            </Badge>
-            <Button icon="plus" onClick={openRegister}>
-              Registrar usuario
-            </Button>
-          </>
+          <Badge icon="users" tone="brand">
+            {activeCount} activos
+          </Badge>
         }
       />
 
@@ -303,7 +281,7 @@ export function TeamPage() {
 
       <SectionCard
         title="Plantilla del turno"
-        detail="Disponibilidad, estación, servicios autorizados y ritmo de cada miembro del equipo."
+        detail="Disponibilidad, servicios autorizados y ritmo de cada miembro del equipo."
         action={<Badge icon="users" tone="brand">{filtered.length} personas</Badge>}
       >
 
@@ -312,8 +290,9 @@ export function TeamPage() {
             <div className="search">
               <Icon name="search" size={17} />
               <input
+                aria-label="Buscar por nombre"
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar por nombre o correo..."
+                placeholder="Buscar por nombre..."
                 type="search"
                 value={query}
               />
@@ -360,62 +339,61 @@ export function TeamPage() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Barbero</th>
-                  <th>Estación</th>
-                  <th>Disponibilidad</th>
-                  <th>Servicios autorizados</th>
-                  <th>Atendidos hoy</th>
-                  <th>Ritmo promedio</th>
-                  <th>Acciones</th>
+                  <th scope="col">Barbero</th>
+                  <th scope="col">Disponibilidad</th>
+                  <th scope="col">Servicios autorizados</th>
+                  <th scope="col">Atendidos hoy</th>
+                  <th scope="col">Ritmo promedio</th>
+                  <th scope="col">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((member) => {
                   const own = servicesOf(member.id);
-                  const pace = paceOf(member.completedToday);
 
                   return (
                     <tr key={member.id} style={member.active ? undefined : { opacity: 0.6 }}>
                       <td>
                         <span style={{ alignItems: 'center', display: 'flex', gap: 10 }}>
-                          <span
-                            style={{
-                              alignItems: 'center',
-                              background: 'var(--brand-softest)',
-                              border: '1px solid var(--brand-border)',
-                              borderRadius: '50%',
-                              color: 'var(--brand-deep)',
-                              display: 'flex',
-                              flex: 'none',
-                              font: 'var(--text-label)',
-                              height: 34,
-                              justifyContent: 'center',
-                              width: 34,
-                            }}
-                          >
-                            {initialsOf(member.name)}
-                          </span>
-                          <span style={{ display: 'grid' }}>
+                          {member.fotoUrl ? (
+                            <img
+                              alt=""
+                              src={member.fotoUrl}
+                              style={{ borderRadius: '50%', flex: 'none', height: 34, objectFit: 'cover', width: 34 }}
+                            />
+                          ) : (
+                            <span
+                              style={{
+                                alignItems: 'center',
+                                background: 'var(--brand-softest)',
+                                border: '1px solid var(--brand-border)',
+                                borderRadius: '50%',
+                                color: 'var(--brand-deep)',
+                                display: 'flex',
+                                flex: 'none',
+                                font: 'var(--text-label)',
+                                height: 34,
+                                justifyContent: 'center',
+                                width: 34,
+                              }}
+                            >
+                              {initialsOf(member.name)}
+                            </span>
+                          )}
+                          <span style={{ display: 'grid', minWidth: 0 }}>
                             <strong style={{ font: 'var(--text-body-strong)' }}>{member.name}</strong>
                             <span className="muted" style={{ font: 'var(--text-caption)' }}>
-                              {member.email}
+                              {member.role === 'admin' ? 'Administrador' : 'Barbero'}
                             </span>
                           </span>
                         </span>
                       </td>
-                      <td>
-                        {member.station > 0 ? (
-                          <span className="table__code">Puesto {member.station}</span>
-                        ) : (
-                          <span className="muted">Sin estación</span>
-                        )}
-                      </td>
-                      <td>
+                      <td className="cell--nowrap">
                         <Badge tone={staffAvailabilityTone[member.availability]}>
                           {staffAvailabilityLabels[member.availability]}
                         </Badge>
                       </td>
-                      <td>
+                      <td className="cell--nowrap">
                         {own.length === 0 ? (
                           <span className="muted">Sin asignar</span>
                         ) : own.length === 1 ? (
@@ -434,9 +412,9 @@ export function TeamPage() {
                         )}
                       </td>
                       <td>{member.completedToday}</td>
-                      <td>{pace === null ? <span className="muted">—</span> : `${pace} min/corte`}</td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 4 }}>
+                      <td>{member.paceMinutes == null ? <span className="muted">—</span> : `${member.paceMinutes} min/corte`}</td>
+                      <td className="cell--nowrap">
+                        <div className="table__actions">
                           <IconButton
                             icon="eye"
                             label={`Ver detalle de ${member.name}`}
@@ -465,45 +443,101 @@ export function TeamPage() {
       </SectionCard>
 
       <SectionCard
-        title="Cronograma de descansos"
-        detail="Horario de cada puesto y el descanso asignado dentro de su turno."
-        action={<Badge icon="clock" tone="gold">{staff.length} turnos</Badge>}
+        title="Invitar trabajador por correo"
+        detail="Solo esa cuenta puede canjear el código, válido por 7 días."
+        action={<Badge icon="users" tone="brand">Nominativa</Badge>}
       >
+        <form onSubmit={handleInvite}>
+          <div className="filters">
+            <div className="search">
+              <Icon name="search" size={17} />
+              <input
+                onChange={(event) => {
+                  setInviteEmail(event.target.value);
+                  setInviteError('');
+                  setInviteCode(null);
+                }}
+                placeholder="correo@ejemplo.com"
+                type="email"
+                value={inviteEmail}
+              />
+            </div>
+            <Button disabled={inviting} icon="plus" type="submit">
+              {inviting ? 'Generando…' : 'Generar invitación'}
+            </Button>
+          </div>
+        </form>
 
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Barbero</th>
-                <th>Estación</th>
-                <th>Turno</th>
-                <th>Descanso</th>
-                <th>Estado del descanso</th>
-              </tr>
-            </thead>
-            <tbody>
-              {staff.map((member) => {
-                const state = restStateOf(member);
+        {inviteError ? (
+          <p className="auth__error" role="alert" style={{ margin: '12px 0 0' }}>
+            {inviteError}
+          </p>
+        ) : null}
 
-                return (
-                  <tr key={member.id}>
-                    <td>
-                      <strong>{member.name}</strong>
-                    </td>
-                    <td className="muted">{member.station > 0 ? `Puesto ${member.station}` : 'Sin estación'}</td>
-                    <td className="muted">{member.shift}</td>
-                    <td>
-                      {member.restStart} — {member.restEnd}
-                    </td>
-                    <td>
-                      <Badge tone={state.tone}>{state.label}</Badge>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        {inviteCode ? (
+          <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
+            <span className="muted" style={{ font: 'var(--text-caption)' }}>
+              Pasale este código al trabajador por donde quieras. Sirve una vez y solo para {inviteEmail}.
+            </span>
+            <div style={{ alignItems: 'center', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <strong style={{ font: 'var(--text-headline)', letterSpacing: '0.06em' }}>{inviteCode}</strong>
+              <Button icon={copiedInvite ? 'check' : 'copy'} onClick={copyInviteCode} size="sm" variant="secondary">
+                {copiedInvite ? 'Copiado' : 'Copiar'}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </SectionCard>
+
+      <SectionCard
+        title="Solicitudes pendientes"
+        detail="Aprueba o deniega el ingreso a tu barbería."
+        action={<Badge icon="users" tone="brand">{requests.length} pendientes</Badge>}
+      >
+        {loadingRequests ? (
+          <EmptyState detail="Trayendo las solicitudes…" title="Cargando solicitudes" />
+        ) : requests.length === 0 ? (
+          <EmptyState detail="Cuando un trabajador canjee su invitación, aparece aquí para aprobar." title="Sin solicitudes" />
+        ) : (
+          <div style={{ display: 'grid', gap: 10 }}>
+            {requests.map((request) => (
+              <div
+                key={request.requestId}
+                className="row-split"
+                style={{
+                  background: 'var(--surface-muted)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '10px 14px',
+                }}
+              >
+                <span style={{ display: 'grid' }}>
+                  <strong style={{ font: 'var(--text-body-strong)' }}>{request.name ?? 'Trabajador'}</strong>
+                  <span className="muted" style={{ font: 'var(--text-caption)' }}>
+                    Solicitada {request.requestedAt ? new Date(request.requestedAt).toLocaleString('es-PE', { timeZone: 'America/Lima', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                  </span>
+                </span>
+                <span style={{ display: 'flex', gap: 8 }}>
+                  <Button
+                    disabled={resolvingId !== null}
+                    onClick={() => void handleResolve(request.requestId, true)}
+                    size="sm"
+                  >
+                    Aprobar
+                  </Button>
+                  <Button
+                    disabled={resolvingId !== null}
+                    onClick={() => void handleResolve(request.requestId, false)}
+                    size="sm"
+                    variant="secondary"
+                  >
+                    Denegar
+                  </Button>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </SectionCard>
 
       {modal?.type === 'detail' && modalMember ? (
@@ -523,19 +557,12 @@ export function TeamPage() {
           }
         >
           <div style={{ display: 'grid', gap: 10 }}>
-            <DetailRow label="Correo" value={modalMember.email} />
             <DetailRow label="Rol" value={modalMember.role === 'admin' ? 'Administrador' : 'Barbero'} />
-            <DetailRow
-              label="Estación"
-              value={modalMember.station > 0 ? `Puesto ${modalMember.station}` : 'Sin estación'}
-            />
             <DetailRow label="Disponibilidad" value={staffAvailabilityLabels[modalMember.availability]} />
-            <DetailRow label="Turno" value={modalMember.shift} />
-            <DetailRow label="Descanso" value={`${modalMember.restStart} — ${modalMember.restEnd}`} />
             <DetailRow label="Atendidos hoy" value={String(modalMember.completedToday)} />
             <DetailRow
               label="Ritmo promedio"
-              value={paceOf(modalMember.completedToday) ? `${paceOf(modalMember.completedToday)} min/corte` : '—'}
+              value={modalMember.paceMinutes == null ? '—' : `${modalMember.paceMinutes} min/corte`}
             />
             <DetailRow label="Estado" value={modalMember.active ? 'Activo' : 'Inactivo'} />
             <DetailRow
@@ -573,14 +600,11 @@ export function TeamPage() {
               {servicesOf(modalMember.id).map((service) => (
                 <div
                   key={service.id}
+                  className="row-split"
                   style={{
-                    alignItems: 'center',
                     background: 'var(--surface-muted)',
                     border: '1px solid var(--border)',
                     borderRadius: 'var(--radius-sm)',
-                    display: 'flex',
-                    gap: 12,
-                    justifyContent: 'space-between',
                     padding: '10px 14px',
                   }}
                 >
@@ -603,97 +627,41 @@ export function TeamPage() {
         </Modal>
       ) : null}
 
-      {(modal?.type === 'edit' || modal?.type === 'register') && draft ? (
+      {modal?.type === 'edit' && draft ? (
         <FormModal
-          detail={
-            modal.type === 'register'
-              ? 'Registra un nuevo barbero o empleado y define sus servicios autorizados.'
-              : 'Actualiza sus datos, disponibilidad y servicios autorizados.'
-          }
+          detail="Actualiza su nombre, disponibilidad y servicios autorizados. Se guarda en el servidor."
           error={formError}
           onClose={() => setModal(null)}
           onSubmit={handleSave}
           open
-          submitLabel={modal.type === 'register' ? 'Registrar usuario' : 'Guardar cambios'}
-          title={modal.type === 'register' ? 'Registrar usuario' : `Editar a ${modalMember?.name ?? ''}`}
+          submitLabel={savingDraft ? 'Guardando…' : 'Guardar cambios'}
+          title={`Editar a ${modalMember?.name ?? ''}`}
         >
           <>
             <div className="form-grid">
-                <label className="field">
-                  <span>Nombre</span>
-                  <input
-                    onChange={(event) => handleDraftChange({ name: event.target.value })}
-                    required
-                    value={draft.name}
-                  />
-                </label>
+              <label className="field">
+                <span>Nombre</span>
+                <input
+                  onChange={(event) => handleDraftChange({ name: event.target.value })}
+                  required
+                  value={draft.name}
+                />
+              </label>
 
-                <label className="field">
-                  <span>Correo</span>
-                  <input
-                    onChange={(event) => handleDraftChange({ email: event.target.value })}
-                    required
-                    type="email"
-                    value={draft.email}
-                  />
-                </label>
-
-                <label className="field">
-                  <span>Rol</span>
-                  <select onChange={(event) => handleDraftChange({ role: event.target.value as StaffRole })} value={draft.role}>
-                    <option value="barbero">Barbero</option>
-                    <option value="admin">Administrador</option>
-                  </select>
-                </label>
-
-                <label className="field">
-                  <span>Estación</span>
-                  <input
-                    min={0}
-                    onChange={(event) => handleDraftChange({ station: Number(event.target.value) })}
-                    type="number"
-                    value={draft.station}
-                  />
-                  <small>0 = sin estación asignada.</small>
-                </label>
-
-                <label className="field">
-                  <span>Disponibilidad</span>
-                  <select
-                    onChange={(event) => handleDraftChange({ availability: event.target.value as StaffAvailability })}
-                    value={draft.availability}
-                  >
-                    {(Object.keys(staffAvailabilityLabels) as StaffAvailability[]).map((key) => (
-                      <option key={key} value={key}>
-                        {staffAvailabilityLabels[key]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="field">
-                  <span>Turno</span>
-                  <input onChange={(event) => handleDraftChange({ shift: event.target.value })} value={draft.shift} />
-                </label>
-
-                <label className="field">
-                  <span>Inicio del descanso</span>
-                  <input
-                    onChange={(event) => handleDraftChange({ restStart: event.target.value })}
-                    type="time"
-                    value={draft.restStart}
-                  />
-                </label>
-
-                <label className="field">
-                  <span>Fin del descanso</span>
-                  <input
-                    onChange={(event) => handleDraftChange({ restEnd: event.target.value })}
-                    type="time"
-                    value={draft.restEnd}
-                  />
-                </label>
-              </div>
+              <label className="field">
+                <span>Disponibilidad</span>
+                <select
+                  onChange={(event) =>
+                    handleDraftChange({ availability: event.target.value as 'disponible' | 'fuera' })
+                  }
+                  value={draft.availability === 'fuera' ? 'fuera' : 'disponible'}
+                >
+                  <option value="disponible">Disponible</option>
+                  <option value="fuera">Fuera de turno</option>
+                </select>
+                <small>El estado ocupado lo pone el sistema al llamar.</small>
+              </label>
+            </div>
 
               <label className="switch-row" htmlFor="staff-active">
                 <span>
@@ -759,8 +727,8 @@ export function TeamPage() {
           confirmVariant={modalMember.active ? 'danger' : 'primary'}
           detail={
             modalMember.active
-              ? 'El empleado dejará de aparecer en la rotación activa.'
-              : 'El empleado vuelve a la rotación activa.'
+              ? 'Se revoca su acceso y sale de la rotación. Su historial se conserva.'
+              : 'Recupera su acceso y vuelve a la rotación activa.'
           }
           onCancel={() => setModal(null)}
           onConfirm={handleDeactivate}
