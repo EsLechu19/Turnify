@@ -272,3 +272,24 @@ fallback intact.
 Engram mirror attempted via memory save (project `turnify`); it failed with
 "could not confirm Engram session registration", so nothing was registered.
 This record is the source of truth.
+
+## Customer location prefetch (uncommitted follow-up)
+
+The mobile root now starts a foreground-only, memory-only location prefetch for
+authenticated/non-demo app launches. `getCustomerLocation` shares one in-flight
+permission/position request with `Cómo llegar`, caches only successful
+coordinates for the app session, and leaves denial/unavailability retryable.
+The demo mode (`EXPO_PUBLIC_SKIP_AUTH=1`) does not request location.
+
+### Evidence
+
+- RED: `npx vitest run tests/mobile/geolocalizacion.test.ts tests/mobile/public-guest-flow.test.ts` → 1 file passed, 1 failed; 4 tests failed (missing shared cache APIs/root/card wiring).
+- GREEN: same command → `Test Files 2 passed (2)`, `Tests 29 passed (29)`.
+- `npm --workspace turnify-mobile run typecheck` → clean.
+- Runtime: N/A — no mobile runtime harness exists; focused Vitest contracts and typecheck cover the change.
+
+### Rollback boundary
+
+Remove the prefetch/cache exports and tests, restore `requestCustomerLocation`
+in `HowToGetThere`, and remove the root layout prefetch effect. Leave the
+existing route provider and shop/ticket flow unchanged.

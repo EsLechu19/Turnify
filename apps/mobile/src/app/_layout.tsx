@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '@/features/auth/use-auth';
 import { useNotificationLifecycle } from '@/features/notifications/use-notification-lifecycle';
 import { GuestFlowProvider } from '@/features/public/guest-flow-session';
+import { prefetchCustomerLocation } from '@/features/location/customer-location';
 import { initializeNotificationFoundation } from '@/lib/notifications';
 import { Palette } from '@/constants/theme';
 
@@ -43,6 +44,8 @@ const navigationTheme = {
 export default function RootLayout() {
   useEffect(() => {
     void initializeNotificationFoundation();
+    if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') return;
+    void prefetchCustomerLocation();
   }, []);
 
   return (

@@ -10,7 +10,11 @@ import {
   haversineMeters,
   parseShopCoordinates,
 } from '../../apps/mobile/src/features/location/shop-coordinates';
-import { requestCustomerLocation } from '../../apps/mobile/src/features/location/customer-location';
+import {
+  getCustomerLocation,
+  requestCustomerLocation,
+  resetCustomerLocationCache,
+} from '../../apps/mobile/src/features/location/customer-location';
 import {
   HaversineRouteProvider,
   OpenRouteServiceProvider,
@@ -178,14 +182,56 @@ describe('routing provider abstraction', () => {
     expect(summary).toContain('sin tráfico en vivo');
   });
 
-  it('keeps a single request per card render (no polling, no prefetching)', () => {
+  it('keeps a single request per card render without polling', () => {
     const card = read('apps', 'mobile', 'src', 'components', 'customer', 'how-to-get-there.tsx');
     expect(card).not.toContain('setInterval');
-    expect(card.toLowerCase()).not.toContain('prefetch');
+    expect(card).toContain('getCustomerLocation');
   });
 });
 
 describe('guest distance/time rendering and degradation', () => {
+  it('shares one in-flight location request and reuses the cached success', async () => {
+    resetCustomerLocationCache();
+    let resolvePermission!: (value: { granted: boolean }) => void;
+    const requestPermissions = vi.fn(
+      () => new Promise<{ granted: boolean }>((resolve) => (resolvePermission = resolve)),
+    );
+    const getPosition = vi.fn(async () => ({ latitude: -12.0464, longitude: -77.0428 }));
+
+    const first = getCustomerLocation({ requestPermissions, getPosition });
+    const second = getCustomerLocation({ requestPermissions, getPosition });
+    expect(requestPermissions).toHaveBeenCalledOnce();
+    resolvePermission({ granted: true });
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      { status: 'ok', latitude: -12.0464, longitude: -77.0428 },
+      { status: 'ok', latitude: -12.0464, longitude: -77.0428 },
+    ]);
+
+    await expect(getCustomerLocation({ requestPermissions, getPosition })).resolves.toMatchObject({ status: 'ok' });
+    expect(requestPermissions).toHaveBeenCalledOnce();
+    expect(getPosition).toHaveBeenCalledOnce();
+  });
+
+  it('does not cache denial or unavailability, so retry can request again', async () => {
+    resetCustomerLocationCache();
+    const requestPermissions = vi
+      .fn<() => Promise<{ granted: boolean }>>()
+      .mockResolvedValueOnce({ granted: false })
+      .mockResolvedValueOnce({ granted: true });
+    const getPosition = vi.fn(async () => ({ latitude: -12.0464, longitude: -77.0428 }));
+
+    await expect(getCustomerLocation({ requestPermissions, getPosition })).resolves.toEqual({ status: 'denegado' });
+    await expect(getCustomerLocation({ requestPermissions, getPosition })).resolves.toMatchObject({ status: 'ok' });
+    expect(requestPermissions).toHaveBeenCalledTimes(2);
+    expect(getPosition).toHaveBeenCalledOnce();
+  });
+
+  it('starts the root prefetch once without requesting location in demo mode', () => {
+    const root = read('apps', 'mobile', 'src', 'app', '_layout.tsx');
+    expect(root).toContain('prefetchCustomerLocation');
+    expect(root).toContain("process.env.EXPO_PUBLIC_SKIP_AUTH === '1'");
+  });
+
   it('requests GPS through an injectable boundary with denial paths', async () => {
     await expect(
       requestCustomerLocation({

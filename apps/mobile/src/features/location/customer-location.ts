@@ -23,6 +23,9 @@ export type CustomerLocationDeps = {
   getPosition?: () => Promise<{ latitude: number; longitude: number }>;
 };
 
+let cachedCustomerLocation: CustomerLocationOk | null = null;
+let customerLocationRequest: Promise<CustomerLocationResult> | null = null;
+
 async function defaultRequestPermissions(): Promise<{ granted: boolean }> {
   const location = await import('expo-location');
   const permission: ExpoLocation.PermissionResponse = await location.requestForegroundPermissionsAsync();
@@ -61,4 +64,34 @@ export async function requestCustomerLocation(deps: CustomerLocationDeps = {}): 
   } catch {
     return { status: 'no-disponible' };
   }
+}
+
+/**
+ * Returns the session-local customer position, sharing both the first request
+ * and its successful result between the root prefetch and guest cards.
+ * Denials and unavailable positions are intentionally not cached so retry can
+ * ask for permission or position again.
+ */
+export function getCustomerLocation(deps: CustomerLocationDeps = {}): Promise<CustomerLocationResult> {
+  if (cachedCustomerLocation) return Promise.resolve(cachedCustomerLocation);
+  if (customerLocationRequest) return customerLocationRequest;
+
+  customerLocationRequest = requestCustomerLocation(deps)
+    .then((result) => {
+      if (result.status === 'ok') cachedCustomerLocation = result;
+      return result;
+    })
+    .finally(() => {
+      customerLocationRequest = null;
+    });
+
+  return customerLocationRequest;
+}
+
+export const prefetchCustomerLocation = getCustomerLocation;
+
+/** Test seam for resetting the memory-only session cache between scenarios. */
+export function resetCustomerLocationCache(): void {
+  cachedCustomerLocation = null;
+  customerLocationRequest = null;
 }

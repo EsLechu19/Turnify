@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Button, Card, Icon } from '@/components/ui';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
-import { requestCustomerLocation } from '@/features/location/customer-location';
+import { getCustomerLocation } from '@/features/location/customer-location';
 import type { ShopCoordinates } from '@/features/location/shop-coordinates';
 import {
   createDefaultRouteProvider,
@@ -57,7 +57,7 @@ export function HowToGetThere({ shopName, shop }: { shopName: string; shop: Shop
       return;
     }
     setState({ kind: 'calculando' });
-    const location = await requestCustomerLocation();
+    const location = await getCustomerLocation();
     if (!active.current) return;
     if (location.status === 'denegado') {
       setState({ kind: 'gps-denegado' });
