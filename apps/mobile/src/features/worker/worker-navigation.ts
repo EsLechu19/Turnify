@@ -25,10 +25,11 @@ export type AppRouteName =
   | 'worker-profile'
   | 'worker-account-profile'
   | 'worker-shops'
+  | 'worker-services'
   | 'worker-walk-in';
 
 const customerRoutes = new Set<AppRouteName>(['index', 'barbers', 'history', 'profile', 'register-business']);
-const workerRoutes = new Set<AppRouteName>(['worker', 'worker-queue', 'worker-history', 'worker-profile', 'worker-walk-in']);
+const workerRoutes = new Set<AppRouteName>(['worker', 'worker-queue', 'worker-history', 'worker-profile', 'worker-services', 'worker-walk-in']);
 
 export function appRouteNameFromSegments(segments: readonly string[]): AppRouteName {
   const leaf = segments.at(-1);
@@ -38,7 +39,7 @@ export function appRouteNameFromSegments(segments: readonly string[]): AppRouteN
 export function roleCanAccessAppRoute(profile: AuthProfile | null | undefined, route: AppRouteName): boolean {
   if (profile?.role === 'cliente') return customerRoutes.has(route);
   if (profile?.role === 'personal') {
-    if (route === 'worker-shops' || route === 'worker-profile' || route === 'worker-account-profile') return true;
+    if (route === 'worker-shops' || route === 'worker-profile' || route === 'worker-account-profile' || route === 'worker-services') return true;
     return typeof profile.businessId === 'string' && profile.businessId.length > 0 && workerRoutes.has(route);
   }
   return false;
