@@ -10,6 +10,10 @@ import { formatReferencePrice } from '@/features/queue/commercial-booking';
 import type { CommercialService } from '@/features/queue/commercial-queue-api';
 
 function durationLabel(service: CommercialService) {
+  if (service.measuredDurationSeconds != null) {
+    return `~${Math.ceil(service.measuredDurationSeconds / 60)} min · medido`;
+  }
+
   return `${Math.ceil(service.estimatedDurationSeconds / 60)} min`;
 }
 
@@ -23,7 +27,7 @@ function ServiceOption({ selected, service, onPress }: { selected: boolean; serv
       badgeTone="brand"
       detail={service.description ?? undefined}
       icon="scissors"
-      meta={`${durationLabel(service)}${referencePrice ? ` · ${referencePrice}` : ''}`}
+      meta={`${durationLabel(service)}${referencePrice ? ` · ${referencePrice} ref.` : ''}`}
       onPress={onPress}
       selected={selected}
       title={service.name}
@@ -38,13 +42,16 @@ export default function ServiceScreen() {
   if (!draft) {
     return (
       <CustomerPage>
-        <CustomerState label="Primero identifica una barbería." action={() => router.replace('/(app)')} />
+        <CustomerState label="Primero identifica una barbería." action={() => router.replace('/')} />
       </CustomerPage>
     );
   }
 
   const selectedService = draft.catalog.services.find((service) => service.serviceId === draft.serviceId) ?? null;
   const selectedPrice = selectedService ? formatReferencePrice(selectedService.referencePriceCents) : null;
+  const hasBarbers = draft.catalog.barbers.length > 0;
+  const steps = hasBarbers ? ['Servicio', 'Barbero', 'Confirmar'] : ['Servicio', 'Confirmar'];
+  const continueHref = hasBarbers ? '/(public)/barber' : '/(public)/details';
 
   return (
     <Screen scroll={false}>
@@ -59,20 +66,10 @@ export default function ServiceScreen() {
           <Text style={styles.shopName}>{draft.catalog.name}</Text>
           <Text style={[TypeScale.display, { color: Palette.ink, textAlign: 'center' }]}>Elige tu servicio</Text>
           <Text style={[TypeScale.body, styles.subtitle]}>
-            Selecciona lo que necesitas antes de elegir tu barbero.
+            {hasBarbers ? 'Selecciona lo que necesitas antes de elegir tu barbero.' : 'Selecciona lo que necesitas para continuar.'}
           </Text>
-          <StepTracker activeStep={0} steps={['Servicio', 'Barbero', 'Confirmar']} />
+          <StepTracker activeStep={0} steps={steps} />
         </View>
-
-        <Card padding="md" tone="brand">
-          <View style={styles.durationIcon}>
-            <Icon color={Palette.brand} name="clock" size={19} />
-          </View>
-          <Text style={[TypeScale.bodyStrong, { color: Palette.ink }]}>El tiempo depende del servicio</Text>
-          <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>
-            Mostramos una duración estimada para que elijas con información clara.
-          </Text>
-        </Card>
 
         {draft.catalog.services.length === 0 ? (
           <Card padding="lg">
@@ -82,6 +79,8 @@ export default function ServiceScreen() {
             <Text style={[TypeScale.bodySmall, { color: Palette.inkMuted, textAlign: 'center' }]}>
               Consulta en el local para conocer cuándo volver a intentar.
             </Text>
+            <Button label="Volver a la barbería" onPress={() => router.back()} variant="secondary" />
+            <Button label="Ir al inicio" onPress={() => router.replace('/')} variant="link" />
           </Card>
         ) : (
           <View accessibilityRole="radiogroup" style={styles.serviceList}>
@@ -110,19 +109,19 @@ export default function ServiceScreen() {
             {selectedService ? (
               <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>
                 {durationLabel(selectedService)}
-                {selectedPrice ? ` · ${selectedPrice}` : ''}
+                {selectedPrice ? ` · ${selectedPrice} ref.` : ''}
               </Text>
             ) : null}
           </View>
         </View>
         <Button
-          accessibilityLabel="Continuar para elegir un barbero"
+          accessibilityLabel={hasBarbers ? 'Continuar para elegir un barbero' : 'Continuar para confirmar'}
           accessibilityState={{ disabled: !selectedService }}
           disabled={!selectedService}
           fullWidth
           iconRight="arrow-right"
           label="Continuar"
-          onPress={() => router.push('/(public)/barber')}
+          onPress={() => router.push(continueHref)}
           size="lg"
         />
       </StickyBar>
@@ -134,14 +133,6 @@ const styles = StyleSheet.create({
   page: { alignSelf: 'center', gap: space(4), maxWidth: 520, paddingHorizontal: space(5), paddingTop: space(2), width: '100%' },
   intro: { alignItems: 'center', gap: space(2), paddingHorizontal: space(2), paddingTop: space(2) },  shopName: { color: Palette.brandDeep, textAlign: 'center' },
   subtitle: { color: Palette.inkMuted, maxWidth: 350, textAlign: 'center' },
-  durationIcon: {
-    alignItems: 'center',
-    backgroundColor: Palette.surface,
-    borderRadius: Radius.small,
-    height: 40,
-    justifyContent: 'center',
-    width: 40,
-  },
   serviceList: { gap: space(3) },
   summary: { alignItems: 'center', flexDirection: 'row', gap: space(3), minHeight: 46 },
   summaryIcon: {
