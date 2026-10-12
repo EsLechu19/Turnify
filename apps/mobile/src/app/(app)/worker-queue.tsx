@@ -155,7 +155,7 @@ export default function WorkerQueueScreen() {
             </WorkerText>
             <WorkerText color={workerColors.muted}>{calledResponse}</WorkerText>
             <WorkerText color={workerColors.muted}>El mismo tiempo que ve el cliente, en vivo.</WorkerText>
-            <WorkerButton label="Abrir en En vivo" tone="secondary" onPress={() => router.push('/(app)/worker')} />
+            <WorkerButton label="Abrir en Hoy" tone="secondary" onPress={() => router.push('/(app)/worker')} />
           </View>
         ) : null}
 
@@ -175,7 +175,7 @@ export default function WorkerQueueScreen() {
         ) : null}
 
         {!isLoading && !error && isOffShift ? (
-          <EmptyState label="Estás fuera de turno" detail="Marca tu disponibilidad en En vivo para llamar turnos." />
+          <EmptyState label="Estás fuera de turno" detail="Marca tu disponibilidad en Hoy para llamar turnos." />
         ) : null}
 
         {!isLoading && !error && !isOffShift && waiting.length === 0 && !calledTicket ? (

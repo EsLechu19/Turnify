@@ -38,10 +38,11 @@ describe('customer navigation', () => {
 
   it('offers approved worker destinations and prevents role route leakage', () => {
     expect(workerNavigationItems).toEqual([
-      { key: 'live', label: 'En vivo', href: '/(app)/worker' },
+      { key: 'live', label: 'Hoy', href: '/(app)/worker' },
       { key: 'queue', label: 'Cola', href: '/(app)/worker-queue' },
+      { key: 'clientes', label: 'Clientes', href: '/(app)/worker-walk-in' },
       { key: 'history', label: 'Historial', href: '/(app)/worker-history' },
-      { key: 'profile', label: 'Perfil', href: '/(app)/worker-profile' },
+      { key: 'profile', label: 'Cuenta', href: '/(app)/worker-profile' },
     ]);
     const worker = { role: 'personal' as const, businessId: 'shop' };
 

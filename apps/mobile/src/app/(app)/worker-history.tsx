@@ -54,8 +54,8 @@ export default function WorkerHistoryScreen() {
       <ScrollView contentContainerStyle={workerUiStyles.page}>
         <View style={styles.heading}>
           <WorkerText variant="eyebrow" color={workerColors.teal}>Historial de operación</WorkerText>
-          <WorkerText variant="title">Mi historial</WorkerText>
-          <WorkerText color={workerColors.muted}>Consulta tus atenciones anteriores en la barbería seleccionada.</WorkerText>
+          <WorkerText variant="title">Tu historial en esta barbería</WorkerText>
+          <WorkerText color={workerColors.muted}>Solo tus atenciones personales aquí; el historial de la tienda vive en el panel web.</WorkerText>
         </View>
 
         <View style={[workerUiStyles.card, styles.filterCard]}>

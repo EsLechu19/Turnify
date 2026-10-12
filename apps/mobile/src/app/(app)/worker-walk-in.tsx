@@ -68,7 +68,7 @@ export default function WorkerWalkInScreen() {
   }
 
   return (
-    <WorkerScreenContainer activeNavigation="live">
+    <WorkerScreenContainer activeNavigation="clientes">
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={workerUiStyles.page}>
         <View style={styles.top}>
           <Pressable accessibilityRole="button" accessibilityLabel="Cerrar registro presencial" onPress={() => router.back()}>

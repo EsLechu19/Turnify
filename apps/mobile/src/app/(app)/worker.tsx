@@ -281,9 +281,11 @@ function LiveQueue({ availability, tickets, attentionTicket, stations, stationsL
   return (
     <>
       <View style={styles.liveHeader}>
-        <WorkerText variant="eyebrow" color={workerColors.teal}>Operación en vivo</WorkerText>
-        <WorkerText variant="title">Mi jornada</WorkerText>
-        <WorkerText color={workerColors.muted}>{shopName ?? 'Barbería demo'}</WorkerText>
+        <WorkerText variant="eyebrow" color={workerColors.teal}>Hoy en {shopName ?? 'tu barbería'}</WorkerText>
+        <WorkerText variant="title">Tu jornada</WorkerText>
+        <WorkerText color={workerColors.muted}>
+          {tickets.length === 0 ? 'Sin turnos compatibles por ahora.' : `${tickets.length} turno${tickets.length === 1 ? '' : 's'} que puedes atender.`}
+        </WorkerText>
       </View>
 
       <View style={[workerUiStyles.card, styles.operationsHeader]}>
@@ -356,30 +358,11 @@ function LiveQueue({ availability, tickets, attentionTicket, stations, stationsL
       ) : null}
 
       <View style={styles.sectionHeading}>
-        <WorkerText variant="headline">Cola de espera</WorkerText>
-        <WorkerText color={workerColors.muted}>Turnos que puedes atender</WorkerText>
+        <WorkerText variant="headline">Cola de hoy</WorkerText>
+        <WorkerText color={workerColors.muted}>El detalle vive en Cola; aquí solo tu siguiente acción.</WorkerText>
       </View>
 
-      {tickets.map((ticket, index) => (
-        <Pressable
-          accessibilityLabel={`Ver detalle ${ticket.visibleCode}`}
-          accessibilityRole="button"
-          key={ticket.ticketId}
-          onPress={() => setSelected(ticket)}
-          style={workerUiStyles.card}
-        >
-          <View style={workerUiStyles.split}>
-            <WorkerText variant="headline">{ticket.visibleCode}</WorkerText>
-            <WorkerPill
-              label={index === 0 ? 'SIGUIENTE' : ticket.waitMinutes > 0 ? `EN ESPERA · ~${ticket.waitMinutes} min` : 'EN ESPERA'}
-              tone={index === 0 ? 'teal' : 'neutral'}
-            />
-          </View>
-          <WorkerText variant="headline">{demoClientName(ticket)}</WorkerText>
-          <TicketDetail ticket={ticket} />
-          <WorkerText variant="label" color={workerColors.muted}>Barbero asignado: {ticket.assignedBarberName ?? 'Por asignar'}</WorkerText>
-        </Pressable>
-      ))}
+      <WorkerButton label={`Ver cola completa (${tickets.length})`} tone="secondary" onPress={() => router.push('/(app)/worker-queue')} />
 
       <WorkerButton label="Agregar cliente presencial" onPress={() => router.push('/(app)/worker-walk-in')} />
 

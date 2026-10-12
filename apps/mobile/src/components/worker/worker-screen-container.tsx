@@ -32,7 +32,7 @@ export function WorkerScreenContainer({ activeNavigation, children, shopName }: 
           </Pressable>
         </View>
         <View style={styles.headerActions}>
-          <Pill label="En vivo" tone="success" />
+          <Pill label="Operación" tone="neutral" />
           <Pressable
             accessibilityHint="Volver a tu cuenta personal y tus barberías."
             accessibilityLabel="Volver a cuenta personal"
@@ -146,9 +146,10 @@ const styles = StyleSheet.create({
   navigationLabel: { marginTop: 3 },
 });
 
-const navigationIcons: Record<WorkerNavigationKey, 'live' | 'queue' | 'history' | 'profile'> = {
+const navigationIcons: Record<WorkerNavigationKey, 'live' | 'queue' | 'clientes' | 'history' | 'profile'> = {
   live: 'live',
   queue: 'queue',
+  clientes: 'clientes',
   history: 'history',
   profile: 'profile',
 };
