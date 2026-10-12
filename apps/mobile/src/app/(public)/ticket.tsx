@@ -97,10 +97,12 @@ function QueueTimeline({ peopleAhead, status }: { peopleAhead: number; status: '
 }
 
 export default function GuestTicketScreen() {
-  const { ticketAccess, endGuestTicketSession, demoTicket } = useGuestFlow();
+  const { ticketAccess, endGuestTicketSession, demoTicket, draft } = useGuestFlow();
   const [ticket, setTicket] = useState<GuestTicketState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const shopName = draft?.catalog.name ?? null;
   const [isCancelling, setIsCancelling] = useState(false);
   const [isResponding, setIsResponding] = useState(false);
   const [isRating, setIsRating] = useState(false);
@@ -153,6 +155,7 @@ export default function GuestTicketScreen() {
     try {
       const nextTicket = await getGuestTicketState(ticketAccess);
       setTicket(nextTicket);
+      setUpdatedAt(new Date());
       if (isTerminalGuestTicketStatus(nextTicket.status)) endGuestTicketSession();
       setError(null);
       return true;
@@ -313,8 +316,11 @@ export default function GuestTicketScreen() {
                   <Text style={styles.brandMarkText}>T</Text>
                 </View>
                 <View>
-                  <Text style={[TypeScale.bodyStrong, { color: Palette.ink }]}>Turnify</Text>
-                  <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>Tu turno en la barbería</Text>
+                  <Text style={[TypeScale.bodyStrong, { color: Palette.ink }]}>{shopName ?? 'Turnify'}</Text>
+                  <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>
+                    {shopName ? 'Tu turno en esta barbería' : 'Tu turno en la barbería'}
+                    {updatedAt ? ` · ${new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit' }).format(updatedAt)}` : ''}
+                  </Text>
                 </View>
               </View>
               <StatusBadge status={ticket.status} />
@@ -338,6 +344,9 @@ export default function GuestTicketScreen() {
                 </View>
               </View>
               <Text style={[TypeScale.body, { color: Palette.inkMuted }]}>{status.message}</Text>
+              <Text style={[TypeScale.bodyStrong, { color: Palette.ink }]}>
+                Cuando lo digan en el local, acércate y muestra este código.
+              </Text>
 
               {ticket.status === 'en_espera' || ticket.status === 'notificado' ? (
                 <View style={styles.heroStats}>
@@ -350,7 +359,7 @@ export default function GuestTicketScreen() {
                         {String(ticket.peopleAhead)}
                       </Text>
                       <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>
-                        {ticket.peopleAhead === 1 ? 'persona delante' : 'personas delante'}
+                        {ticket.peopleAhead === 1 ? 'delante de ti' : 'delante de ti'}
                       </Text>
                     </View>
                   </View>
@@ -361,12 +370,12 @@ export default function GuestTicketScreen() {
                     </View>
                     <View style={styles.heroStatCopy}>
                       <Text
-                        accessibilityLabel={`Espera estimada ${estimatedWaitSeconds > 0 ? formatEstimatedWait(estimatedWaitSeconds) : 'próximo'}`}
+                        accessibilityLabel={`Espera aproximada ${estimatedWaitSeconds > 0 ? formatEstimatedWait(estimatedWaitSeconds) : 'por confirmar'}`}
                         style={[TypeScale.title, { color: Palette.goldInk }]}
                       >
-                        {estimatedWaitSeconds > 0 ? `~${formatEstimatedWait(estimatedWaitSeconds)}` : 'Próximo'}
+                        {estimatedWaitSeconds > 0 ? `~${formatEstimatedWait(estimatedWaitSeconds)}` : '—'}
                       </Text>
-                      <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>espera estimada</Text>
+                      <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>espera aprox.</Text>
                     </View>
                   </View>
                 </View>
@@ -382,31 +391,9 @@ export default function GuestTicketScreen() {
 
             {ticket.serviceName || barberName ? (
               <Card padding="md">
-                <Text style={[TypeScale.h3, { color: Palette.ink }]}>Detalles del servicio</Text>
-                {ticket.serviceName ? (
-                  <View style={styles.factRow}>
-                    <View style={styles.factIcon}>
-                      <Icon color={Palette.brand} name="ticket" size={19} />
-                    </View>
-                    <View style={styles.factCopy}>
-                      <Text style={styles.factLabel}>Servicio</Text>
-                      <Text style={[TypeScale.body, { color: Palette.ink }]}>{ticket.serviceName}</Text>
-                    </View>
-                  </View>
-                ) : null}
-                {barberName ? (
-                  <View style={styles.factRow}>
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>{initials(barberName)}</Text>
-                    </View>
-                    <View style={styles.factCopy}>
-                      <Text style={styles.factLabel}>
-                        {ticket.assignedBarberName ? 'Barbero asignado' : 'Barbero solicitado'}
-                      </Text>
-                      <Text style={[TypeScale.body, { color: Palette.ink }]}>{barberName}</Text>
-                    </View>
-                  </View>
-                ) : null}
+                <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>
+                  {[ticket.serviceName, barberName ? `${ticket.assignedBarberName ? 'con' : 'pref.'} ${barberName}` : null].filter(Boolean).join(' · ')}
+                </Text>
               </Card>
             ) : null}
 
@@ -428,7 +415,7 @@ export default function GuestTicketScreen() {
                 fullWidth
                 label="Cancelar turno"
                 onPress={() => setIsConfirmingCancel(true)}
-                size="lg"
+                size="md"
                 variant="secondary"
               />
             ) : null}
@@ -439,7 +426,7 @@ export default function GuestTicketScreen() {
       <Sheet
         confirmLabel="Confirmar cancelación"
         confirmVariant="danger"
-        description="Perderás tu lugar actual en la fila. Esta acción no se puede deshacer."
+        description="Perderás tu lugar actual en la fila. Podrás sacar otro turno enseguida si quieres."
         dismissible={!isCancelling}
         onClose={() => setIsConfirmingCancel(false)}
         onConfirm={() => void cancel()}
