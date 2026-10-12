@@ -1,4 +1,4 @@
-﻿import { Alert, AppState, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+﻿import { Alert, AppState, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -36,24 +36,6 @@ const availabilityLabel: Record<WorkerAvailability, string> = {
   ocupado: 'Ocupado',
   fuera_de_turno: 'Fuera de turno',
 };
-
-const demoClientNames: Record<string, string> = {
-  t1: 'Juan Pérez',
-  t2: 'Ana Torres',
-  t3: 'Luis Ramírez',
-  t4: 'María Gómez',
-};
-
-const servicePrices: Record<string, string> = {
-  'Corte clásico': '$20.000',
-  'Corte + barba': '$35.000',
-  'Perfilado de barba': '$18.000',
-  'Afeitado clásico': '$15.000',
-};
-
-function demoClientName(ticket: WorkerTicket): string {
-  return process.env.EXPO_PUBLIC_SKIP_AUTH === '1' ? (demoClientNames[ticket.ticketId] ?? 'Cliente') : 'Cliente';
-}
 
 const DEMO_STATIONS: ShopStation[] = [
   { barberId: 'demo-1', name: 'Tú', operationalState: 'ocupado', ticketCode: 'A24', serviceName: 'Corte + barba', ticketState: 'en_atencion' },
@@ -263,10 +245,11 @@ function LiveQueue({ availability, tickets, attentionTicket, stations, stationsL
   shopName: string | null;
 }) {
   const next = tickets[0];
-  const [selected, setSelected] = useState<WorkerTicket | null>(null);
-  const selectedTolerance = useRemainingTolerance(selected?.calledDeadlineAt ?? null);
   const attentionElapsed = useElapsedSince(attentionTicket?.inicioEn ?? null);
   const [isCallingNext, setIsCallingNext] = useState(false);
+  const [showTeam, setShowTeam] = useState(false);
+  const todayLabel = new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' });
+  const freeStations = stations.filter((station) => station.operationalState === 'disponible').length;
 
   async function callNext() {
     if (!next) return;
@@ -278,110 +261,124 @@ function LiveQueue({ availability, tickets, attentionTicket, stations, stationsL
     }
   }
 
+  async function changeAvailability(nextState: 'disponible' | 'fuera_de_turno') {
+    if (availability === nextState || isActing) return;
+    await act(() => setWorkerAvailability(nextState), nextState === 'disponible' ? 'Estás disponible.' : 'Quedaste fuera de turno.');
+  }
+
   return (
     <>
       <View style={styles.liveHeader}>
-        <WorkerText variant="eyebrow" color={workerColors.teal}>Hoy en {shopName ?? 'tu barbería'}</WorkerText>
-        <WorkerText variant="title">Tu jornada</WorkerText>
+        <WorkerText variant="eyebrow" color={workerColors.teal}>{todayLabel} · {shopName ?? 'Barbería demo'}</WorkerText>
+        <WorkerText variant="title">Hoy</WorkerText>
         <WorkerText color={workerColors.muted}>
-          {tickets.length === 0 ? 'Sin turnos compatibles por ahora.' : `${tickets.length} turno${tickets.length === 1 ? '' : 's'} que puedes atender.`}
+          {attentionTicket ? `Atendiendo ${attentionTicket.visibleCode}.` : next ? `Siguiente: ${next.visibleCode}.` : 'Sin turnos compatibles por ahora.'}
         </WorkerText>
       </View>
 
-      <View style={[workerUiStyles.card, styles.operationsHeader]}>
-        <View>
-          <WorkerText variant="eyebrow" color={workerColors.muted}>Estado personal</WorkerText>
-          <WorkerText variant="headline">{availability ? availabilityLabel[availability] : 'Sin disponibilidad'}</WorkerText>
+      <View style={workerUiStyles.card}>
+        <WorkerText variant="eyebrow" color={workerColors.muted}>Tu disponibilidad</WorkerText>
+        <View style={styles.stateStrip}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: availability === 'disponible' }}
+            disabled={isActing}
+            onPress={() => void changeAvailability('disponible')}
+            style={[styles.chip, availability === 'disponible' ? styles.chipSelected : null]}
+          >
+            <WorkerText variant="label" color={availability === 'disponible' ? '#FFFFFF' : workerColors.body}>Disponible</WorkerText>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: availability === 'fuera_de_turno' }}
+            disabled={isActing}
+            onPress={() => void changeAvailability('fuera_de_turno')}
+            style={[styles.chip, availability === 'fuera_de_turno' ? styles.chipSelected : null]}
+          >
+            <WorkerText variant="label" color={availability === 'fuera_de_turno' ? '#FFFFFF' : workerColors.body}>Fuera de turno</WorkerText>
+          </Pressable>
         </View>
-        <View style={styles.operationalFacts}>
-          <WorkerPill label="TIEMPO REAL" tone="teal" />
-          <WorkerText variant="label" color={workerColors.muted}>{tickets.length} compatibles</WorkerText>
-        </View>
+        {availability === 'ocupado' ? <WorkerText variant="label" color={workerColors.muted}>Estás ocupado con una atención en curso.</WorkerText> : null}
       </View>
 
       {isLoading ? (
         <View accessibilityRole="progressbar" style={workerUiStyles.card}>
-          <WorkerText variant="headline">Actualizando operación…</WorkerText>
+          <WorkerText variant="headline">Actualizando tu día…</WorkerText>
           <WorkerText color={workerColors.muted}>Consultando tu estado y cola compatible.</WorkerText>
+        </View>
+      ) : null}
+
+      {!isLoading ? (
+        <View style={styles.metrics}>
+          <View style={styles.metric}>
+            <WorkerText variant="metric">{tickets.length}</WorkerText>
+            <WorkerText variant="label" color={workerColors.muted}>En espera</WorkerText>
+          </View>
+          <View style={styles.metric}>
+            <WorkerText variant="metric">{attentionTicket ? 1 : 0}</WorkerText>
+            <WorkerText variant="label" color={workerColors.muted}>En atención</WorkerText>
+          </View>
+          <View style={styles.metric}>
+            <WorkerText variant="metric">{freeStations}</WorkerText>
+            <WorkerText variant="label" color={workerColors.muted}>Equipo libre</WorkerText>
+          </View>
         </View>
       ) : null}
 
       {!isLoading && attentionTicket ? (
         <View style={[workerUiStyles.card, styles.attentionCard]}>
           <View style={workerUiStyles.split}>
-            <WorkerText variant="eyebrow" color={workerColors.teal}>En atención ahora</WorkerText>
+            <WorkerText variant="eyebrow" color={workerColors.teal}>Tu acción principal</WorkerText>
             <WorkerPill label="EN ATENCIÓN" tone="teal" />
           </View>
           <WorkerText variant="metric">{attentionTicket.visibleCode}</WorkerText>
-          <WorkerText variant="eyebrow" color={workerColors.muted}>Tiempo en atención</WorkerText>
-          <WorkerText variant="headline">{attentionElapsed ? `${attentionElapsed} en curso` : 'Tiempo no disponible'}</WorkerText>
+          <WorkerText variant="label" color={workerColors.muted}>{attentionElapsed ? `${attentionElapsed} en curso` : 'Tiempo no disponible'}</WorkerText>
           <TicketDetail ticket={attentionTicket} />
-          <View style={styles.attentionActions}>
-            <WorkerButton
-              label="Finalizar atención"
-              disabled={isActing}
-              onPress={() => void act(() => finishMyService(attentionTicket.ticketId), 'Turno finalizado.')}
-            />
-            <WorkerButton
-              label="Marcar ausente"
-              tone="danger"
-              disabled={isActing}
-              onPress={() => void act(() => markMyTicketAbsent(attentionTicket.ticketId), 'Turno marcado como ausente.')}
-            />
-          </View>
+          <WorkerButton
+            label="Finalizar atención"
+            disabled={isActing}
+            onPress={() => void act(() => finishMyService(attentionTicket.ticketId), 'Turno finalizado.')}
+          />
+          <WorkerButton
+            label="Marcar ausente"
+            tone="secondary"
+            disabled={isActing}
+            onPress={() => void act(() => markMyTicketAbsent(attentionTicket.ticketId), 'Turno marcado como ausente.')}
+          />
         </View>
       ) : null}
 
-      {!isLoading && next ? (
+      {!isLoading && !attentionTicket && next ? (
         <View style={[workerUiStyles.card, styles.nextCallout]}>
-          <WorkerText variant="eyebrow" color={workerColors.teal}>Siguiente</WorkerText>
-          <View style={workerUiStyles.split}>
-            <WorkerText variant="metric">{next.visibleCode}</WorkerText>
-            <WorkerIcon name="live" color={workerColors.teal} size={30} />
-          </View>
+          <WorkerText variant="eyebrow" color={workerColors.teal}>Tu acción principal</WorkerText>
+          <WorkerText variant="metric">{next.visibleCode}</WorkerText>
           <WorkerText variant="label" color={workerColors.muted}>
-            {next.waitMinutes > 0 ? `~${next.waitMinutes} min de espera` : 'Próximo en la fila'}
+            {next.serviceName || next.queueName}{next.waitMinutes > 0 ? ` · ~${next.waitMinutes} min` : ' · Próximo'}
           </WorkerText>
-          <WorkerButton label="Llamar al cliente" disabled={isActing || availability !== 'disponible'} onPress={() => void callNext()} />
+          {availability === 'disponible' ? (
+            <WorkerButton label={isCallingNext ? 'Llamando…' : 'Llamar al cliente'} disabled={isActing || isCallingNext} onPress={() => void callNext()} />
+          ) : (
+            <WorkerText variant="label" color={workerColors.muted}>Ponte disponible para llamar este turno.</WorkerText>
+          )}
         </View>
       ) : null}
 
-      <WorkerStations stations={stations} isLoading={stationsLoading} />
-
-      {!isLoading && tickets.length === 0 ? (
+      {!isLoading && !attentionTicket && tickets.length === 0 ? (
         <View style={workerUiStyles.card}>
-          <WorkerText variant="headline">No hay turnos compatibles</WorkerText>
+          <WorkerText variant="headline">Día despejado</WorkerText>
           <WorkerText color={workerColors.muted}>
-            {availability === 'fuera_de_turno' ? 'Marca tu disponibilidad para recibir nuevos turnos.' : 'Los turnos compatibles aparecerán aquí.'}
+            {availability === 'fuera_de_turno' ? 'Ponte disponible para recibir turnos.' : 'Los turnos compatibles aparecerán aquí.'}
           </WorkerText>
         </View>
       ) : null}
 
-      <View style={styles.sectionHeading}>
-        <WorkerText variant="headline">Cola de hoy</WorkerText>
-        <WorkerText color={workerColors.muted}>El detalle vive en Cola; aquí solo tu siguiente acción.</WorkerText>
+      <View style={workerUiStyles.card}>
+        <WorkerButton label={showTeam ? 'Ocultar equipo' : `Ver equipo (${stations.length})`} tone="secondary" onPress={() => setShowTeam((current) => !current)} />
+        {showTeam ? <WorkerStations stations={stations} isLoading={stationsLoading} /> : null}
       </View>
 
       <WorkerButton label={`Ver cola completa (${tickets.length})`} tone="secondary" onPress={() => router.push('/(app)/worker-queue')} />
-
-      <WorkerButton label="Agregar cliente presencial" onPress={() => router.push('/(app)/worker-walk-in')} />
-
-      {selected ? (
-        <Modal transparent animationType="slide" visible onRequestClose={() => setSelected(null)}>
-          <Pressable onPress={() => setSelected(null)} style={styles.modalBackdrop}>
-            <Pressable onPress={() => {}} style={[workerUiStyles.card, styles.modalCard]}>
-              <WorkerText variant="eyebrow" color={workerColors.teal}>Detalle del turno</WorkerText>
-              <WorkerText variant="metric">{selected.visibleCode}</WorkerText>
-              <WorkerText variant="label">Cliente: {demoClientName(selected)}</WorkerText>
-              <WorkerText variant="label">Servicio: {selected.serviceName || selected.queueName}</WorkerText>
-              <WorkerText variant="label">Barbero asignado: {selected.assignedBarberName ?? 'Por asignar'}</WorkerText>
-              <WorkerText variant="label">Tolerancia: {selectedTolerance ?? '-'}</WorkerText>
-              <WorkerText variant="label">Pago: {servicePrices[selected.serviceName ?? ''] ?? '-'}</WorkerText>
-              <WorkerButton label="Cerrar" tone="secondary" disabled={isActing} onPress={() => setSelected(null)} />
-            </Pressable>
-          </Pressable>
-        </Modal>
-      ) : null}
+      <WorkerButton label="Agregar cliente presencial" tone="secondary" onPress={() => router.push('/(app)/worker-walk-in')} />
     </>
   );
 
@@ -472,6 +469,10 @@ const styles = StyleSheet.create({
   operationsHeader: { gap: 12 },
   operationalFacts: { alignItems: 'center', flexDirection: 'row', gap: 10 },
   stateStrip: { flexDirection: 'row', gap: 8 },
+  chip: { alignItems: 'center', backgroundColor: workerColors.low, borderColor: workerColors.outline, borderRadius: 999, borderWidth: 1, flex: 1, paddingVertical: 10 },
+  chipSelected: { backgroundColor: workerColors.ink, borderColor: workerColors.ink },
+  metrics: { flexDirection: 'row', gap: 8 },
+  metric: { alignItems: 'center', backgroundColor: workerColors.card, borderColor: workerColors.outline, borderRadius: 12, borderWidth: 1, flex: 1, gap: 2, paddingVertical: 12 },
   attentionCard: { gap: 12 },
   attentionActions: { gap: 8 },
   nextCallout: { backgroundColor: workerColors.low, borderRadius: 12, gap: 12, padding: 20 },

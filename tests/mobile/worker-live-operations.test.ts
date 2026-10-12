@@ -51,7 +51,7 @@ describe('Worker live operations mapping', () => {
   it('lets the worker mark the in-service ticket absent from the attention card', () => {
     const jornada = source('../../apps/mobile/src/app/(app)/worker.tsx');
 
-    expect(jornada).toContain('En atención ahora');
+    expect(jornada).toContain('Tu acción principal');
     expect(jornada).toContain('markMyTicketAbsent(attentionTicket.ticketId)');
   });
 
