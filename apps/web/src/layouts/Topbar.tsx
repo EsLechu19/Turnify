@@ -1,31 +1,45 @@
-import { Icon } from '@/components/Icon';
+import { useNavigate } from 'react-router-dom';
+
 import { Button } from '@/components/common';
+import { useAuth } from '@/state/AuthContext';
 import { useShop } from '@/state/ShopContext';
+import { computeAlerts } from '@/data/compute';
+import { useQueue } from '@/state/QueueContext';
+import { initialsOf } from '@/utils/format';
 
 export function Topbar() {
+  const navigate = useNavigate();
+  const { session, signOut } = useAuth();
   const { business } = useShop();
-  const businessName = business?.name ?? 'Turnify';
+  const { tickets, team } = useQueue();
   const businessOwner = business?.owner ?? 'Administrador';
+  const userName = session?.user.name ?? businessOwner;
+  const roleLabel = session?.user.role === 'barbero' ? 'Barbero' : 'Administrador';
+  const alertCount = computeAlerts(tickets, team).length;
+
+  function handleSignOut() {
+    signOut();
+    navigate('/login', { replace: true });
+  }
 
   return (
     <header className="topbar">
-      <div className="topbar__left">
-        <div className="topbar__brand">
-          <img alt="" src="/turnify-logo.png" />
-          <strong>{businessName}</strong>
-        </div>
-      </div>
       <div className="topbar__right">
-        <div className="topbar__search">
-          <Icon name="search" size={18} />
-          <input type="search" placeholder="Buscar cliente, servicio..." />
-        </div>
-        <Button aria-label="Notificaciones" icon="bell" variant="ghost" size="lg" />
+        <Button
+          aria-label={alertCount === 0 ? 'Sin alertas, ir a Inicio' : `${alertCount} alertas, ir a Inicio`}
+          icon="bell"
+          variant="ghost"
+          size="lg"
+          onClick={() => navigate('/')}
+        >
+          {alertCount > 0 ? <span aria-hidden>{alertCount}</span> : null}
+        </Button>
+        <Button aria-label="Cerrar sesión" icon="logout" variant="ghost" size="lg" onClick={handleSignOut} />
         <div className="topbar__user">
-          <span className="topbar__avatar">ER</span>
+          <span className="topbar__avatar">{initialsOf(userName)}</span>
           <div className="topbar__user-info">
-            <strong>{businessOwner}</strong>
-            <span>Administrador</span>
+            <strong>{userName}</strong>
+            <span>{roleLabel}</span>
           </div>
         </div>
       </div>

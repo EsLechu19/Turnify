@@ -1,7 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { Icon, type IconName } from '@/components/Icon';
-import { Button } from '@/components/common';
 import { useAuth } from '@/state/AuthContext';
 import { useShop } from '@/state/ShopContext';
 import { initialsOf } from '@/utils/format';
@@ -27,18 +26,13 @@ export const navItems: NavItem[] = [
 export function Sidebar({ isOpen }: { isOpen: boolean }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { session, signOut } = useAuth();
+  const { session } = useAuth();
   const { business } = useShop();
   const businessName = business?.name ?? 'Turnify';
   const businessBranch = business?.branch ?? '';
   const businessOwner = business?.owner ?? 'Panel';
 
   const isCurrent = (to: string) => (to === '/' ? pathname === '/' : pathname.startsWith(to));
-
-  function handleSignOut() {
-    signOut();
-    navigate('/login', { replace: true });
-  }
 
   return (
     <aside className="sidebar">
@@ -52,7 +46,6 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
       </div>
 
       <nav className="sidebar__section" aria-label="Secciones del panel">
-        <span className="sidebar__label">Operación</span>
         {navItems.map((item) => (
           <button
             aria-current={isCurrent(item.to) ? 'page' : undefined}
@@ -79,7 +72,12 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
         </div>
         <div className="sidebar__divider" />
         <div className="sidebar__session">
-          <span className="sidebar__status">
+          <button
+            className="sidebar__status"
+            onClick={() => navigate('/')}
+            title="Ir a Inicio para abrir o cerrar"
+            type="button"
+          >
             {isOpen ? (
               <>
                 <span className="sidebar__badge--open">●</span> Local abierto
@@ -89,11 +87,8 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
                 <span className="sidebar__badge--closed">●</span> Local cerrado
               </>
             )}
-          </span>
+          </button>
         </div>
-        <Button icon="logout" onClick={handleSignOut} variant="danger">
-          Cerrar sesión
-        </Button>
       </div>
     </aside>
   );
