@@ -65,16 +65,19 @@ describe('Worker authenticated access flow', () => {
     expect(roleCanAccessAppRoute({ role: 'admin', businessId: 'shop' }, 'worker')).toBe(false);
     expect(roleCanAccessAppRoute({ role: 'cliente', businessId: null }, 'worker')).toBe(false);
     const profile = source('../../apps/mobile/src/app/(app)/worker-profile.tsx');
-    expect(profile).toContain('WorkerAccountContainer');
-    expect(profile).not.toContain('selectWorkerShop(shop.businessId)');
-    expect(profile).toContain("router.replace('/(app)/worker-shops')");
-    expect(profile).toContain('Cambiar de barbería');
+    const content = source('../../apps/mobile/src/components/worker/worker-profile-content.tsx');
+    expect(profile).toContain('WorkerScreenContainer');
+    expect(profile).toContain('activeNavigation="profile"');
+    expect(content).not.toContain('selectWorkerShop(shop.businessId)');
+    expect(content).toContain("router.replace('/(app)/worker-shops')");
+    expect(content).toContain('Cambiar de barbería');
   });
 
   it('permits an unselected personal account only to account destinations', () => {
     const worker = { role: 'personal' as const, businessId: null };
     expect(roleCanAccessAppRoute(worker, 'worker-shops')).toBe(true);
     expect(roleCanAccessAppRoute(worker, 'worker-profile')).toBe(true);
+    expect(roleCanAccessAppRoute(worker, 'worker-account-profile')).toBe(true);
     expect(roleCanAccessAppRoute(worker, 'worker')).toBe(false);
     expect(source('../../apps/mobile/src/app/(app)/worker-shops.tsx')).toContain('requestWorkerInvitation(code)');
     expect(source('../../apps/mobile/src/app/(app)/worker-shops.tsx')).toContain("router.replace('/(app)/worker')");
@@ -82,10 +85,11 @@ describe('Worker authenticated access flow', () => {
 
   it('returns signed-out users to the login screen', () => {
     const profile = source('../../apps/mobile/src/app/(app)/profile.tsx');
-    const workerProfile = source('../../apps/mobile/src/app/(app)/worker-profile.tsx');
+    const workerProfile = source('../../apps/mobile/src/components/worker/worker-profile-content.tsx');
+    const accountProfile = source('../../apps/mobile/src/components/worker/worker-profile-content.tsx');
     const workerShops = source('../../apps/mobile/src/app/(app)/worker-shops.tsx');
 
-    for (const screen of [profile, workerProfile, workerShops]) {
+    for (const screen of [profile, workerProfile, accountProfile, workerShops]) {
       expect(screen).toContain('signOut()');
       expect(screen).not.toContain("router.replace('/(auth)/login')");
     }
@@ -123,7 +127,11 @@ describe('Worker authenticated access flow', () => {
     expect(accountNavigation.match(/label: '/g)).toHaveLength(2);
     expect(accountContainer).toContain('accountNavigationItems');
     expect(shops).toContain('WorkerAccountContainer');
-    expect(profile).toContain('WorkerAccountContainer');
+    const accountProfile = source('../../apps/mobile/src/app/(app)/worker-account-profile.tsx');
+    expect(profile).toContain('WorkerScreenContainer');
+    expect(profile).toContain('activeNavigation="profile"');
+    expect(accountProfile).toContain('WorkerAccountContainer');
+    expect(accountProfile).toContain('activeNavigation="profile"');
     expect(shops).toContain('Mis barberías');
     expect(shops).not.toContain('Mi perfil, editar foto, nombre y teléfono');
     expect(operationalNavigation).toContain("label: 'En vivo'");

@@ -7,7 +7,7 @@ const WORKER_SCREENS = [
   '../../apps/mobile/src/app/(app)/worker.tsx',
   '../../apps/mobile/src/app/(app)/worker-queue.tsx',
   '../../apps/mobile/src/app/(app)/worker-history.tsx',
-  '../../apps/mobile/src/app/(app)/worker-profile.tsx',
+    '../../apps/mobile/src/app/(app)/worker-profile.tsx',
 ];
 
 const MAX_LINE_LENGTH = 240;
@@ -33,7 +33,7 @@ describe('worker panel design', () => {
     const jornada = source('../../apps/mobile/src/app/(app)/worker.tsx');
     const queue = source('../../apps/mobile/src/app/(app)/worker-queue.tsx');
     const history = source('../../apps/mobile/src/app/(app)/worker-history.tsx');
-    const profile = source('../../apps/mobile/src/app/(app)/worker-profile.tsx');
+    const profile = source('../../apps/mobile/src/components/worker/worker-profile-content.tsx');
 
     expect(jornada).toContain('Mi jornada');
     expect(jornada).toContain('Llamar al cliente');
@@ -44,6 +44,6 @@ describe('worker panel design', () => {
     expect(queue).toContain('Agregar cliente presencial');
     expect(history).toContain('Mi historial');
     expect(profile).toContain('Mi perfil');
-    expect(profile).toContain('Salir de la barbería');
+    expect(profile).toContain('Cerrar sesión');
   });
 });

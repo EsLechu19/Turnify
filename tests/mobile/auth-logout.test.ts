@@ -22,7 +22,7 @@ describe('mobile logout regression', () => {
 
   it('routes every logout button through the shared auth transition', () => {
     for (const path of [
-      '../../apps/mobile/src/app/(app)/worker-profile.tsx',
+      '../../apps/mobile/src/components/worker/worker-profile-content.tsx',
       '../../apps/mobile/src/app/(app)/worker-shops.tsx',
       '../../apps/mobile/src/app/(app)/profile.tsx',
     ]) {
@@ -36,7 +36,7 @@ describe('mobile logout regression', () => {
     const rootLayout = source('../../apps/mobile/src/app/_layout.tsx');
     const appLayout = source('../../apps/mobile/src/app/(app)/_layout.tsx');
     const shops = source('../../apps/mobile/src/app/(app)/worker-shops.tsx');
-    const profile = source('../../apps/mobile/src/app/(app)/worker-profile.tsx');
+    const profile = source('../../apps/mobile/src/components/worker/worker-profile-content.tsx');
 
     expect(rootLayout).toContain("router.replace('/(auth)/login');");
     expect(rootLayout).toContain('isSigningOut');

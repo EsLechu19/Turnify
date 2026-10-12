@@ -23,6 +23,7 @@ export type AppRouteName =
   | 'worker-queue'
   | 'worker-history'
   | 'worker-profile'
+  | 'worker-account-profile'
   | 'worker-shops'
   | 'worker-walk-in';
 
@@ -37,7 +38,7 @@ export function appRouteNameFromSegments(segments: readonly string[]): AppRouteN
 export function roleCanAccessAppRoute(profile: AuthProfile | null | undefined, route: AppRouteName): boolean {
   if (profile?.role === 'cliente') return customerRoutes.has(route);
   if (profile?.role === 'personal') {
-    if (route === 'worker-shops' || route === 'worker-profile') return true;
+    if (route === 'worker-shops' || route === 'worker-profile' || route === 'worker-account-profile') return true;
     return typeof profile.businessId === 'string' && profile.businessId.length > 0 && workerRoutes.has(route);
   }
   return false;

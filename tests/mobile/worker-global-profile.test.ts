@@ -7,10 +7,12 @@ describe('Worker global profile', () => {
   it('uses the account navigation without losing shop flows', () => {
     const shops = source('../../apps/mobile/src/app/(app)/worker-shops.tsx');
     const accountNavigation = source('../../apps/mobile/src/features/worker/worker-account-navigation.ts');
+    const accountProfile = source('../../apps/mobile/src/app/(app)/worker-account-profile.tsx');
 
     expect(shops).toContain('WorkerAccountContainer');
     expect(accountNavigation).toContain("label: 'Mi perfil'");
-    expect(accountNavigation).toContain("href: '/(app)/worker-profile'");
+    expect(accountNavigation).toContain("href: '/(app)/worker-account-profile'");
+    expect(accountProfile).toContain('WorkerAccountContainer');
     expect(shops).toContain('requestWorkerInvitation(code)');
     expect(shops).toContain('SOLICITUDES PENDIENTES');
     expect(shops).toContain("router.replace('/(app)/worker')");
@@ -18,7 +20,7 @@ describe('Worker global profile', () => {
   });
 
   it('states the photo is shared across every barbershop', () => {
-    const profile = source('../../apps/mobile/src/app/(app)/worker-profile.tsx');
+    const profile = source('../../apps/mobile/src/components/worker/worker-profile-content.tsx');
 
     expect(profile).toContain('Cambiar foto');
     expect(profile).toContain('todas tus barberías');

@@ -24,7 +24,7 @@ describe('Worker avatar cache invalidation', () => {
 
   it('persists and returns the same cache-busted URL used by the profile', () => {
     const avatar = source('../../apps/mobile/src/features/worker/worker-avatar.ts');
-    const profile = source('../../apps/mobile/src/app/(app)/worker-profile.tsx');
+    const profile = source('../../apps/mobile/src/components/worker/worker-profile-content.tsx');
 
     expect(avatar).toContain('const publicUrl = addAvatarCacheBust(data.publicUrl, uploadedAt);');
     expect(avatar).toContain("p_foto_url: publicUrl");
