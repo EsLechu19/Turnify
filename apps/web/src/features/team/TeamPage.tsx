@@ -15,7 +15,6 @@ type StatusFilter = 'todos' | 'activo' | 'inactivo';
 type StaffModal =
   | { type: 'detail'; id: string }
   | { type: 'edit'; id: string }
-  | { type: 'services'; id: string }
   | { type: 'delete'; id: string }
   | null;
 
@@ -262,7 +261,7 @@ export function TeamPage() {
     <>
       <PageHeader
         title="Barberos y empleados"
-        subtitle={`${inLocal} en el local · ${available} disponibles para llamar · ${completedToday} cortes completados hoy.`}
+        subtitle={`${inLocal} en el local · ${available} disponibles para llamar · ${completedToday} servicios completados hoy.`}
         actions={
           <Badge icon="users" tone="brand">
             {activeCount} activos
@@ -399,20 +398,20 @@ export function TeamPage() {
                         ) : own.length === 1 ? (
                           <span>{own[0].name}</span>
                         ) : (
-                          <button
-                            className="badge badge--brand"
-                            onClick={() => setModal({ id: member.id, type: 'services' })}
-                            style={{ cursor: 'pointer' }}
-                            title="Ver servicios autorizados"
-                            type="button"
-                          >
+                            <button
+                              className="badge badge--brand"
+                              onClick={() => setModal({ id: member.id, type: 'detail' })}
+                              style={{ cursor: 'pointer' }}
+                              title="Ver ficha y servicios autorizados"
+                              type="button"
+                            >
                             <Icon name="scissors" size={13} />
                             {own.length} asignados
                           </button>
                         )}
                       </td>
                       <td>{member.completedToday}</td>
-                      <td>{member.paceMinutes == null ? <span className="muted">—</span> : `${member.paceMinutes} min/corte`}</td>
+                      <td>{member.paceMinutes == null ? <span className="muted">—</span> : `${member.paceMinutes} min/servicio`}</td>
                       <td className="cell--nowrap">
                         <div className="table__actions">
                           <IconButton
@@ -562,7 +561,7 @@ export function TeamPage() {
             <DetailRow label="Atendidos hoy" value={String(modalMember.completedToday)} />
             <DetailRow
               label="Ritmo promedio"
-              value={modalMember.paceMinutes == null ? '—' : `${modalMember.paceMinutes} min/corte`}
+              value={modalMember.paceMinutes == null ? '—' : `${modalMember.paceMinutes} min/servicio`}
             />
             <DetailRow label="Estado" value={modalMember.active ? 'Activo' : 'Inactivo'} />
             <DetailRow
@@ -574,56 +573,6 @@ export function TeamPage() {
               }
             />
           </div>
-        </Modal>
-      ) : null}
-
-      {modal?.type === 'services' && modalMember ? (
-        <Modal
-          detail="Servicios que este barbero está autorizado para atender."
-          onClose={() => setModal(null)}
-          title={`Servicios autorizados (${servicesOf(modalMember.id).length})`}
-          footer={
-            <>
-              <Button onClick={() => setModal(null)} variant="secondary">
-                Cerrar
-              </Button>
-              <Button icon="edit" onClick={() => openEdit(modalMember)}>
-                Editar asignación
-              </Button>
-            </>
-          }
-        >
-          {servicesOf(modalMember.id).length === 0 ? (
-            <EmptyState detail="Asigna servicios desde la edición del empleado." title="Sin servicios autorizados" />
-          ) : (
-            <div style={{ display: 'grid', gap: 10 }}>
-              {servicesOf(modalMember.id).map((service) => (
-                <div
-                  key={service.id}
-                  className="row-split"
-                  style={{
-                    background: 'var(--surface-muted)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-sm)',
-                    padding: '10px 14px',
-                  }}
-                >
-                  <span style={{ display: 'grid' }}>
-                    <strong style={{ font: 'var(--text-body-strong)' }}>{service.name}</strong>
-                    <span className="muted" style={{ font: 'var(--text-caption)' }}>
-                      {service.description}
-                    </span>
-                  </span>
-                  <span style={{ display: 'grid', gap: 2, justifyItems: 'end' }}>
-                    <strong>{formatPrice(service.priceCents)}</strong>
-                    <span className="muted" style={{ font: 'var(--text-caption)' }}>
-                      {formatDuration(service.durationSeconds)}
-                    </span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
         </Modal>
       ) : null}
 

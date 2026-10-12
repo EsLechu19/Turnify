@@ -33,14 +33,18 @@ const member = (overrides: Partial<TeamMember>): TeamMember => ({
 });
 
 describe('professional dashboard board', () => {
-  it('shows a read-only board without fake actions or invented waits', () => {
-    const card = read('apps', 'web', 'src', 'features', 'dashboard', 'components', 'ActiveQueueCard.tsx');
+  it('shows a read-only live board without fake actions or invented waits', () => {
+    const card = read('apps', 'web', 'src', 'features', 'dashboard', 'components', 'LiveQueueCard.tsx');
 
     expect(card).not.toContain('onCall');
     expect(card).not.toContain('onAssign');
     expect(card).not.toContain('AVISAR');
     expect(card).not.toContain('waitedMinutes + 5');
-    expect(card).toContain("navigate('/cola')");
+    expect(card).not.toContain('/cola');
+  });
+
+  it('removed the dead queue board that pointed to a route that never existed', () => {
+    expect(() => read('apps', 'web', 'src', 'features', 'dashboard', 'components', 'ActiveQueueCard.tsx')).toThrow();
   });
 
   it('compares against yesterday instead of fixed trend copy', () => {
@@ -51,14 +55,22 @@ describe('professional dashboard board', () => {
     expect(cards).toContain('compare');
   });
 
-  it('wires alerts, ratings and yesterday compare on the dashboard', () => {
+  it('wires alerts, live board, revenue and yesterday compare on the dashboard', () => {
     const dashboard = read('apps', 'web', 'src', 'features', 'dashboard', 'DashboardPage.tsx');
     const live = read('apps', 'web', 'src', 'data', 'live.ts');
+    const routes = read('apps', 'web', 'src', 'app', 'routes.tsx');
+    const topbar = read('apps', 'web', 'src', 'layouts', 'Topbar.tsx');
+    const history = read('apps', 'web', 'src', 'features', 'history', 'HistoryPage.tsx');
 
     expect(dashboard).not.toContain('Pausar fila');
     expect(dashboard).toContain('AlertsCard');
-    expect(dashboard).toContain('RatingsCard');
+    expect(dashboard).toContain('LiveQueueCard');
+    expect(dashboard).toContain('RevenueCard');
+    expect(dashboard).not.toContain('RatingsCard');
+    expect(history).toContain('Rendimiento por barbero');
     expect(live).toContain('fetchYesterdayCompare');
+    expect(routes).not.toContain('/cola');
+    expect(topbar).toContain('Cerrar sesión');
   });
 });
 

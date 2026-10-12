@@ -1,45 +1,38 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { Button, PageHeader, TwoColumnGrid } from '@/components/common';
+import { Button, PageHeader } from '@/components/common';
 import { computeAlerts } from '@/data/compute';
-import { fetchDailySummary, fetchDemandEstimate, fetchRatings, fetchShopSettings, fetchYesterdayCompare, saveShopSettings, type DailySummary, type RatingByBarber } from '@/data/live';
-import type { DemandEstimate } from '@/data/types';
+import { fetchShopSettings, fetchYesterdayCompare, saveShopSettings } from '@/data/live';
 import type { StatsCompare } from './components/StatCards';
 import { useQueue } from '@/state/QueueContext';
 import { useShop } from '@/state/ShopContext';
 import { AlertsCard } from './components/AlertsCard';
-import { DailySummaryCard } from './components/DailySummaryCard';
 import { LiveQueueCard } from './components/LiveQueueCard';
 import { OperatingVerdict } from './components/OperatingVerdict';
-import { RatingsCard } from './components/RatingsCard';
 import { RevenueCard } from './components/RevenueCard';
-import { SectionOverview } from './components/SectionOverview';
 import { StatCards } from './components/StatCards';
-import { HourlyDemandCard } from '../history/components/HourlyDemandCard';
 
 const todayLabel = new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 
+/**
+ * Inicio: solo el hoy en vivo. Tendencias y reportes viven en Historial;
+ * el mapa de secciones vive en el sidebar, no duplicado aquí.
+ */
 export function DashboardPage() {
   const { tickets, team, stats, loading, error, refresh, refreshVersion, next } = useQueue();
   const { business, open, refreshShop } = useShop();
   const [togglingOpen, setTogglingOpen] = useState(false);
   const [toggleError, setToggleError] = useState<string | null>(null);
-  const [estimate, setEstimate] = useState<DemandEstimate[] | null>(null);
-  const [summary, setSummary] = useState<DailySummary | null>(null);
   const [compare, setCompare] = useState<StatsCompare | null>(null);
-  const [ratings, setRatings] = useState<RatingByBarber[] | null>(null);
   const [metricsError, setMetricsError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
 
-    Promise.all([fetchDemandEstimate(), fetchDailySummary(), fetchYesterdayCompare(), fetchRatings()])
-      .then(([nextEstimate, nextSummary, nextCompare, nextRatings]) => {
+    fetchYesterdayCompare()
+      .then((nextCompare) => {
         if (!active) return;
-        setEstimate(nextEstimate);
-        setSummary(nextSummary);
         setCompare(nextCompare);
-        setRatings(nextRatings);
         setMetricsError(null);
       })
       .catch((fetchError: unknown) => {
@@ -110,24 +103,6 @@ export function DashboardPage() {
         <LiveQueueCard />
 
         <RevenueCard />
-      </section>
-
-      <section aria-label="Tendencias">
-        <TwoColumnGrid>
-          <HourlyDemandCard tickets={tickets} estimate={estimate} />
-          <DailySummaryCard summary={summary} />
-        </TwoColumnGrid>
-
-        <TwoColumnGrid>
-          <RatingsCard ratings={ratings} />
-        </TwoColumnGrid>
-      </section>
-
-      <section aria-label="Secciones del panel">
-        <SectionOverview
-          availableCount={team.filter((m) => m.availability === 'disponible').length}
-          teamSize={team.length}
-        />
       </section>
     </>
   );
