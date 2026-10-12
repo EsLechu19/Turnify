@@ -11,13 +11,16 @@ import { useGuestFlow } from '@/features/public/guest-flow-session';
 
 function BarberOption({ barber, selected, onPress }: { barber: CommercialBarber; selected: boolean; onPress(): void }) {
   const available = barber.operationalState === 'disponible';
-  const status = available ? 'Disponible' : 'Ocupado';
+  const status = available ? 'Disponible' : 'En atención';
 
   return (
     <OptionCard
       accessibilityLabel={`Elegir a ${barber.name}, ${status}`}
       badge={status}
       badgeTone={available ? 'success' : 'neutral'}
+      detail={available ? undefined : 'En atención ahora · tu turno espera a que se libere.'}
+      icon="user"
+      imageUrl={barber.fotoUrl}
       onPress={onPress}
       selected={selected}
       title={barber.name}
@@ -57,7 +60,7 @@ export default function BarberScreen() {
           <Text style={[TypeScale.body, styles.subtitle]}>
             Puedes indicar una preferencia o dejar la elección flexible.
           </Text>
-          <StepTracker activeStep={1} steps={['Servicio', 'Barbero', 'Confirmar']} />
+          {hasBarbers ? <StepTracker activeStep={1} steps={['Servicio', 'Barbero', 'Confirmar']} /> : null}
         </View>
 
         {selectedService ? (
@@ -112,6 +115,8 @@ export default function BarberScreen() {
             <Text style={[TypeScale.bodySmall, { color: Palette.inkMuted, textAlign: 'center' }]}>
               Vuelve a elegir un servicio o consulta en el local.
             </Text>
+            <Button label="Elegir otro servicio" onPress={() => router.back()} variant="secondary" />
+            <Button label="Ir al inicio" onPress={() => router.replace('/')} variant="link" />
           </Card>
         )}
 
@@ -133,16 +138,16 @@ export default function BarberScreen() {
             {draft.requestedBarberId === null ? 'Elección flexible' : 'Barbero seleccionado'}
           </Text>
         </View>
-        <Button
-          accessibilityLabel="Continuar con los datos del turno"
-          accessibilityState={{ disabled: !hasBarbers }}
-          disabled={!hasBarbers}
-          fullWidth
-          iconRight="arrow-right"
-          label="Continuar"
-          onPress={() => router.push('/(public)/details')}
-          size="lg"
-        />
+        {hasBarbers ? (
+          <Button
+            accessibilityLabel="Continuar con los datos del turno"
+            fullWidth
+            iconRight="arrow-right"
+            label="Continuar"
+            onPress={() => router.push('/(public)/details')}
+            size="lg"
+          />
+        ) : null}
       </StickyBar>
     </Screen>
   );
