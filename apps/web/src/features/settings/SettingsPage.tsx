@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import QRCode from 'qrcode';
 
-import { Badge, Button, Modal, PageHeader, SectionCard, SelectField, StatsRow, SwitchField } from '@/components/common';
+import { Badge, Button, ConfirmModal, Modal, PageHeader, SectionCard, SelectField, StatsRow, SwitchField } from '@/components/common';
 import { Icon } from '@/components/Icon';
 import { fetchShopSettings, saveShopSettings, type ShopSettings } from '@/data/live';
 import { isSupabaseConfigured } from '@/data/supabase';
@@ -32,7 +32,7 @@ const demoConfig: ShopConfig = {
   shopAddress: null,
 };
 
-function CardIcon({ name }: { name: 'clock' | 'users' | 'store' | 'bell' }) {
+function CardIcon({ name }: { name: 'clock' | 'users' | 'store' | 'bell' | 'info' }) {
   return (
     <span
       style={{
@@ -69,6 +69,8 @@ export function SettingsPage() {
   const [lastModified, setLastModified] = useState('Sin cambios en esta sesión');
   const [showQr, setShowQr] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [showDiscard, setShowDiscard] = useState(false);
+  const [togglingOpen, setTogglingOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -119,6 +121,39 @@ export function SettingsPage() {
     setSaved(false);
     setError(null);
     setConfig((current) => ({ ...current, [key]: value }));
+  }
+
+  /** Abrir/cerrar se aplica al instante: es lo único aquí que mueve plata. */
+  async function toggleOpen(next: boolean) {
+    if (togglingOpen || loading) return;
+    setTogglingOpen(true);
+    setError(null);
+    const previous = config.open;
+    setConfig((current) => ({ ...current, open: next }));
+    try {
+      if (!isSupabaseConfigured()) {
+        setSaved(true);
+        setLastModified('Modo demo: el cambio no sale de este dispositivo.');
+        return;
+      }
+      await saveShopSettings({ ...config, open: next });
+      setSaved(true);
+      setLastModified(
+        new Date().toLocaleString('es-PE', {
+          timeZone: 'America/Lima',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        }),
+      );
+    } catch {
+      setConfig((current) => ({ ...current, open: previous }));
+      setError('No pudimos cambiar el estado del local. Intenta de nuevo.');
+    } finally {
+      setTogglingOpen(false);
+    }
   }
 
   function save(event?: FormEvent) {
@@ -202,17 +237,29 @@ export function SettingsPage() {
         ]}
       />
 
+      {!isSupabaseConfigured() ? (
+        <SectionCard
+          title="Modo demo"
+          detail="Sin Supabase: todo lo que cambies aquí vive solo en este dispositivo."
+          icon={<CardIcon name="info" />}
+        >
+          <p className="muted" style={{ font: 'var(--text-body)', margin: 0 }}>
+            Conecta Supabase para mover la app real y el panel del equipo.
+          </p>
+        </SectionCard>
+      ) : null}
+
       <SectionCard
         title="Estado del local"
-        detail="Abrir o cerrar mueve la toma de turnos en la app al instante."
+        detail="Abrir o cerrar se aplica al instante, sin pasar por Guardar."
         icon={<CardIcon name="store" />}
       >
         <SwitchField
           id="shop-open"
-          label="Local abierto"
+          label={togglingOpen ? 'Cambiando estado…' : 'Local abierto'}
           detail="Cerrado: la app no acepta turnos nuevos hasta reabrir."
           checked={config.open}
-          onChange={(v) => update('open', v)}
+          onChange={(v) => void toggleOpen(v)}
         />
 
         <Divider />
@@ -250,7 +297,9 @@ export function SettingsPage() {
             { label: '1 minuto', value: 1 },
             { label: '3 minutos', value: 3 },
             { label: '5 minutos', value: 5 },
+            { label: '7 minutos', value: 7 },
             { label: '10 minutos', value: 10 },
+            { label: '12 minutos', value: 12 },
             { label: '15 minutos', value: 15 },
           ]}
           help={`Al vencer ${config.graceMinutes} min sin presentarse, el turno se marca ausente.`}
@@ -315,7 +364,7 @@ export function SettingsPage() {
       <SectionCard
         title="Reglas fijas del sistema"
         detail="Las define el producto y no se configuran aquí."
-        icon={<CardIcon name="bell" />}
+        icon={<CardIcon name="info" />}
       >
         <div style={{ display: 'grid', gap: 8 }}>
           <p className="muted" style={{ font: 'var(--text-body)', margin: 0 }}>
@@ -331,9 +380,9 @@ export function SettingsPage() {
       </SectionCard>
 
       <SectionCard
-        title="Configuración operativa lista para producción"
+        title="Guardar cambios"
         detail={`Última modificación: ${lastModified}`}
-        action={<Badge tone={saved ? 'success' : 'neutral'}>{saved ? 'Cambios guardados' : 'Lista para producción'}</Badge>}
+        action={<Badge tone={saved ? 'success' : 'gold'}>{saved ? 'Guardado' : 'Cambios sin guardar'}</Badge>}
       >
         {loading ? (
           <p className="muted" style={{ font: 'var(--text-body)', margin: 0 }}>
@@ -346,8 +395,8 @@ export function SettingsPage() {
           </p>
         ) : null}
         <div className="filters">
-          <Button onClick={reset} variant="secondary">
-            Restablecer valores
+          <Button onClick={() => setShowDiscard(true)} variant="secondary">
+            Descartar cambios
           </Button>
           <Button disabled={status === 'saving'} style={{ ...tealStyle, width: '100%' }} type="submit">
             {status === 'saving' ? 'Guardando…' : 'Guardar configuración operativa'}
@@ -355,6 +404,17 @@ export function SettingsPage() {
           {saved ? <span className="muted">Cambios guardados{saved && isSupabaseConfigured() ? ' en el servidor.' : ' en este dispositivo.'}</span> : null}
         </div>
       </SectionCard>
+
+      <ConfirmModal
+        confirmIcon="refresh"
+        confirmLabel="Descartar"
+        confirmVariant="primary"
+        detail="Se pierden los cambios sin guardar y vuelve lo del servidor."
+        onCancel={() => setShowDiscard(false)}
+        onConfirm={() => { setShowDiscard(false); reset(); }}
+        open={showDiscard}
+        title="¿Descartar cambios?"
+      />
 
       {showQr ? (
         <Modal
@@ -386,11 +446,11 @@ export function SettingsPage() {
             <span className="muted">{ticketUrl}</span>
           </div>
 
-          <p className="muted" style={{ margin: 0 }}>
-            {config.open
-              ? 'El QR está activo y acepta turnos mientras la empresa esté abierta.'
-              : 'El QR está desactivado: el enlace no aceptará turnos nuevos.'}
-          </p>
+            <p className="muted" style={{ margin: 0 }}>
+              {config.open
+                ? 'El local recibe turnos: este código acepta turnos nuevos.'
+                : 'Local cerrado: el papel sigue en el mostrador, pero el servidor rechaza turnos nuevos hasta reabrir.'}
+            </p>
         </Modal>
       ) : null}
     </form>
