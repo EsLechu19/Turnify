@@ -7,7 +7,12 @@ export interface StatsCompare {
   absent: number | null;
 }
 
-function deltaFoot(current: number, previous: number | null, unit: string): { text: string; className: string } {
+function deltaFoot(
+  current: number,
+  previous: number | null,
+  unit: string,
+  goodWhenUp: boolean,
+): { text: string; className: string } {
   if (previous === null) {
     return { text: 'Hoy', className: 'muted' };
   }
@@ -18,23 +23,26 @@ function deltaFoot(current: number, previous: number | null, unit: string): { te
     return { text: `Igual que ayer`, className: 'muted' };
   }
 
+  const good = diff > 0 === goodWhenUp;
+  const direction = diff > 0 ? '▲' : '▼';
+
   return {
-    text: `${diff > 0 ? '▲' : '▼'} ${Math.abs(diff)} ${unit} vs. ayer`,
-    className: diff > 0 ? 'trend trend--up' : 'trend trend--down',
+    text: `${direction} ${Math.abs(diff)}${unit ? ` ${unit}` : ''} vs. ayer`,
+    className: good ? 'trend trend--up' : 'trend trend--down',
   };
 }
 
 export function StatCards({ stats, compare }: { stats: PanelStats; compare?: StatsCompare | null }) {
-  const wait = deltaFoot(stats.averageWaitMinutes, compare?.avgWaitMinutes ?? null, 'min');
-  const absent = deltaFoot(stats.absent, compare?.absent ?? null, '');
+  const wait = deltaFoot(stats.averageWaitMinutes, compare?.avgWaitMinutes ?? null, 'min', false);
+  const absent = deltaFoot(stats.absent, compare?.absent ?? null, '', false);
 
   return (
     <div className="grid grid--stats">
       <StatCard
-        foot={<span className="muted">Esperando en sala</span>}
-        icon="users"
-        label="Esperando en sala"
-        value={String(stats.waiting)}
+        foot={<span className="muted">Turnos cerrados hoy</span>}
+        icon="check"
+        label="Atendidos hoy"
+        value={String(stats.completed)}
       />
       <StatCard
         foot={<span className="muted">En atención ahora</span>}

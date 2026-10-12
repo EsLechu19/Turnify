@@ -1,3 +1,6 @@
+import { useNavigate } from 'react-router-dom';
+
+import { Button } from '@/components/common';
 import type { PanelAlert } from '@/data/compute';
 
 export type OperatingState = 'normal' | 'atencion' | 'critica';
@@ -26,16 +29,19 @@ export function OperatingVerdict({
   completed,
   absent,
   alerts,
+  nextCode,
 }: {
   waiting: number;
   completed: number;
   absent: number;
   alerts: PanelAlert[];
+  nextCode: string | null;
 }) {
+  const navigate = useNavigate();
   const state = resolveOperatingState(alerts.length, alerts.some((alert) => alert.tone === 'danger'));
 
   return (
-    <div role="status" style={{ alignItems: 'center', display: 'flex', gap: 12, margin: '4px 0 16px' }}>
+    <div role="status" style={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 12, margin: '4px 0 16px' }}>
       <span
         aria-hidden
         style={{ background: stateColor[state], borderRadius: '50%', flex: 'none', height: 14, width: 14 }}
@@ -46,7 +52,16 @@ export function OperatingVerdict({
       </p>
       <p className="muted" style={{ font: 'var(--text-body)', margin: 0 }}>
         {waiting} en cola · {completed} atendidos · {absent} ausentes
+        {nextCode ? ` · siguiente: ${nextCode}` : ''}
       </p>
+      <span style={{ display: 'inline-flex', gap: 8, marginLeft: 'auto' }}>
+        <Button variant="ghost" size="sm" onClick={() => navigate('/equipo')}>
+          Ver equipo
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => navigate('/historial')}>
+          Ver historial
+        </Button>
+      </span>
     </div>
   );
 }

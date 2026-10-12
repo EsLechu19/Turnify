@@ -1,4 +1,6 @@
-import { Card, CardHead } from '@/components/common';
+import { useNavigate } from 'react-router-dom';
+
+import { Button, Card, CardHead } from '@/components/common';
 import type { PanelAlert } from '@/data/compute';
 
 const toneColor: Record<PanelAlert['tone'], string> = {
@@ -8,6 +10,8 @@ const toneColor: Record<PanelAlert['tone'], string> = {
 };
 
 export function AlertsCard({ alerts }: { alerts: PanelAlert[] }) {
+  const navigate = useNavigate();
+
   return (
     <Card>
       <CardHead detail="Lo que necesita tu ojo ahora" title="Alertas operativas" />
@@ -23,7 +27,10 @@ export function AlertsCard({ alerts }: { alerts: PanelAlert[] }) {
                 aria-hidden
                 style={{ background: toneColor[alert.tone], borderRadius: '50%', flex: 'none', height: 10, width: 10 }}
               />
-              <span style={{ font: 'var(--text-body)' }}>{alert.message}</span>
+              <span style={{ flex: 1, font: 'var(--text-body)' }}>{alert.message}</span>
+              <Button variant="ghost" size="sm" onClick={() => navigate(alert.to)}>
+                {alert.to === '/equipo' ? 'Ver equipo' : 'Ver historial'}
+              </Button>
             </div>
           ))}
         </div>

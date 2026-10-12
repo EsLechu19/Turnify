@@ -14,7 +14,6 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { to: '/', label: 'Inicio', icon: 'grid' },
-  { to: '/cola', label: 'Cola en tiempo real', icon: 'list' },
   { to: '/servicios', label: 'Servicios', icon: 'ticket' },
   { to: '/equipo', label: 'Barberos y empleados', icon: 'users' },
   { to: '/historial', label: 'Historial y reportes', icon: 'chart' },
@@ -50,13 +49,6 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
           <span>Panel</span>
           <span>{businessBranch}</span>
         </div>
-      </div>
-
-      <div className="sidebar__salon-status">
-        <span className="sidebar__salon-badge" aria-label="Estado del salón">
-          <span className="sidebar__salon-dot" />
-        </span>
-        <span className="sidebar__salon-label">Estado del salón</span>
       </div>
 
       <nav className="sidebar__section" aria-label="Secciones del panel">
@@ -98,7 +90,6 @@ export function Sidebar({ isOpen }: { isOpen: boolean }) {
               </>
             )}
           </span>
-          <span className="sidebar__shift">Turno: Mañana (8:00 - 14:00)</span>
         </div>
         <Button icon="logout" onClick={handleSignOut} variant="danger">
           Cerrar sesión

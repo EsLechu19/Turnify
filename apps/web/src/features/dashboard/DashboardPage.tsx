@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { PageHeader, TwoColumnGrid } from '@/components/common';
+import { Button, PageHeader, TwoColumnGrid } from '@/components/common';
 import { computeAlerts } from '@/data/compute';
 import { fetchDailySummary, fetchDemandEstimate, fetchRatings, fetchYesterdayCompare, type DailySummary, type RatingByBarber } from '@/data/live';
 import type { DemandEstimate } from '@/data/types';
@@ -15,8 +15,10 @@ import { SectionOverview } from './components/SectionOverview';
 import { StatCards } from './components/StatCards';
 import { HourlyDemandCard } from '../history/components/HourlyDemandCard';
 
+const todayLabel = new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+
 export function DashboardPage() {
-  const { tickets, team, stats, loading, error, refreshVersion } = useQueue();
+  const { tickets, team, stats, loading, error, refresh, refreshVersion, next } = useQueue();
   const { business } = useShop();
   const [estimate, setEstimate] = useState<DemandEstimate[] | null>(null);
   const [summary, setSummary] = useState<DailySummary | null>(null);
@@ -50,10 +52,17 @@ export function DashboardPage() {
 
   return (
     <>
-      <PageHeader title={business?.name ?? 'Turnify'} subtitle="Panel operativo" />
+      <PageHeader title={business?.name ?? 'Turnify'} subtitle={`Panel operativo · ${todayLabel}`} />
 
       {loading ? <p className="muted" role="status">Actualizando la operación…</p> : null}
-      {error || metricsError ? <p className="auth__error" role="alert">{error ?? metricsError}</p> : null}
+      {error || metricsError ? (
+        <div style={{ alignItems: 'center', display: 'flex', gap: 12 }}>
+          <p className="auth__error" role="alert" style={{ margin: 0 }}>{error ?? metricsError}</p>
+          <Button variant="secondary" size="sm" onClick={refresh}>
+            Reintentar
+          </Button>
+        </div>
+      ) : null}
 
       <section aria-label="Estado de hoy">
         <OperatingVerdict
@@ -61,6 +70,7 @@ export function DashboardPage() {
           completed={stats.completed}
           absent={stats.absent}
           alerts={alerts}
+          nextCode={next?.code ?? null}
         />
 
         <StatCards stats={stats} compare={compare} />
