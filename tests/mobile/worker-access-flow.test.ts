@@ -35,7 +35,9 @@ describe('Worker authenticated access flow', () => {
     expect(login).not.toContain("router.replace('/(app)/worker')");
     expect(login).not.toContain('label="Cliente"');
     expect(login).not.toContain('label="Empleado"');
-    expect(login).toContain('label="Ingresar"');
+    expect(login).toContain('AuthButton');
+    expect(login).toContain('Ingresar');
+    expect(login).toContain('Entrando');
     expect(login).toContain('Tomar un turno');
   });
 

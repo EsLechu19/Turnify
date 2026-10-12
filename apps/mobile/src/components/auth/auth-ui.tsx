@@ -159,5 +159,5 @@ const styles = StyleSheet.create({
     gap: space(2),
     padding: space(3.5),
   },
-  errorLabel: { color: Palette.danger, flex: 1, fontSize: 13, fontWeight: '600', lineHeight: 18 },
+  errorLabel: { color: Palette.dangerInk, flex: 1, fontSize: 13, fontWeight: '600', lineHeight: 18 },
 });
