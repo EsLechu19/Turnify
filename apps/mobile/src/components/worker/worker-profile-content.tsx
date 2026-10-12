@@ -1,17 +1,15 @@
-import { Image, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 
-import { WorkerButton, WorkerPill, WorkerText, workerColors, workerUiStyles } from '@/components/worker/worker-ui';
+import { WorkerButton, WorkerText, workerColors, workerUiStyles } from '@/components/worker/worker-ui';
 import { useAuth } from '@/features/auth/use-auth';
 import { getMyWorkerAvatar, pickWorkerAvatar, uploadWorkerAvatar } from '@/features/worker/worker-avatar';
 import { getMyWorkerProfileDetails, updateMyWorkerProfileDetails } from '@/features/worker/worker-profile-api';
-import { getWorkerShops, type WorkerShop } from '@/features/worker/worker-membership-api';
 
+/** Personal account hub. Nothing operational lives here: photo, data, links, session. */
 export function WorkerProfileContent() {
   const { session, signOut } = useAuth();
-  const [shops, setShops] = useState<WorkerShop[]>([]);
-  const [areShopsExpanded, setAreShopsExpanded] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
@@ -23,7 +21,6 @@ export function WorkerProfileContent() {
     let active = true;
 
     if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
-      setShops([{ businessId: 'demo', name: 'Barbería Demo', isCurrent: true }]);
       setName('Esau S');
       setPhone('987 654 321');
       return () => {
@@ -31,11 +28,6 @@ export function WorkerProfileContent() {
       };
     }
 
-    void getWorkerShops().then((next) => {
-      if (active) setShops(next);
-    }).catch(() => {
-      if (active) setShops([]);
-    });
     void getMyWorkerProfileDetails().then((details) => {
       if (active) {
         setName(details.name);
@@ -91,22 +83,20 @@ export function WorkerProfileContent() {
     }
   }
 
+  function confirmSignOut() {
+    Alert.alert('Cerrar sesión', '¿Seguro que quieres salir de tu cuenta?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Salir', style: 'destructive', onPress: () => void signOut() },
+    ]);
+  }
+
   const email = session?.user.email ?? 'No disponible';
-  const currentShop = shops.find((shop) => shop.isCurrent) ?? null;
   return (
     <ScrollView contentContainerStyle={workerUiStyles.page} keyboardShouldPersistTaps="handled">
       <View style={{ gap: 4 }}>
         <WorkerText variant="eyebrow" color={workerColors.teal}>Cuenta personal</WorkerText>
         <WorkerText variant="title">Mi perfil</WorkerText>
-        <WorkerText color={workerColors.muted}>Tu información, barbería y servicios activos.</WorkerText>
-      </View>
-
-      <View style={workerUiStyles.card}>
-        <WorkerText variant="eyebrow" color={workerColors.muted}>Cuenta personal</WorkerText>
-        <WorkerText color={workerColors.muted}>
-          {currentShop ? `Estás dentro de ${currentShop.name}. Vuelve a tu cuenta para cambiar de barbería o ver tu perfil.` : 'Vuelve a tu cuenta para ver tus barberías y tu perfil.'}
-        </WorkerText>
-        <WorkerButton label="Volver a cuenta personal" tone="secondary" onPress={() => router.push('/(app)/worker-shops')} />
+        <WorkerText color={workerColors.muted}>Tu foto y tus datos. Se muestran igual en todas tus barberías.</WorkerText>
       </View>
 
       <View style={[workerUiStyles.card, styles.heroCard]}>
@@ -121,15 +111,13 @@ export function WorkerProfileContent() {
           <WorkerText variant="headline">{name || email}</WorkerText>
           <WorkerText color={workerColors.muted}>{email}</WorkerText>
         </View>
+        <WorkerButton
+          label={isPhotoLoading ? 'Subiendo…' : 'Cambiar foto'}
+          tone="secondary"
+          disabled={isPhotoLoading}
+          onPress={() => void changePhoto()}
+        />
       </View>
-
-      <WorkerButton
-        label={isPhotoLoading ? 'Subiendo foto…' : 'Cambiar foto'}
-        tone="secondary"
-        disabled={isPhotoLoading}
-        onPress={() => void changePhoto()}
-      />
-      <WorkerText color={workerColors.muted}>Tu foto, nombre y teléfono se muestran igual en todas tus barberías.</WorkerText>
 
       <View style={workerUiStyles.card}>
         <WorkerText variant="eyebrow" color={workerColors.muted}>Información de cuenta</WorkerText>
@@ -148,45 +136,22 @@ export function WorkerProfileContent() {
       </View>
 
       <View style={workerUiStyles.card}>
-        <View style={workerUiStyles.split}>
-          <WorkerText variant="eyebrow" color={workerColors.muted}>Barberías aprobadas</WorkerText>
-          <WorkerPill label={`${shops.length}`} tone="neutral" />
-        </View>
-        {currentShop ? (
-          <View style={styles.currentShop}>
-            <WorkerText color={workerColors.muted}>Barbería activa</WorkerText>
-            <WorkerText variant="headline">{currentShop.name}</WorkerText>
-          </View>
-        ) : (
-          <WorkerText color={workerColors.muted}>Tu acceso aún espera aprobación o necesitas elegir una barbería.</WorkerText>
-        )}
-        <WorkerButton label={areShopsExpanded ? 'Ocultar barberías' : 'Ver barberías y cambiar'} tone="secondary" onPress={() => setAreShopsExpanded((expanded) => !expanded)} />
-        {areShopsExpanded ? shops.map((shop) => (
-          <View key={shop.businessId} style={styles.shopRow}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <WorkerText variant="headline">{shop.name}</WorkerText>
-              <WorkerText color={workerColors.muted}>{shop.isCurrent ? 'Barbería seleccionada' : 'Membresía aprobada'}</WorkerText>
-            </View>
-            <WorkerPill label={shop.isCurrent ? 'ACTUAL' : 'APROBADA'} tone={shop.isCurrent ? 'teal' : 'neutral'} />
-          </View>
-        )) : null}
-        {shops.length > 0 ? (
-          <WorkerButton label="Volver a cuenta personal" tone="secondary" onPress={() => router.replace('/(app)/worker-shops')} />
-        ) : null}
+        <WorkerText variant="headline">Mis barberías</WorkerText>
+        <WorkerText color={workerColors.muted}>Elige dónde operar. El cambio real se hace ahí.</WorkerText>
+        <WorkerButton label="Ir a mis barberías" tone="secondary" onPress={() => router.replace('/(app)/worker-shops')} />
       </View>
 
       <View style={workerUiStyles.card}>
         <WorkerText variant="headline">Servicios por barbería</WorkerText>
         <WorkerText color={workerColors.muted}>Entra y selecciona una barbería para ver los servicios que ofrece.</WorkerText>
-        <WorkerButton label="Ver servicios por barbería" onPress={() => router.push('/(app)/worker-services')} />
+        <WorkerButton label="Ver servicios por barbería" tone="secondary" onPress={() => router.push('/(app)/worker-services')} />
       </View>
 
       <View style={workerUiStyles.card}>
-        <WorkerText variant="headline">Horario de trabajo</WorkerText>
-        <WorkerText color={workerColors.muted}>No hay un horario fijo guardado en la app. Tu disponibilidad puntual se administra desde En vivo y el estado de la barbería desde Turno/Ocupado.</WorkerText>
+        <WorkerText variant="headline">Sesión</WorkerText>
+        <WorkerText color={workerColors.muted}>Sal de tu cuenta en este dispositivo.</WorkerText>
+        <WorkerButton label="Cerrar sesión" tone="logout" onPress={confirmSignOut} />
       </View>
-
-      <WorkerButton label="Cerrar sesión" tone="logout" onPress={() => { void signOut(); }} />
     </ScrollView>
   );
 }
@@ -197,7 +162,4 @@ const styles = StyleSheet.create({
   avatarImage: { borderRadius: 999, height: 54, width: 54 },
   field: { gap: 6 },
   input: { backgroundColor: workerColors.low, borderColor: workerColors.outline, borderRadius: 8, borderWidth: 1, color: workerColors.body, fontFamily: 'Work Sans', fontSize: 16, minHeight: 52, paddingHorizontal: 12 },
-  currentShop: { backgroundColor: workerColors.low, borderRadius: 12, gap: 4, padding: 14 },
-  shopRow: { alignItems: 'center', borderTopColor: workerColors.outline, borderTopWidth: 1, flexDirection: 'row', gap: 12, paddingTop: 12 },
-  shopServices: { gap: 10 },
 });

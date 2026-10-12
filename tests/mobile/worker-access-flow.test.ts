@@ -66,11 +66,13 @@ describe('Worker authenticated access flow', () => {
     expect(roleCanAccessAppRoute({ role: 'cliente', businessId: null }, 'worker')).toBe(false);
     const profile = source('../../apps/mobile/src/app/(app)/worker-profile.tsx');
     const content = source('../../apps/mobile/src/components/worker/worker-profile-content.tsx');
+    const operational = source('../../apps/mobile/src/components/worker/worker-operational-account.tsx');
     expect(profile).toContain('WorkerScreenContainer');
     expect(profile).toContain('activeNavigation="profile"');
+    expect(profile).toContain('WorkerOperationalAccount');
     expect(content).not.toContain('selectWorkerShop(shop.businessId)');
     expect(content).toContain("router.replace('/(app)/worker-shops')");
-    expect(content).toContain('Volver a cuenta personal');
+    expect(operational).toContain('Volver a cuenta personal');
   });
 
   it('permits an unselected personal account only to account destinations', () => {
