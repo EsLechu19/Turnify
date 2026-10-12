@@ -26,17 +26,25 @@ export function CompletedGuestTicket({
   onRate: (puntos: number) => void;
 }) {
   const isAbsent = ticket.status === 'ausente';
+  const isCancelled = ticket.status === 'cancelado';
+  const isTerminalBad = isAbsent || isCancelled;
   const [selected, setSelected] = useState(0);
 
   return (
     <>
       <View accessibilityElementsHidden style={styles.completionIcon}>
-        <Icon color={isAbsent ? Palette.danger : Palette.brand} name={isAbsent ? 'alert' : 'check-circle'} size={30} />
+        <Icon color={isTerminalBad ? Palette.danger : Palette.brand} name={isTerminalBad ? 'alert' : 'check-circle'} size={30} />
       </View>
 
       <CustomerHeading
-        detail={isAbsent ? 'Tu tolerancia venció antes de que pudieras presentarte.' : 'Esperamos que hayas disfrutado tu experiencia.'}
-        title={isAbsent ? 'Tu turno quedó como ausente' : '¡Gracias por visitarnos!'}
+        detail={
+          isAbsent
+            ? 'Tu tolerancia venció antes de que pudieras presentarte.'
+            : isCancelled
+              ? 'Perdiste tu lugar en la fila. Saca otro cuando quieras.'
+              : 'Esperamos que hayas disfrutado tu experiencia.'
+        }
+        title={isAbsent ? 'Tu turno quedó como ausente' : isCancelled ? 'Tu turno fue cancelado' : '¡Gracias por visitarnos!'}
       />
 
       {error ? <CustomerState action={onRetry} label={error} /> : null}
@@ -47,7 +55,7 @@ export function CompletedGuestTicket({
             <Text style={styles.label}>TU NÚMERO DE TURNO</Text>
             <Text style={styles.code}>{ticket.visibleCode}</Text>
           </View>
-          <Pill label={isAbsent ? 'Ausente' : 'Completado'} tone={isAbsent ? 'danger' : 'success'} />
+          <Pill label={isAbsent ? 'Ausente' : isCancelled ? 'Cancelado' : 'Completado'} tone={isAbsent || isCancelled ? 'danger' : 'success'} />
         </View>
 
         {ticket.serviceName || ticket.assignedBarberName ? (
@@ -68,9 +76,9 @@ export function CompletedGuestTicket({
         ) : null}
       </CustomerCard>
 
-      <CustomerButton label={isAbsent ? 'Sacar otro turno' : 'Volver al inicio'} onPress={isAbsent ? onNewTicket : onReturn} />
+      <CustomerButton label={isTerminalBad ? 'Sacar otro turno' : 'Volver al inicio'} onPress={isTerminalBad ? onNewTicket : onReturn} />
 
-      {!isAbsent ? (
+      {!isTerminalBad ? (
         <View style={styles.rating}>
           {puntuacion != null ? (
             <>

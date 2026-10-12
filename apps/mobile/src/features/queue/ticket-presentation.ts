@@ -63,7 +63,7 @@ export function presentTicketStatus(status: TicketState['status']): TicketStatus
         tone: 'destructive',
         showsQueueProgress: false,
         isActiveTurn: false,
-        isCompletedTurn: false,
+        isCompletedTurn: true,
       };
     case 'ausente':
       return {

@@ -382,6 +382,27 @@ export default function GuestTicketScreen() {
               ) : null}
             </Card>
 
+            {ticket.status === 'en_atencion' ? (
+              <Card padding="lg" tone="brand">
+                <View style={styles.factRow}>
+                  {barberName ? (
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>{initials(barberName)}</Text>
+                    </View>
+                  ) : (
+                    <Icon color={Palette.brand} name="scissors" size={24} />
+                  )}
+                  <View style={styles.factCopy}>
+                    <Text style={styles.factLabel}>{barberName ? `Te atiende ${barberName}` : 'Te están atendiendo'}</Text>
+                    <Text style={[TypeScale.body, { color: Palette.ink }]}>Permanece en tu lugar hasta que termine.</Text>
+                  </View>
+                </View>
+                <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>
+                  Si ya terminó y esto no cambia, toca Actualizar arriba.
+                </Text>
+              </Card>
+            ) : null}
+
             {ticket.status === 'en_espera' || ticket.status === 'notificado' ? (
               <Card padding="md">
                 <Text style={[TypeScale.h3, { color: Palette.ink }]}>Progreso de tu turno</Text>
