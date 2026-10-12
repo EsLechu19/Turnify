@@ -191,10 +191,30 @@ export default function PublicWelcomeScreen() {
         ) : null}
       </View>
 
-      <View style={styles.trustLine}>
-        <Icon color={Palette.brand} name="clock" size={16} />
-        <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>Posición en vivo · te avisamos al llamarte (deja la app abierta).</Text>
-      </View>
+      <Card padding="lg" style={styles.stepsCard}>
+        <Text style={[TypeScale.headline, { color: Palette.ink }]}>¿Cómo funciona?</Text>
+        <View style={styles.step}>
+          <Icon color={Palette.brand} name="qr" size={20} />
+          <View style={styles.stepCopy}>
+            <Text style={[TypeScale.label, { color: Palette.ink }]}>1 · Escanea el QR</Text>
+            <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>Está en la entrada de la barbería.</Text>
+          </View>
+        </View>
+        <View style={styles.step}>
+          <Icon color={Palette.brand} name="ticket" size={20} />
+          <View style={styles.stepCopy}>
+            <Text style={[TypeScale.label, { color: Palette.ink }]}>2 · Elige tu servicio</Text>
+            <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>Corte, barba o lo que necesites.</Text>
+          </View>
+        </View>
+        <View style={styles.step}>
+          <Icon color={Palette.brand} name="bell" size={20} />
+          <View style={styles.stepCopy}>
+            <Text style={[TypeScale.label, { color: Palette.ink }]}>3 · Sigue tu turno</Text>
+            <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>Posición en vivo · deja la app abierta al llamarte.</Text>
+          </View>
+        </View>
+      </Card>
 
       <View style={styles.workerFooter}>
         <Button href={workerSignInRoute} label="Soy trabajador" variant="link" />
@@ -236,7 +256,9 @@ const styles = StyleSheet.create({
   drawer: { backgroundColor: Palette.surface, borderColor: Palette.border, borderRadius: Radius.large, borderWidth: 1, gap: space(2), padding: space(4) },
   drawerTitle: { color: Palette.ink },
   drawerHelper: { color: Palette.inkMuted },
-  trustLine: { alignItems: 'center', flexDirection: 'row', gap: space(1.5), justifyContent: 'center' },
+  stepsCard: { gap: space(3) },
+  step: { alignItems: 'center', flexDirection: 'row', gap: space(3) },
+  stepCopy: { flex: 1, gap: 2 },
   workerFooter: { alignItems: 'center', gap: space(1), paddingBottom: space(2) },
   activeMetrics: { alignItems: 'center', gap: space(1), width: '100%' },
   mutedCenter: { color: Palette.inkMuted, textAlign: 'center' },
