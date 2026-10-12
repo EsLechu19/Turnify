@@ -2,15 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { Button, PageHeader, TwoColumnGrid } from '@/components/common';
 import { computeAlerts } from '@/data/compute';
-import { fetchDailySummary, fetchDemandEstimate, fetchRatings, fetchYesterdayCompare, type DailySummary, type RatingByBarber } from '@/data/live';
+import { fetchDailySummary, fetchDemandEstimate, fetchRatings, fetchShopSettings, fetchYesterdayCompare, saveShopSettings, type DailySummary, type RatingByBarber } from '@/data/live';
 import type { DemandEstimate } from '@/data/types';
 import type { StatsCompare } from './components/StatCards';
 import { useQueue } from '@/state/QueueContext';
 import { useShop } from '@/state/ShopContext';
 import { AlertsCard } from './components/AlertsCard';
 import { DailySummaryCard } from './components/DailySummaryCard';
+import { LiveQueueCard } from './components/LiveQueueCard';
 import { OperatingVerdict } from './components/OperatingVerdict';
 import { RatingsCard } from './components/RatingsCard';
+import { RevenueCard } from './components/RevenueCard';
 import { SectionOverview } from './components/SectionOverview';
 import { StatCards } from './components/StatCards';
 import { HourlyDemandCard } from '../history/components/HourlyDemandCard';
@@ -19,7 +21,9 @@ const todayLabel = new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'num
 
 export function DashboardPage() {
   const { tickets, team, stats, loading, error, refresh, refreshVersion, next } = useQueue();
-  const { business } = useShop();
+  const { business, open, refreshShop } = useShop();
+  const [togglingOpen, setTogglingOpen] = useState(false);
+  const [toggleError, setToggleError] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<DemandEstimate[] | null>(null);
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [compare, setCompare] = useState<StatsCompare | null>(null);
@@ -50,9 +54,35 @@ export function DashboardPage() {
 
   const alerts = useMemo(() => computeAlerts(tickets, team), [tickets, team]);
 
+  async function toggleOpen() {
+    if (togglingOpen) return;
+    setTogglingOpen(true);
+    setToggleError(null);
+    try {
+      const settings = await fetchShopSettings();
+      await saveShopSettings({ ...settings, open: !settings.open });
+      refreshShop();
+      refresh();
+    } catch {
+      setToggleError('No pudimos cambiar el estado del local.');
+    } finally {
+      setTogglingOpen(false);
+    }
+  }
+
   return (
     <>
-      <PageHeader title={business?.name ?? 'Turnify'} subtitle={`Panel operativo · ${todayLabel}`} />
+      <PageHeader
+        title={business?.name ?? 'Turnify'}
+        subtitle={`Panel operativo · ${todayLabel}`}
+        statusBadge={open == null ? null : open ? 'Local abierto' : 'Local cerrado'}
+        actions={
+          <Button variant={open ? 'secondary' : 'primary'} onClick={() => void toggleOpen()} disabled={togglingOpen || open == null}>
+            {togglingOpen ? 'Cambiando…' : open ? 'Cerrar local' : 'Abrir local'}
+          </Button>
+        }
+      />
+      {toggleError ? <p className="auth__error" role="alert">{toggleError}</p> : null}
 
       {loading ? <p className="muted" role="status">Actualizando la operación…</p> : null}
       {error || metricsError ? (
@@ -76,6 +106,10 @@ export function DashboardPage() {
         <StatCards stats={stats} compare={compare} />
 
         <AlertsCard alerts={alerts} />
+
+        <LiveQueueCard />
+
+        <RevenueCard />
       </section>
 
       <section aria-label="Tendencias">

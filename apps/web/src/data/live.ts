@@ -714,6 +714,16 @@ export type ShopSettings = {
   shopAddress: string | null;
 };
 
+/** Estado abierto/cerrado del local para el marco y el Inicio (columna real `abierta`). */
+export async function fetchShopOpen(): Promise<boolean> {
+  const supabase = getSupabase();
+  const empresaId = await companyId();
+  const { data, error } = await supabase.from('empresas').select('abierta').eq('id', empresaId).maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return (data as { abierta?: boolean | null })?.abierta ?? false;
+}
+
 /** Reglas vivas del local (columnas reales de `empresas`). */
 export async function fetchShopSettings(): Promise<ShopSettings> {
   const supabase = getSupabase();
