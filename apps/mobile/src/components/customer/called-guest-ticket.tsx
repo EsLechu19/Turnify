@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { CustomerState } from '@/components/customer/customer-ui';
 import { Button, Card, Icon, Pill, ProgressBar } from '@/components/ui';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import type { GuestTicketState } from '@/features/queue/public-guest-ticket-api';
-
-const toleranceSeconds = 5 * 60;
 
 function remainingSeconds(deadline: string | null): number {
   return deadline ? Math.max(0, Math.ceil((new Date(deadline).getTime() - Date.now()) / 1000)) : 0;
@@ -21,7 +19,8 @@ function formatDeadline(deadline: string): string {
 }
 
 function initials(name: string): string {
-  return name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+  const letters = name.split(' ').filter(Boolean).slice(0, 2).map((part) => Array.from(part)[0]).filter(Boolean);
+  return (letters.join('') || 'T').toUpperCase();
 }
 
 export function CalledGuestTicket({
@@ -53,9 +52,24 @@ export function CalledGuestTicket({
       : ticket.customerResponse === 'llega_en_2_min'
         ? 'Confirmaste: llegas en 2 minutos'
         : null;
-  const canRespond = seconds > 0 && !ticket.customerResponse;
-  const decay = Math.min(1, seconds / toleranceSeconds);
-  const isUrgent = seconds <= 60;
+  const hasDeadline = ticket.calledDeadlineAt != null && !Number.isNaN(new Date(ticket.calledDeadlineAt).getTime());
+  const canRespond = (hasDeadline ? seconds > 0 : true) && !ticket.customerResponse;
+  const graceMinutes = ticket.graciaMin ?? 5;
+  const decay = Math.min(1, seconds / Math.max(1, graceMinutes * 60));
+  const isUrgent = hasDeadline && seconds <= 60;
+
+  function confirmRespond(response: NonNullable<GuestTicketState['customerResponse']>) {
+    Alert.alert(
+      response === 'presente' ? 'Confirmar presencia' : 'Avisar que llegas',
+      response === 'presente'
+        ? 'Quedará registrado que ya estás aquí. ¿Confirmas?'
+        : 'Quedará registrado y suma 2 minutos una sola vez. ¿Confirmas?',
+      [
+        { text: 'Volver', style: 'cancel' },
+        { text: 'Confirmar', onPress: () => onRespond(response) },
+      ],
+    );
+  }
 
   return (
     <>
@@ -65,7 +79,7 @@ export function CalledGuestTicket({
             <Icon color="#FFFFFF" name="bell" size={24} />
           </View>
           <View style={styles.alertTitles}>
-            <Text style={styles.alertEyebrow}>Aviso de llamado</Text>
+            <Text style={styles.alertEyebrow}>Acércate YA y muestra tu código</Text>
             <Text style={styles.alertTitle}>¡ES TU TURNO!</Text>
           </View>
           <View style={styles.livePill}>
@@ -73,7 +87,6 @@ export function CalledGuestTicket({
             <Text style={styles.livePillText}>LLAMANDO</Text>
           </View>
         </View>
-        <Text style={styles.alertDetail}>Acércate al personal para continuar con tu turno.</Text>
       </View>
 
       {error ? <CustomerState action={onRetry} label={error} /> : null}
@@ -89,14 +102,14 @@ export function CalledGuestTicket({
           <Pill label="Llamado" tone="brand" />
         </View>
 
-        {ticket.calledDeadlineAt ? (
+        {hasDeadline && ticket.calledDeadlineAt ? (
           <View style={styles.countdown}>
-            <Text style={styles.deadlineText}>Vence a las {formatDeadline(ticket.calledDeadlineAt)}</Text>
+            <Text style={styles.deadlineText}>Vence a las {formatDeadline(ticket.calledDeadlineAt)} · tienes {graceMinutes} min</Text>
             <View style={styles.timerRow}>
-              <Icon color={isUrgent ? Palette.danger : Palette.brand} name="clock" size={26} />
+              <Icon color={isUrgent ? Palette.dangerInk : Palette.brand} name="clock" size={26} />
               <Text
                 accessibilityLabel={`${formatRemaining(seconds)} de tolerancia restante`}
-                style={[styles.countdownValue, isUrgent ? { color: Palette.danger } : null]}
+                style={[styles.countdownValue, isUrgent ? { color: Palette.dangerInk } : null]}
               >
                 {formatRemaining(seconds)}
               </Text>
@@ -105,7 +118,7 @@ export function CalledGuestTicket({
             <ProgressBar tone={isUrgent ? 'danger' : 'brand'} value={decay} />
           </View>
         ) : (
-          <Text style={styles.missingDeadline}>El personal actualizará el estado de tu turno.</Text>
+          <Text style={styles.missingDeadline}>Sin tiempo límite visible: acércate ya al personal.</Text>
         )}
       </Card>
 
@@ -142,21 +155,16 @@ export function CalledGuestTicket({
         </Card>
       ) : null}
 
-      <Card padding="lg" tone="gold">
-        <View style={styles.warningTitle}>
-          <Icon color={Palette.goldDeep} name="alert" size={20} />
-          <Text style={[styles.warningHeading, { color: Palette.ink }]}>Tienes 5 minutos de tolerancia</Text>
-        </View>
-        <Text style={styles.warningDetail}>
-          Si no te presentas dentro del plazo, tu turno puede marcarse como ausente. "Llego en 2 minutos" agrega
-          2 minutos una sola vez; la primera respuesta queda registrada.
+      <Card padding="md" tone="gold">
+        <Text style={[TypeScale.bodySmall, { color: Palette.ink }]}>
+          Preséntate antes de que venza o tu turno puede marcarse ausente.
         </Text>
       </Card>
 
       {responseLabel ? (
         <Card accessibilityRole="alert" padding="lg" tone="brand">
           <Text style={[TypeScale.bodyStrong, { color: Palette.brandDeep }]}>{responseLabel}</Text>
-          <Text style={styles.warningDetail}>El personal decide cuándo iniciar la atención.</Text>
+          <Text style={styles.warningDetail}>Ya quedó registrado. El personal inicia la atención en el local.</Text>
         </Card>
       ) : canRespond ? (
         <View style={styles.actions}>
@@ -166,7 +174,7 @@ export function CalledGuestTicket({
             icon="check"
             label="Ya estoy aquí"
             loading={isResponding}
-            onPress={() => onRespond('presente')}
+            onPress={() => confirmRespond('presente')}
             size="lg"
           />
           <Button
@@ -174,14 +182,14 @@ export function CalledGuestTicket({
             fullWidth
             icon="clock"
             label="Llego en 2 minutos"
-            onPress={() => onRespond('llega_en_2_min')}
+            onPress={() => confirmRespond('llega_en_2_min')}
             size="lg"
             variant="secondary"
           />
         </View>
       ) : (
         <Card accessibilityRole="alert" padding="lg" tone="danger">
-          <Text style={[TypeScale.bodyStrong, { color: Palette.danger }]}>
+          <Text style={[TypeScale.bodyStrong, { color: Palette.dangerInk }]}>
             La tolerancia terminó. Espera la actualización del turno.
           </Text>
         </Card>

@@ -17,7 +17,9 @@ describe('called ticket live update', () => {
 
     expect(called).toContain('¡ES TU TURNO!');
     expect(called).toContain('LLAMANDO');
-    expect(called).toContain('Tienes 5 minutos de tolerancia');
+    expect(called).toContain('tienes');
+    expect(called).toContain('min');
+    expect(called).toContain('graciaMin');
     expect(called).toContain('Ya estoy aquí');
     expect(called).toContain('Llego en 2 minutos');
   });
