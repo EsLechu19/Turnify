@@ -214,7 +214,7 @@ export function WorkerProfileContent() {
         <WorkerText color={workerColors.muted}>No hay un horario fijo guardado en la app. Tu disponibilidad puntual se administra desde En vivo y el estado de la barbería desde Turno/Ocupado.</WorkerText>
       </View>
 
-      <WorkerButton label="Cerrar sesión" tone="danger" onPress={() => { void signOut(); }} />
+      <WorkerButton label="Cerrar sesión" tone="logout" onPress={() => { void signOut(); }} />
     </ScrollView>
   );
 }

@@ -182,7 +182,7 @@ export default function WorkerShopsScreen() {
         icon="logout"
         label="Cerrar sesión"
         onPress={() => { void signOut(); }}
-        variant="ghost"
+        variant="logout"
       />
       </Screen>
     </WorkerAccountContainer>

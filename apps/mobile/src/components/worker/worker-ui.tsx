@@ -60,7 +60,7 @@ export function WorkerButton({
   label: string;
   onPress(): void;
   disabled?: boolean;
-  tone?: 'primary' | 'secondary' | 'danger';
+  tone?: 'primary' | 'secondary' | 'danger' | 'logout';
   style?: StyleProp<ViewStyle>;
 }) {
   return (
@@ -70,7 +70,7 @@ export function WorkerButton({
       label={label}
       onPress={onPress}
       style={style}
-      variant={tone === 'danger' ? 'danger' : tone === 'secondary' ? 'secondary' : 'primary'}
+      variant={tone === 'logout' ? 'logout' : tone === 'danger' ? 'danger' : tone === 'secondary' ? 'secondary' : 'primary'}
     />
   );
 }
