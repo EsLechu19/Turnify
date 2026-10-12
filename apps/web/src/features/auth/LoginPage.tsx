@@ -36,10 +36,10 @@ export function LoginPage() {
         </header>
 
         <div className="auth__intro">
-          <span className="eyebrow">Acceso exclusivo</span>
+          <span className="eyebrow">Administradores</span>
           <h1 className="auth__title">Iniciar sesión</h1>
           <p className="auth__lead muted">
-            Entra con tu cuenta de barbero o administrador para operar el local.
+            Solo administradores. ¿Eres barbero? Opera desde la app móvil.
           </p>
         </div>
 
@@ -81,20 +81,20 @@ export function LoginPage() {
               <span>{error}</span>
             </p>
           ) : bounceMessage ? (
-            <p className="auth__error" role="status">
+            <p className="auth__hint muted" role="status">
               <Icon name="info" size={15} />
               <span>{bounceMessage}</span>
             </p>
           ) : null}
 
-          <Button disabled={!canSubmit} icon="logout" size="lg" type="submit">
+          <Button disabled={!canSubmit} icon="arrow-right" size="lg" type="submit">
             {pending ? 'Verificando…' : 'Entrar al panel'}
           </Button>
         </form>
 
         {!isSupabaseConfigured() ? (
           <p className="auth__hint muted">
-            Demo: <strong>esau01s@turnify.app</strong> / <strong>turnify</strong>
+            Sin conexión al servidor: configura Supabase para entrar con una cuenta real.
           </p>
         ) : null}
       </div>
