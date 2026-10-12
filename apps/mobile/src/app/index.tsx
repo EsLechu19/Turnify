@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BrandMark, Button, Card, Icon, Pill, TextField } from '@/components/ui';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
@@ -17,6 +17,7 @@ import { getSupabase } from '@/lib/supabase';
  */
 export default function PublicWelcomeScreen() {
   const [code, setCode] = useState('');
+  const [lastCode, setLastCode] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { ticketAccess, hasActiveTicketAccess, endGuestTicketSession } = useGuestFlow();
@@ -67,13 +68,14 @@ export default function PublicWelcomeScreen() {
     };
   }, [refreshActiveTicket, ticketAccess]);
 
-  function continueWithCode() {
-    const normalized = normalizeBusinessCode(code);
+  function continueWithCode(raw?: string) {
+    const normalized = normalizeBusinessCode(raw ?? code);
     if (!normalized) {
       setError('Ingresa el código válido que muestra la barbería.');
       return;
     }
     setError(null);
+    setLastCode(normalized);
     router.push({ params: { code: normalized }, pathname: publicShopRoute });
   }
 
@@ -138,14 +140,14 @@ export default function PublicWelcomeScreen() {
           </>
         ) : null}
         <Text style={[TypeScale.caption, styles.mutedCenter]}>
-          Cuando este turno termine, podrás escanear o ingresar otro código.
+          Te avisamos aquí mismo al llamarte. Cuando el barbero finalice, esta pantalla se libera sola para otro turno.
         </Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.page}>
+    <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
       <View style={styles.brand}>
         <BrandMark size={44} />
         <Text style={[TypeScale.title, { color: Palette.ink }]}>turnify</Text>
@@ -154,7 +156,7 @@ export default function PublicWelcomeScreen() {
       <View style={styles.narrative}>
         <Text style={[TypeScale.display, styles.narrativeTitle]}>Tu turno, sin esperar de más</Text>
         <Text style={[TypeScale.body, styles.narrativeDetail]}>
-          Apunta al QR de la entrada para sumarte a la fila al instante.
+          Sin cuenta, sin espera en puerta. Entrás y seguís tu lugar en vivo.
         </Text>
       </View>
 
@@ -167,10 +169,21 @@ export default function PublicWelcomeScreen() {
           size="lg"
         />
         <Button
-          label="¿Sin cámara? Ingresar código"
+          fullWidth
+          icon="code"
+          label="Ingresar código"
           onPress={toggleCodeDrawer}
-          variant="link"
+          size="md"
+          variant="secondary"
         />
+        {lastCode && !isDrawerOpen ? (
+          <Button
+            fullWidth
+            label={`Repetir ${lastCode}`}
+            onPress={() => void continueWithCode(lastCode)}
+            variant="soft"
+          />
+        ) : null}
         {isDrawerOpen ? (
           <View style={styles.drawer}>
             <Text style={[TypeScale.h3, styles.drawerTitle]}>Busca tu barbería</Text>
@@ -181,12 +194,12 @@ export default function PublicWelcomeScreen() {
               error={error}
               label="CÓDIGO DE LA BARBERÍA"
               onChangeText={setCode}
-              onSubmitEditing={continueWithCode}
+              onSubmitEditing={() => void continueWithCode()}
               placeholder="Ej.: TURNO-123"
               returnKeyType="go"
               value={code}
             />
-            <Button fullWidth iconRight="arrow-right" label="Ver barbería" onPress={continueWithCode} />
+            <Button fullWidth iconRight="arrow-right" label="Ver barbería" onPress={() => void continueWithCode()} />
           </View>
         ) : null}
       </View>
@@ -220,7 +233,7 @@ export default function PublicWelcomeScreen() {
         <Button href={workerSignInRoute} label="Soy trabajador" variant="link" />
       </View>
 
-    </View>
+    </ScrollView>
   );
 }
 
@@ -228,7 +241,7 @@ const styles = StyleSheet.create({
   page: {
     alignSelf: 'center',
     backgroundColor: Palette.canvas,
-    flex: 1,
+    flexGrow: 1,
     gap: space(4),
     maxWidth: 480,
     paddingHorizontal: space(5),
