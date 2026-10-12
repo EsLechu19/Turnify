@@ -39,7 +39,7 @@ export default function DetailsScreen() {
   if (!draft?.serviceId) {
     return (
       <CustomerPage>
-        <CustomerState label="Primero completa la selección del servicio." action={() => router.replace('/(app)')} />
+        <CustomerState label="Primero completa la selección del servicio." action={() => router.replace('/')} />
       </CustomerPage>
     );
   }
@@ -61,8 +61,13 @@ export default function DetailsScreen() {
   }
 
   const currentDraft = draft;
+  const hasBarbers = currentDraft.catalog.barbers.length > 0;
+  const steps = hasBarbers ? ['Servicio', 'Barbero', 'Confirmar'] : ['Servicio', 'Confirmar'];
+  const editHref = hasBarbers ? '/(public)/barber' : '/(public)/service';
   const selectedService = service;
-  const duration = `${Math.ceil(selectedService.estimatedDurationSeconds / 60)} min`;
+  const duration = selectedService.measuredDurationSeconds != null
+    ? `~${Math.ceil(selectedService.measuredDurationSeconds / 60)} min · medido`
+    : `${Math.ceil(selectedService.estimatedDurationSeconds / 60)} min`;
   const price = formatReferencePrice(selectedService.referencePriceCents);
   const barberPreference = barber?.name ?? 'Cualquier barbero compatible';
 
@@ -87,7 +92,7 @@ export default function DetailsScreen() {
           peopleAhead: 1 + Math.floor(Math.random() * 5),
           waitMinutes: 5 + Math.floor(Math.random() * 15),
         });
-        router.replace('/(app)');
+        router.replace('/(public)/ticket');
         return;
       }
 
@@ -120,14 +125,14 @@ export default function DetailsScreen() {
       >
         <BrandBar
           onBack={isCreating ? undefined : () => router.back()}
-          right={<Text style={styles.step}>Paso 3 de 3</Text>}
+          right={<Text style={styles.step}>{hasBarbers ? 'Paso 3 de 3' : 'Paso 2 de 2'}</Text>}
         />
 
         <View style={styles.titleBlock}>
           <Text style={styles.eyebrow}>Verifica tu turno</Text>
           <Text style={[TypeScale.display, { color: Palette.ink }]}>Casi listo</Text>
           <Text style={[TypeScale.body, { color: Palette.inkMuted }]}>Confirma tus datos para generar tu código de turno.</Text>
-          <StepTracker activeStep={2} steps={['Servicio', 'Barbero', 'Confirmar']} />
+          <StepTracker activeStep={steps.length - 1} steps={steps} />
         </View>
 
         <Card elevated padding="md">
@@ -145,7 +150,7 @@ export default function DetailsScreen() {
               accessibilityLabel="Editar selección"
               disabled={isCreating}
               name="edit"
-              onPress={() => router.push('/(public)/barber')}
+              onPress={() => router.push(editHref)}
               size={38}
               tone="soft"
             />
@@ -157,7 +162,7 @@ export default function DetailsScreen() {
               <Text style={[TypeScale.bodyStrong, { color: Palette.ink }]}>{selectedService.name}</Text>
               <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>
                 {duration}
-                {price ? ` · ${price}` : ''}
+                {price ? ` · ${price} ref.` : ''}
               </Text>
             </View>
             <View style={styles.factDivider} />
@@ -274,8 +279,8 @@ export default function DetailsScreen() {
         {error ? (
           <View accessibilityRole="alert">
             <Card padding="md" tone="danger">
-              <Text style={[TypeScale.bodySmall, { color: Palette.danger }]}>{error}</Text>
-              <Text style={[TypeScale.caption, { color: Palette.danger }]}>
+              <Text style={[TypeScale.bodySmall, { color: Palette.dangerInk }]}>{error}</Text>
+              <Text style={[TypeScale.caption, { color: Palette.dangerInk }]}>
                 Revisa tus datos o la disponibilidad e inténtalo nuevamente.
               </Text>
             </Card>

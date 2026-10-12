@@ -24,7 +24,8 @@ import { useEstimatedWaitSeconds } from '@/features/queue/use-estimated-wait';
 import { getSupabase } from '@/lib/supabase';
 
 function initials(name: string): string {
-  return name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+  const letters = name.split(' ').filter(Boolean).slice(0, 2).map((part) => Array.from(part)[0]).filter(Boolean);
+  return (letters.join('') || 'T').toUpperCase();
 }
 
 /**
@@ -113,7 +114,7 @@ export default function GuestTicketScreen() {
   );
 
   const returnHome = useCallback(() => {
-    router.replace('/(app)');
+    router.replace('/');
   }, []);
 
   const startNewTicket = useCallback(() => {
@@ -140,6 +141,7 @@ export default function GuestTicketScreen() {
         customerResponse: null,
         customerResponseAt: null,
         puntuacion: null,
+        graciaMin: null,
       });
       setError(null);
       setIsLoading(false);
