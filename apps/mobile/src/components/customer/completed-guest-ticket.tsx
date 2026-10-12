@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CustomerButton, CustomerCard, CustomerHeading, CustomerState } from '@/components/customer/customer-ui';
 import { Button, Icon, Pill } from '@/components/ui';
@@ -29,6 +29,14 @@ export function CompletedGuestTicket({
   const isCancelled = ticket.status === 'cancelado';
   const isTerminalBad = isAbsent || isCancelled;
   const [selected, setSelected] = useState(0);
+
+  function confirmRate() {
+    if (selected === 0 || isRating) return;
+    Alert.alert(`Confirmar ${selected} de 5`, 'Tu voto queda registrado y no podrás cambiarlo. ¿Confirmas?', [
+      { text: 'Volver', style: 'cancel' },
+      { text: 'Enviar voto', onPress: () => onRate(selected) },
+    ]);
+  }
 
   return (
     <>
@@ -85,39 +93,41 @@ export function CompletedGuestTicket({
               <View style={styles.stars}>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Icon
-                    color={star <= puntuacion ? Palette.gold : Palette.border}
+                    color={star <= puntuacion ? Palette.gold : Palette.inkFaint}
                     key={star}
                     name="star"
                     size={28}
                   />
                 ))}
               </View>
-              <Text style={[TypeScale.bodySmall, styles.ratingThanks]}>Gracias por tu puntuacion.</Text>
+              <Text style={[TypeScale.bodySmall, styles.ratingThanks]}>Gracias por tu puntuación.</Text>
             </>
           ) : (
             <>
-              <Text style={[TypeScale.bodyStrong, styles.ratingTitle]}>Como te atendimos?</Text>
+              <Text style={[TypeScale.bodyStrong, styles.ratingTitle]}>
+                {ticket.assignedBarberName ? `¿Cómo te atendió ${ticket.assignedBarberName}?` : '¿Cómo te atendimos?'}
+              </Text>
               <View style={styles.stars}>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Pressable
                     accessibilityLabel={`Puntuar ${star} de 5`}
                     accessibilityRole="button"
                     disabled={isRating}
-                    hitSlop={8}
+                    hitSlop={12}
                     key={star}
                     onPress={() => setSelected(star)}
                     style={({ pressed }) => [pressed ? styles.starPressed : null, isRating ? styles.ratingBusy : null]}
                   >
-                    <Icon color={star <= selected ? Palette.gold : Palette.border} name="star" size={40} />
+                    <Icon color={star <= selected ? Palette.gold : Palette.inkFaint} name="star" size={40} />
                   </Pressable>
                 ))}
               </View>
               <Button
                 disabled={selected === 0 || isRating}
-                label="Enviar puntuacion"
-                onPress={() => onRate(selected)}
+                label="Enviar puntuación"
+                onPress={confirmRate}
               />
-              <Text style={[TypeScale.caption, styles.ratingHint]}>Toca una estrella y confirma tu voto.</Text>
+              <Text style={[TypeScale.caption, styles.ratingHint]}>Toca una estrella y confirma tu voto. No podrás cambiarlo.</Text>
             </>
           )}
         </View>
