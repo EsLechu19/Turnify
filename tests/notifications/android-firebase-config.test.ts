@@ -19,4 +19,31 @@ describe('Android Firebase client configuration', () => {
     expect(gitignore).toContain('!apps/mobile/google-services.json');
     expect(gitignore).toContain('**/*service-account*.json');
   });
+
+  it('configures the production EAS profile for APKPure-ready Android builds', () => {
+    const easConfig = JSON.parse(readFileSync(resolve(repositoryRoot, 'apps/mobile/eas.json'), 'utf8')) as {
+      build?: {
+        development?: { developmentClient?: boolean; distribution?: string };
+        preview?: { distribution?: string };
+        production?: {
+          distribution?: string;
+          android?: { buildType?: string };
+          environment?: string;
+          autoIncrement?: boolean;
+        };
+      };
+    };
+
+    expect(easConfig.build?.development).toMatchObject({
+      developmentClient: true,
+      distribution: 'internal',
+    });
+    expect(easConfig.build?.preview).toMatchObject({ distribution: 'internal' });
+    expect(easConfig.build?.production).toMatchObject({
+      distribution: 'store',
+      android: { buildType: 'apk' },
+      environment: 'production',
+      autoIncrement: true,
+    });
+  });
 });
