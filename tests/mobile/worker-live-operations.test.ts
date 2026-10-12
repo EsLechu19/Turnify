@@ -76,12 +76,13 @@ describe('Worker live operations mapping', () => {
     expect(jornada).toContain('useElapsedSince');
   });
 
-  it('re-syncs Mis barberias while waiting for approval', () => {
+  it('reloads Mis barberias on focus with an explicit retry', () => {
     const shops = source('../../apps/mobile/src/app/(app)/worker-shops.tsx');
 
-    expect(shops).toContain('setInterval');
-    expect(shops).toContain('clearInterval');
+    expect(shops).toContain('useFocusEffect');
+    expect(shops).toContain('Reintentar');
     expect(shops).toContain('pending.length');
+    expect(shops).not.toContain('setInterval');
   });
 
   it('shows the called ticket with a live synchronized tolerance in the Cola tab', () => {

@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { AuthErrorMessage } from '@/components/auth/auth-ui';
 import { WorkerAccountContainer } from '@/components/worker/worker-account-container';
@@ -19,7 +19,10 @@ export default function WorkerShopsScreen() {
   const [pending, setPending] = useState<PendingWorkerRequest[]>([]);
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isActing, setIsActing] = useState(false);
+  const [choosingId, setChoosingId] = useState<string | null>(null);
+  const [isSubmittingCode, setIsSubmittingCode] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const isMounted = useRef(false);
 
   const load = useCallback(async () => {
@@ -28,9 +31,13 @@ export default function WorkerShopsScreen() {
       if (!isMounted.current) return;
       setShops(nextShops);
       setPending(nextPending);
+      setHasLoaded(true);
       setError(null);
     } catch {
-      if (isMounted.current) setError('No pudimos cargar tus barberías. Inténtalo nuevamente.');
+      if (isMounted.current) {
+        setHasLoaded(true);
+        setError('No pudimos cargar tus barberías. Revisa tu conexión e inténtalo nuevamente.');
+      }
     }
   }, []);
 
@@ -42,32 +49,30 @@ export default function WorkerShopsScreen() {
     };
   }, [load]));
 
-  // The approval lands server-side at any moment: re-sync on a short cadence
-  // while there is nothing approved or something still pending.
-  useEffect(() => {
-    if (shops.length > 0 && pending.length === 0) return;
-    const poll = setInterval(() => {
-      void load();
-    }, 10_000);
-    return () => clearInterval(poll);
-  }, [shops.length, pending.length, load]);
+  const joinExpanded = joinOpen || (hasLoaded && shops.length === 0);
 
   async function submitCode() {
-    setIsActing(true);
+    setIsSubmittingCode(true);
     setError(null);
     try {
       await requestWorkerInvitation(code);
       setCode('');
+      setJoinOpen(false);
       await load();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'No se pudo enviar la solicitud.');
     } finally {
-      setIsActing(false);
+      setIsSubmittingCode(false);
     }
   }
 
   async function chooseShop(shop: WorkerShop) {
-    setIsActing(true);
+    // The current shop is navigation only: never re-select what is active.
+    if (shop.isCurrent) {
+      router.replace('/(app)/worker');
+      return;
+    }
+    setChoosingId(shop.businessId);
     setError(null);
     try {
       await selectWorkerShop(shop.businessId);
@@ -76,8 +81,15 @@ export default function WorkerShopsScreen() {
     } catch {
       setError('No pudimos seleccionar la barbería. Inténtalo nuevamente.');
     } finally {
-      setIsActing(false);
+      setChoosingId(null);
     }
+  }
+
+  function confirmSignOut() {
+    Alert.alert('Cerrar sesión', '¿Seguro que quieres salir de tu cuenta?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Salir', style: 'destructive', onPress: () => void signOut() },
+    ]);
   }
 
   return (
@@ -88,7 +100,10 @@ export default function WorkerShopsScreen() {
           <View style={styles.heroIcon}>
             <Icon color="#FFFFFF" name="storefront" size={24} />
           </View>
-          <Pill label={shops.length === 1 ? '1 APROBADA' : `${shops.length} APROBADAS`} tone="brand" />
+          <View style={styles.heroPills}>
+            <Pill label={shops.length === 0 ? 'SIN BARBERÍAS' : shops.length === 1 ? '1 APROBADA' : `${shops.length} APROBADAS`} tone="brand" />
+            {pending.length > 0 ? <Pill label={pending.length === 1 ? '1 PENDIENTE' : `${pending.length} PENDIENTES`} tone="gold" /> : null}
+          </View>
         </View>
         <Text style={[TypeScale.eyebrow, { color: Palette.brandDeep }]}>CUENTA PERSONAL</Text>
         <Text style={[TypeScale.title, { color: Palette.ink }]}>Mis barberías</Text>
@@ -102,10 +117,10 @@ export default function WorkerShopsScreen() {
           {shops.map((shop) => (
             <OptionCard
               accessibilityLabel={shop.isCurrent ? `${shop.name}, barbería actual` : `Entrar a ${shop.name}`}
-              badge={shop.isCurrent ? 'ACTUAL' : 'ENTRAR'}
+              badge={shop.isCurrent ? 'ACTUAL' : choosingId === shop.businessId ? 'ENTRANDO…' : 'ENTRAR'}
               badgeTone={shop.isCurrent ? 'success' : 'brand'}
-              detail={shop.isCurrent ? 'Operando aquí ahora' : 'Toca para operar aquí'}
-              disabled={isActing}
+              detail={shop.isCurrent ? 'Toca para entrar sin cambiar nada' : 'Toca para operar aquí'}
+              disabled={choosingId !== null}
               icon="storefront"
               key={shop.businessId}
               onPress={() => void chooseShop(shop)}
@@ -128,25 +143,44 @@ export default function WorkerShopsScreen() {
             </Text>
           </View>
         </View>
-        <TextField
-          autoCapitalize="none"
-          autoCorrect={false}
-          editable={!isActing}
-          label="Código de invitación"
-          onChangeText={setCode}
-          onSubmitEditing={() => void submitCode()}
-          placeholder="Código recibido"
-          returnKeyType="send"
-          value={code}
-        />
-        <Button
-          disabled={isActing || !code.trim()}
-          fullWidth
-          iconRight="arrow-right"
-          label="Enviar solicitud"
-          loading={isActing}
-          onPress={() => void submitCode()}
-        />
+        {joinExpanded ? (
+          <>
+            <TextField
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isSubmittingCode}
+              label="Código de invitación"
+              onChangeText={setCode}
+              onSubmitEditing={() => void submitCode()}
+              placeholder="Código recibido"
+              returnKeyType="send"
+              value={code}
+            />
+            <Button
+              disabled={isSubmittingCode || !code.trim()}
+              fullWidth
+              iconRight="arrow-right"
+              label="Enviar solicitud"
+              loading={isSubmittingCode}
+              onPress={() => void submitCode()}
+            />
+          </>
+        ) : (
+          <Button
+            fullWidth
+            label="Tengo un código"
+            onPress={() => setJoinOpen(true)}
+            variant="secondary"
+          />
+        )}
+        {shops.length > 0 && joinExpanded ? (
+          <Button
+            fullWidth
+            label="Ocultar"
+            onPress={() => setJoinOpen(false)}
+            variant="ghost"
+          />
+        ) : null}
       </Card>
 
       {pending.length > 0 ? (
@@ -167,21 +201,29 @@ export default function WorkerShopsScreen() {
         </View>
       ) : null}
 
-      {shops.length === 0 && pending.length === 0 ? (
+      {hasLoaded && shops.length === 0 && pending.length === 0 && !error ? (
         <Card padding="lg" tone="soft">
           <Text style={[TypeScale.body, { color: Palette.inkMuted, textAlign: 'center' }]}>
-            Todavía no tienes barberías. Cuando un administrador apruebe tu solicitud, aparecerá aquí.
+            Todavía no tienes barberías. Pide el código al administrador e ingrésalo en “Unirme a una barbería”.
           </Text>
         </Card>
       ) : null}
 
       <AuthErrorMessage message={error} />
+      {error ? (
+        <Button
+          fullWidth
+          label="Reintentar"
+          onPress={() => void load()}
+          variant="secondary"
+        />
+      ) : null}
 
       <Button
         fullWidth
         icon="logout"
         label="Cerrar sesión"
-        onPress={() => { void signOut(); }}
+        onPress={confirmSignOut}
         variant="logout"
       />
       </Screen>
@@ -191,6 +233,7 @@ export default function WorkerShopsScreen() {
 
 const styles = StyleSheet.create({
   heroTop: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  heroPills: { alignItems: 'flex-end', gap: 6 },
   heroIcon: {
     alignItems: 'center',
     backgroundColor: Palette.brand,
