@@ -65,7 +65,7 @@ export default function LoginScreen() {
 
         <AuthButton label="Ingresar" onPress={() => void handleSubmit()} isLoading={isLoading} disabled={isLoading} />
 
-        <Button href="/" label="Entrar como invitado" variant="link" />
+        <Button href="/" label="Tomar un turno" variant="link" />
       </Card>
 
       <AuthSwitch

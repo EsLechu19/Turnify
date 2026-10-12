@@ -202,11 +202,12 @@ export default function PublicWelcomeScreen() {
         />
         {isDrawerOpen ? (
           <View style={styles.drawer}>
+            <Text style={[TypeScale.h3, styles.drawerTitle]}>Busca tu barbería</Text>
+            <Text style={[TypeScale.body, styles.drawerHelper]}>Escribe el código que aparece en el mostrador o en el cartel de la barbería.</Text>
             <TextField
               autoCapitalize="characters"
               autoCorrect={false}
               error={error}
-              hint="Consulta el código en el mostrador o recepción."
               label="CÓDIGO DE LA BARBERÍA"
               onChangeText={setCode}
               onSubmitEditing={continueWithCode}
@@ -214,7 +215,7 @@ export default function PublicWelcomeScreen() {
               returnKeyType="go"
               value={code}
             />
-            <Button fullWidth iconRight="arrow-right" label="Continuar" onPress={continueWithCode} />
+            <Button fullWidth iconRight="arrow-right" label="Ver barbería" onPress={continueWithCode} />
           </View>
         ) : null}
       </View>
@@ -313,7 +314,9 @@ const styles = StyleSheet.create({
     width: 84,
   },
   actions: { gap: space(3) },
-  drawer: { gap: space(3) },
+  drawer: { backgroundColor: Palette.surface, borderColor: Palette.border, borderRadius: Radius.large, borderWidth: 1, gap: space(2), padding: space(4) },
+  drawerTitle: { color: Palette.ink },
+  drawerHelper: { color: Palette.inkMuted },
   trustRow: { flexDirection: 'row', gap: space(2) },
   trustCard: { alignItems: 'flex-start', flex: 1, gap: space(1) },
   workerFooter: { alignItems: 'center', gap: space(1), paddingBottom: space(2) },

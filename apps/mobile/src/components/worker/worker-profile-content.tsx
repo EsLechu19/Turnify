@@ -6,15 +6,16 @@ import { WorkerButton, WorkerPill, WorkerText, workerColors, workerUiStyles } fr
 import { useAuth } from '@/features/auth/use-auth';
 import { formatReferencePrice } from '@/features/queue/commercial-booking';
 import { getMyWorkerAvatar, pickWorkerAvatar, uploadWorkerAvatar } from '@/features/worker/worker-avatar';
-import { getMyWorkerProfileDetails, getMyWorkerServices, updateMyWorkerProfileDetails, type WorkerAssignedService } from '@/features/worker/worker-profile-api';
+import { getMyWorkerProfileDetails, getMyWorkerServices, updateMyWorkerProfileDetails, type WorkerServiceGroup } from '@/features/worker/worker-profile-api';
 import { getWorkerShops, type WorkerShop } from '@/features/worker/worker-membership-api';
 
 export function WorkerProfileContent() {
   const { session, signOut } = useAuth();
-  const [currentShop, setCurrentShop] = useState<WorkerShop | null>(null);
+  const [shops, setShops] = useState<WorkerShop[]>([]);
+  const [serviceGroups, setServiceGroups] = useState<WorkerServiceGroup[]>([]);
+  const [areShopsExpanded, setAreShopsExpanded] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [services, setServices] = useState<WorkerAssignedService[]>([]);
   const [servicesError, setServicesError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -25,13 +26,13 @@ export function WorkerProfileContent() {
     let active = true;
 
     if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
-      setCurrentShop({ businessId: 'demo', name: 'Barbería Demo', isCurrent: true });
-      setName('Esau S');
-      setPhone('987 654 321');
-      setServices([
+      setShops([{ businessId: 'demo', name: 'Barbería Demo', isCurrent: true }]);
+      setServiceGroups([{ businessId: 'demo', businessName: 'Barbería Demo', isCurrent: true, services: [
         { serviceId: 'demo-1', name: 'Corte clásico', description: null, durationSeconds: 1800, priceCents: 2000 },
         { serviceId: 'demo-2', name: 'Perfilado de barba', description: null, durationSeconds: 1200, priceCents: 1500 },
-      ]);
+      ] }]);
+      setName('Esau S');
+      setPhone('987 654 321');
       setServicesError(null);
       return () => {
         active = false;
@@ -39,9 +40,9 @@ export function WorkerProfileContent() {
     }
 
     void getWorkerShops().then((next) => {
-      if (active) setCurrentShop(next.find((shop) => shop.isCurrent) ?? null);
+      if (active) setShops(next);
     }).catch(() => {
-      if (active) setCurrentShop(null);
+      if (active) setShops([]);
     });
     void getMyWorkerProfileDetails().then((details) => {
       if (active) {
@@ -53,7 +54,7 @@ export function WorkerProfileContent() {
     });
     void getMyWorkerServices().then((next) => {
       if (active) {
-        setServices(next);
+        setServiceGroups(next);
         setServicesError(null);
       }
     }).catch(() => {
@@ -107,6 +108,7 @@ export function WorkerProfileContent() {
   }
 
   const email = session?.user.email ?? 'No disponible';
+  const currentShop = shops.find((shop) => shop.isCurrent) ?? null;
   return (
     <ScrollView contentContainerStyle={workerUiStyles.page} keyboardShouldPersistTaps="handled">
       <View style={{ gap: 4 }}>
@@ -138,7 +140,9 @@ export function WorkerProfileContent() {
       <WorkerText color={workerColors.muted}>Tu foto, nombre y teléfono se muestran igual en todas tus barberías.</WorkerText>
 
       <View style={workerUiStyles.card}>
+        <WorkerText variant="eyebrow" color={workerColors.muted}>Información de cuenta</WorkerText>
         <WorkerText variant="headline">Datos personales</WorkerText>
+        <WorkerText color={workerColors.muted}>Mantén tus datos actualizados para que el equipo pueda reconocerte.</WorkerText>
         <View style={styles.field}>
           <WorkerText variant="label">Nombre</WorkerText>
           <TextInput accessibilityLabel="Nombre" value={name} onChangeText={setName} placeholder="Tu nombre" placeholderTextColor={workerColors.muted} style={styles.input} />
@@ -153,36 +157,54 @@ export function WorkerProfileContent() {
 
       <View style={workerUiStyles.card}>
         <View style={workerUiStyles.split}>
-          <WorkerText variant="eyebrow" color={workerColors.muted}>Barbería activa</WorkerText>
-          <WorkerPill label={currentShop ? 'SELECCIONADA' : 'SIN ELEGIR'} tone={currentShop ? 'teal' : 'neutral'} />
+          <WorkerText variant="eyebrow" color={workerColors.muted}>Barberías aprobadas</WorkerText>
+          <WorkerPill label={`${shops.length}`} tone="neutral" />
         </View>
         {currentShop ? (
           <View style={styles.currentShop}>
-            <WorkerText color={workerColors.muted}>Operando ahora en</WorkerText>
+            <WorkerText color={workerColors.muted}>Barbería activa</WorkerText>
             <WorkerText variant="headline">{currentShop.name}</WorkerText>
           </View>
         ) : (
           <WorkerText color={workerColors.muted}>Tu acceso aún espera aprobación o necesitas elegir una barbería.</WorkerText>
         )}
-        {currentShop ? (
+        <WorkerButton label={areShopsExpanded ? 'Ocultar barberías' : 'Ver barberías y cambiar'} tone="secondary" onPress={() => setAreShopsExpanded((expanded) => !expanded)} />
+        {areShopsExpanded ? shops.map((shop) => (
+          <View key={shop.businessId} style={styles.shopRow}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <WorkerText variant="headline">{shop.name}</WorkerText>
+              <WorkerText color={workerColors.muted}>{shop.isCurrent ? 'Barbería seleccionada' : 'Membresía aprobada'}</WorkerText>
+            </View>
+            <WorkerPill label={shop.isCurrent ? 'ACTUAL' : 'APROBADA'} tone={shop.isCurrent ? 'teal' : 'neutral'} />
+          </View>
+        )) : null}
+        {shops.length > 0 ? (
           <WorkerButton label="Cambiar de barbería" tone="secondary" onPress={() => router.replace('/(app)/worker-shops')} />
         ) : null}
       </View>
 
       <View style={workerUiStyles.card}>
-        <WorkerText variant="headline">Servicios que empleas</WorkerText>
+        <WorkerText variant="headline">Servicios por barbería</WorkerText>
         {servicesError ? <WorkerText color={workerColors.error}>{servicesError}</WorkerText> : null}
-        {!servicesError && services.length === 0 ? <WorkerText color={workerColors.muted}>No tienes servicios asignados todavía.</WorkerText> : null}
-        {services.map((service) => (
-          <View key={service.serviceId} style={styles.serviceRow}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <WorkerText variant="headline">{service.name}</WorkerText>
-              <WorkerText color={workerColors.muted}>{service.description ?? 'Tiempo y precio referencial'}</WorkerText>
+        {!servicesError && serviceGroups.length === 0 ? <WorkerText color={workerColors.muted}>No tienes barberías aprobadas todavía.</WorkerText> : null}
+        {serviceGroups.map((shop) => (
+          <View key={shop.businessId} style={styles.shopServices}>
+            <View style={workerUiStyles.split}>
+              <WorkerText variant="label" color={workerColors.teal}>{shop.businessName}</WorkerText>
+              {shop.isCurrent ? <WorkerPill label="ACTUAL" tone="teal" /> : null}
             </View>
-            <View style={{ alignItems: 'flex-end', gap: 2 }}>
-              <WorkerText variant="label" color={workerColors.teal}>{Math.round(service.durationSeconds / 60)} min</WorkerText>
-              <WorkerText variant="label" color={workerColors.muted}>{formatReferencePrice(service.priceCents) ?? '—'}</WorkerText>
-            </View>
+            {shop.services.length === 0 ? <WorkerText color={workerColors.muted}>Sin servicios asignados.</WorkerText> : shop.services.map((service) => (
+              <View key={service.serviceId} style={styles.serviceRow}>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <WorkerText variant="headline">{service.name}</WorkerText>
+                  <WorkerText color={workerColors.muted}>{service.description ?? 'Tiempo y precio referencial'}</WorkerText>
+                </View>
+                <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                  <WorkerText variant="label" color={workerColors.teal}>{Math.round(service.durationSeconds / 60)} min</WorkerText>
+                  <WorkerText variant="label" color={workerColors.muted}>{formatReferencePrice(service.priceCents) ?? '—'}</WorkerText>
+                </View>
+              </View>
+            ))}
           </View>
         ))}
       </View>
@@ -204,5 +226,7 @@ const styles = StyleSheet.create({
   field: { gap: 6 },
   input: { backgroundColor: workerColors.low, borderColor: workerColors.outline, borderRadius: 8, borderWidth: 1, color: workerColors.body, fontFamily: 'Work Sans', fontSize: 16, minHeight: 52, paddingHorizontal: 12 },
   currentShop: { backgroundColor: workerColors.low, borderRadius: 12, gap: 4, padding: 14 },
+  shopRow: { alignItems: 'center', borderTopColor: workerColors.outline, borderTopWidth: 1, flexDirection: 'row', gap: 12, paddingTop: 12 },
+  shopServices: { gap: 10 },
   serviceRow: { alignItems: 'center', borderTopColor: workerColors.outline, borderTopWidth: 1, flexDirection: 'row', gap: 12, paddingTop: 12 },
 });

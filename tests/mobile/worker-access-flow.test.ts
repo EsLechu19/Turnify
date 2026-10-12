@@ -36,7 +36,7 @@ describe('Worker authenticated access flow', () => {
     expect(login).not.toContain('label="Cliente"');
     expect(login).not.toContain('label="Empleado"');
     expect(login).toContain('label="Ingresar"');
-    expect(login).toContain('Entrar como invitado');
+    expect(login).toContain('Tomar un turno');
   });
 
   it('wires the register form to the real sign-up with worker intent', () => {

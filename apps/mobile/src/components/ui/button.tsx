@@ -23,14 +23,14 @@ export type ButtonProps = Omit<PressableProps, 'children' | 'style'> & {
 };
 
 const surfaces: Record<ButtonVariant, { background: string; border: string; text: string }> = {
-  primary: { background: Palette.brand, border: Palette.brand, text: '#FFFFFF' },
-  secondary: { background: Palette.surface, border: Palette.borderStrong, text: Palette.brand },
-  soft: { background: Palette.brandSoft, border: Palette.brandSoft, text: Palette.brandDeep },
-  ghost: { background: 'transparent', border: 'transparent', text: Palette.inkMuted },
-  gold: { background: Palette.gold, border: Palette.gold, text: Palette.ink },
-  danger: { background: Palette.dangerSoft, border: Palette.dangerSoft, text: Palette.danger },
-  success: { background: Palette.success, border: Palette.success, text: '#FFFFFF' },
-  link: { background: 'transparent', border: 'transparent', text: Palette.brand },
+  primary: { background: Palette.danger, border: Palette.danger, text: '#FFFFFF' },
+  secondary: { background: Palette.dangerSoft, border: Palette.dangerBorder, text: Palette.dangerInk },
+  soft: { background: Palette.dangerSoft, border: Palette.dangerSoft, text: Palette.dangerInk },
+  ghost: { background: 'transparent', border: 'transparent', text: Palette.dangerInk },
+  gold: { background: Palette.dangerSoft, border: Palette.dangerBorder, text: Palette.dangerInk },
+  danger: { background: Palette.danger, border: Palette.danger, text: '#FFFFFF' },
+  success: { background: Palette.danger, border: Palette.danger, text: '#FFFFFF' },
+  link: { background: 'transparent', border: 'transparent', text: Palette.dangerInk },
 };
 
 const metrics: Record<ButtonSize, { height: number; paddingHorizontal: number; gap: number; icon: number }> = {
@@ -78,7 +78,7 @@ export function Button({
           paddingHorizontal: isLink ? 0 : metric.paddingHorizontal,
           width: fullWidth ? '100%' : undefined,
         },
-        variant === 'primary' || variant === 'gold' || variant === 'success' ? Shadows.card : null,
+        variant === 'primary' || variant === 'danger' || variant === 'gold' || variant === 'success' ? Shadows.card : null,
         pressed && !isDisabled ? styles.pressed : null,
         isDisabled ? styles.disabled : null,
         style,
