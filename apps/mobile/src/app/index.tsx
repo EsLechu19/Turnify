@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { AppState, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, AppState, Easing, StyleSheet, Text, View } from 'react-native';
 
 import { BrandMark, Button, Card, Icon, Pill, TextField } from '@/components/ui';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
@@ -21,6 +21,25 @@ export default function PublicWelcomeScreen() {
   const [error, setError] = useState<string | null>(null);
   const { ticketAccess, hasActiveTicketAccess, endGuestTicketSession } = useGuestFlow();
   const [activeTicket, setActiveTicket] = useState<GuestTicketState | null>(null);
+  const scanProgress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const scanLoop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(250),
+        Animated.timing(scanProgress, {
+          duration: 1800,
+          easing: Easing.inOut(Easing.ease),
+          toValue: 1,
+          useNativeDriver: true,
+        }),
+        Animated.delay(350),
+        Animated.timing(scanProgress, { duration: 0, toValue: 0, useNativeDriver: true }),
+      ]),
+    );
+    scanLoop.start();
+    return () => scanLoop.stop();
+  }, [scanProgress]);
 
   const refreshActiveTicket = useCallback(async () => {
     if (!ticketAccess) return;
@@ -143,14 +162,24 @@ export default function PublicWelcomeScreen() {
       </View>
 
       <Card tone="soft" padding="lg" style={styles.scannerCard}>
-        <View style={styles.reticle}>
-          <View style={[styles.reticleCorner, styles.topLeft]} />
-          <View style={[styles.reticleCorner, styles.topRight]} />
-          <View style={[styles.reticleCorner, styles.bottomLeft]} />
-          <View style={[styles.reticleCorner, styles.bottomRight]} />
-          <View style={styles.scanBadge}>
-            <Icon color={Palette.brand} name="qr" size={42} />
-          </View>
+          <View style={styles.reticle}>
+            <View style={[styles.reticleCorner, styles.topLeft]} />
+            <View style={[styles.reticleCorner, styles.topRight]} />
+            <View style={[styles.reticleCorner, styles.bottomLeft]} />
+            <View style={[styles.reticleCorner, styles.bottomRight]} />
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.scanBeam,
+                {
+                  opacity: scanProgress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.25, 0.9, 0.25] }),
+                  transform: [{ translateY: scanProgress.interpolate({ inputRange: [0, 1], outputRange: [18, 128] }) }],
+                },
+              ]}
+            />
+            <View style={styles.scanBadge}>
+              <Icon color={Palette.brand} name="qr" size={42} />
+            </View>
         </View>
         <Text style={[TypeScale.label, { color: Palette.inkMuted }]}>Listo para enfocar</Text>
       </Card>
@@ -255,8 +284,20 @@ const styles = StyleSheet.create({
     borderRadius: Radius.large,
     height: 168,
     justifyContent: 'center',
+    overflow: 'hidden',
     position: 'relative',
     width: 168,
+  },
+  scanBeam: {
+    backgroundColor: Palette.brand,
+    height: 2,
+    left: 18,
+    position: 'absolute',
+    right: 18,
+    shadowColor: Palette.brand,
+    shadowOffset: { height: 0, width: 0 },
+    shadowOpacity: 0.7,
+    shadowRadius: 6,
   },
   reticleCorner: { borderColor: Palette.brand, height: 28, position: 'absolute', width: 28 },
   topLeft: { borderLeftWidth: 3, borderTopWidth: 3, left: 10, top: 10 },
