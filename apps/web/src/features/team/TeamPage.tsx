@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import { Icon } from '@/components/Icon';
-import { Badge, Button, ConfirmModal, DetailRow, EmptyState, FormModal, IconButton, Modal, PageHeader, SectionCard, StatsRow } from '@/components/common';
+import { Badge, Button, Card, CardHead, ConfirmModal, DetailRow, EmptyState, FormModal, IconButton, Modal, PageHeader, SectionCard, StatsRow } from '@/components/common';
 import { formatDuration, formatPrice, initialsOf } from '@/utils/format';
 import { staffAvailabilityLabels, staffAvailabilityTone } from '@/data/labels';
 import { fetchShopWorkerRequests, generateWorkerInvitation, resolveWorkerRequest, updateStaff, type ShopWorkerRequest } from '@/data/live';
@@ -9,7 +9,7 @@ import { staffRepository } from '@/data/repositories';
 import { useServices } from '@/state/ServicesContext';
 import type { ServiceRecord, StaffAvailability, StaffRecord } from '@/data/types';
 
-type AvailabilityFilter = 'todas' | 'disponible' | 'atencion' | 'pausa';
+type AvailabilityFilter = 'todas' | 'disponible' | 'atencion' | 'descanso';
 type StatusFilter = 'todos' | 'activo' | 'inactivo';
 
 type StaffModal =
@@ -29,7 +29,7 @@ const availabilityFilters: { label: string; value: AvailabilityFilter }[] = [
   { label: 'Todas', value: 'todas' },
   { label: 'Disponible', value: 'disponible' },
   { label: 'En atención', value: 'atencion' },
-  { label: 'En pausa', value: 'pausa' },
+  { label: 'Descanso', value: 'descanso' },
 ];
 
 const statusOptions: { label: string; value: StatusFilter }[] = [
@@ -66,26 +66,37 @@ export function TeamPage() {
   const [requests, setRequests] = useState<ShopWorkerRequest[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(true);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [staffError, setStaffError] = useState<string | null>(null);
+  const [requestsError, setRequestsError] = useState<string | null>(null);
+  const [denying, setDenying] = useState<ShopWorkerRequest | null>(null);
 
   function loadStaff() {
     setLoadingStaff(true);
+    setStaffError(null);
     staffRepository
       .list()
       .then((members) => {
         setStaff(members);
         setLoadingStaff(false);
       })
-      .catch(() => setLoadingStaff(false));
+      .catch(() => {
+        setStaffError('No pudimos traer al equipo. Revisa tu conexión.');
+        setLoadingStaff(false);
+      });
   }
 
   function loadRequests() {
     setLoadingRequests(true);
+    setRequestsError(null);
     fetchShopWorkerRequests()
       .then((rows) => {
         setRequests(rows);
         setLoadingRequests(false);
       })
-      .catch(() => setLoadingRequests(false));
+      .catch(() => {
+        setRequestsError('No pudimos traer las solicitudes. Revisa tu conexión.');
+        setLoadingRequests(false);
+      });
   }
 
   useEffect(() => {
@@ -131,11 +142,15 @@ export function TeamPage() {
   async function handleResolve(requestId: string, approve: boolean) {
     if (resolvingId) return;
     setResolvingId(requestId);
+    setRequestsError(null);
 
     try {
       await resolveWorkerRequest(requestId, approve);
+      setDenying(null);
       loadRequests();
       loadStaff();
+    } catch {
+      setRequestsError(approve ? 'No pudimos aprobar la solicitud.' : 'No pudimos denegar la solicitud.');
     } finally {
       setResolvingId(null);
     }
@@ -166,7 +181,7 @@ export function TeamPage() {
       availabilityFilter === 'todas' ||
       (availabilityFilter === 'disponible' && member.availability === 'disponible') ||
       (availabilityFilter === 'atencion' && member.availability === 'atencion') ||
-      (availabilityFilter === 'pausa' && (member.availability === 'descanso' || member.availability === 'fuera'));
+      (availabilityFilter === 'descanso' && member.availability !== 'disponible' && member.availability !== 'atencion');
 
     return matchesQuery && matchesStatus && matchesAvailability;
   });
@@ -204,6 +219,11 @@ export function TeamPage() {
 
     if (!name) {
       setFormError('El nombre es obligatorio.');
+      return;
+    }
+
+    if (modalMember.availability === 'atencion') {
+      setFormError('Está en atención ahora: termina su turno en la app del barbero antes de editar. Guardar le pisaría el estado en vivo.');
       return;
     }
 
@@ -274,7 +294,7 @@ export function TeamPage() {
           { label: 'Barberos en el local', value: String(inLocal), icon: 'users', foot: `${activeCount} activos · ${staff.length} registrados` },
           { label: 'Disponibles para llamar', value: String(available), icon: 'zap', foot: 'Listos para el siguiente turno' },
           { label: 'En pausa', value: String(paused), icon: 'pause', foot: `${offShift} fuera de atención` },
-          { label: 'Cortes completados', value: String(completedToday), icon: 'scissors', foot: 'Acumulado del turno de hoy' },
+          { label: 'Servicios completados', value: String(completedToday), icon: 'scissors', foot: 'Acumulado del turno de hoy' },
         ]}
       />
 
@@ -331,6 +351,13 @@ export function TeamPage() {
 
         {loadingStaff ? (
           <EmptyState detail="Trayendo al equipo del local…" title="Cargando equipo" />
+        ) : staffError ? (
+          <Card>
+            <CardHead detail={staffError} title="No pudimos cargar el equipo" />
+            <Button onClick={loadStaff} variant="secondary">
+              Reintentar
+            </Button>
+          </Card>
         ) : filtered.length === 0 ? (
           <EmptyState detail="Ajusta la búsqueda o los filtros para ver miembros del equipo." title="Nadie coincide" />
         ) : (
@@ -340,6 +367,7 @@ export function TeamPage() {
                 <tr>
                   <th scope="col">Barbero</th>
                   <th scope="col">Disponibilidad</th>
+                  <th scope="col">Turno actual</th>
                   <th scope="col">Servicios autorizados</th>
                   <th scope="col">Atendidos hoy</th>
                   <th scope="col">Ritmo promedio</th>
@@ -391,6 +419,13 @@ export function TeamPage() {
                         <Badge tone={staffAvailabilityTone[member.availability]}>
                           {staffAvailabilityLabels[member.availability]}
                         </Badge>
+                      </td>
+                      <td className="cell--nowrap">
+                        {member.currentTicket ? (
+                          <strong style={{ font: 'var(--text-body-strong)' }}>{member.currentTicket}</strong>
+                        ) : (
+                          <span className="muted">—</span>
+                        )}
                       </td>
                       <td className="cell--nowrap">
                         {own.length === 0 ? (
@@ -495,6 +530,13 @@ export function TeamPage() {
       >
         {loadingRequests ? (
           <EmptyState detail="Trayendo las solicitudes…" title="Cargando solicitudes" />
+        ) : requestsError ? (
+          <Card>
+            <CardHead detail={requestsError} title="No pudimos cargar las solicitudes" />
+            <Button onClick={loadRequests} variant="secondary">
+              Reintentar
+            </Button>
+          </Card>
         ) : requests.length === 0 ? (
           <EmptyState detail="Cuando un trabajador canjee su invitación, aparece aquí para aprobar." title="Sin solicitudes" />
         ) : (
@@ -526,7 +568,7 @@ export function TeamPage() {
                   </Button>
                   <Button
                     disabled={resolvingId !== null}
-                    onClick={() => void handleResolve(request.requestId, false)}
+                    onClick={() => setDenying(request)}
                     size="sm"
                     variant="secondary"
                   >
@@ -538,6 +580,19 @@ export function TeamPage() {
           </div>
         )}
       </SectionCard>
+
+      {denying ? (
+        <ConfirmModal
+          confirmIcon="close"
+          confirmLabel="Denegar ingreso"
+          confirmVariant="danger"
+          detail="No entrará a tu barbería. Tendrá que pedir otra invitación para volver a intentarlo."
+          onCancel={() => setDenying(null)}
+          onConfirm={() => void handleResolve(denying.requestId, false)}
+          open
+          title={`¿Denegar a ${denying.name ?? 'este trabajador'}?`}
+        />
+      ) : null}
 
       {modal?.type === 'detail' && modalMember ? (
         <Modal
@@ -587,6 +642,11 @@ export function TeamPage() {
           title={`Editar a ${modalMember?.name ?? ''}`}
         >
           <>
+            {modalMember?.availability === 'atencion' ? (
+              <p className="auth__error" role="alert" style={{ font: 'var(--text-body)', margin: '0 0 12px' }}>
+                En atención ahora: guardar le pisa el estado en vivo. Espera a que termine su turno.
+              </p>
+            ) : null}
             <div className="form-grid">
               <label className="field">
                 <span>Nombre</span>
