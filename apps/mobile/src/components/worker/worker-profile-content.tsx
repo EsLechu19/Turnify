@@ -96,9 +96,17 @@ export function WorkerProfileContent() {
   return (
     <ScrollView contentContainerStyle={workerUiStyles.page} keyboardShouldPersistTaps="handled">
       <View style={{ gap: 4 }}>
-        <WorkerText variant="eyebrow" color={workerColors.teal}>Cuenta</WorkerText>
+        <WorkerText variant="eyebrow" color={workerColors.teal}>Cuenta personal</WorkerText>
         <WorkerText variant="title">Mi perfil</WorkerText>
         <WorkerText color={workerColors.muted}>Tu información, barbería y servicios activos.</WorkerText>
+      </View>
+
+      <View style={workerUiStyles.card}>
+        <WorkerText variant="eyebrow" color={workerColors.muted}>Cuenta personal</WorkerText>
+        <WorkerText color={workerColors.muted}>
+          {currentShop ? `Estás dentro de ${currentShop.name}. Vuelve a tu cuenta para cambiar de barbería o ver tu perfil.` : 'Vuelve a tu cuenta para ver tus barberías y tu perfil.'}
+        </WorkerText>
+        <WorkerButton label="Volver a cuenta personal" tone="secondary" onPress={() => router.push('/(app)/worker-shops')} />
       </View>
 
       <View style={[workerUiStyles.card, styles.heroCard]}>
@@ -163,7 +171,7 @@ export function WorkerProfileContent() {
           </View>
         )) : null}
         {shops.length > 0 ? (
-          <WorkerButton label="Cambiar de barbería" tone="secondary" onPress={() => router.replace('/(app)/worker-shops')} />
+          <WorkerButton label="Volver a cuenta personal" tone="secondary" onPress={() => router.replace('/(app)/worker-shops')} />
         ) : null}
       </View>
 

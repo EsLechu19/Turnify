@@ -70,7 +70,7 @@ describe('Worker authenticated access flow', () => {
     expect(profile).toContain('activeNavigation="profile"');
     expect(content).not.toContain('selectWorkerShop(shop.businessId)');
     expect(content).toContain("router.replace('/(app)/worker-shops')");
-    expect(content).toContain('Cambiar de barbería');
+    expect(content).toContain('Volver a cuenta personal');
   });
 
   it('permits an unselected personal account only to account destinations', () => {

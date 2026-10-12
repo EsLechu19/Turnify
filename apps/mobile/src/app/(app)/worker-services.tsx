@@ -111,6 +111,7 @@ export default function WorkerServicesScreen() {
         ) : null}
 
         <WorkerButton label="Volver al perfil" tone="secondary" onPress={() => router.replace('/(app)/worker-profile')} />
+        <WorkerButton label="Volver a cuenta personal" tone="secondary" onPress={() => router.push('/(app)/worker-shops')} />
       </ScrollView>
     </WorkerScreenContainer>
   );
