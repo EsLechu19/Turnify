@@ -34,6 +34,15 @@ export function WorkerScreenContainer({ activeNavigation, children, shopName }: 
         <View style={styles.headerActions}>
           <Pill label="En vivo" tone="success" />
           <Pressable
+            accessibilityHint="Volver a tu cuenta personal y tus barberías."
+            accessibilityLabel="Volver a cuenta personal"
+            accessibilityRole="button"
+            onPress={() => router.push('/(app)/worker-shops' as Href)}
+            style={styles.accountEntry}
+          >
+            <Icon color={Palette.brandDeep} name="storefront" size={18} />
+          </Pressable>
+          <Pressable
             accessibilityLabel="Abrir perfil"
             accessibilityRole="button"
             onPress={() => router.replace('/(app)/worker-profile')}
@@ -106,6 +115,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Palette.brandSoft,
     borderRadius: Radius.pill,
+    height: 34,
+    justifyContent: 'center',
+    width: 34,
+  },
+  accountEntry: {
+    alignItems: 'center',
+    backgroundColor: Palette.surface,
+    borderColor: Palette.borderStrong,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
     height: 34,
     justifyContent: 'center',
     width: 34,

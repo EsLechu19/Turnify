@@ -31,7 +31,7 @@ const surfaces: Record<ButtonVariant, { background: string; border: string; text
   danger: { background: Palette.dangerSoft, border: Palette.dangerSoft, text: Palette.danger },
   success: { background: Palette.success, border: Palette.success, text: '#FFFFFF' },
   link: { background: 'transparent', border: 'transparent', text: Palette.brand },
-  logout: { background: Palette.danger, border: Palette.danger, text: '#FFFFFF' },
+  logout: { background: Palette.dangerSoft, border: Palette.dangerBorder, text: Palette.dangerInk },
 };
 
 const metrics: Record<ButtonSize, { height: number; paddingHorizontal: number; gap: number; icon: number }> = {
@@ -79,7 +79,7 @@ export function Button({
           paddingHorizontal: isLink ? 0 : metric.paddingHorizontal,
           width: fullWidth ? '100%' : undefined,
         },
-        variant === 'primary' || variant === 'gold' || variant === 'success' || variant === 'logout' ? Shadows.card : null,
+        variant === 'primary' || variant === 'gold' || variant === 'success' ? Shadows.card : null,
         pressed && !isDisabled ? styles.pressed : null,
         isDisabled ? styles.disabled : null,
         style,
