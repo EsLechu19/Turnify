@@ -15,7 +15,6 @@ type StatusFilter = 'todos' | 'activo' | 'inactivo';
 type ModalState =
   | { type: 'detail'; id: string }
   | { type: 'form'; id: string | null }
-  | { type: 'barbers'; id: string }
   | { type: 'delete'; id: string }
   | null;
 
@@ -109,7 +108,7 @@ function ServiceForm({
           </label>
 
           <label className="field">
-            <span>Precio base (S/)</span>
+            <span>Precio de referencia (S/)</span>
             <input
               min={0}
               onChange={(event) => onChange({ priceSoles: Number(event.target.value) })}
@@ -117,7 +116,7 @@ function ServiceForm({
               type="number"
               value={draft.priceSoles}
             />
-            <small>Precio de referencia del servicio.</small>
+            <small>Referencial: es lo que ve el cliente, no un cobro final.</small>
           </label>
         </div>
 
@@ -345,7 +344,7 @@ export function ServicesPage() {
         stats={[
           { label: 'Servicios registrados', value: String(services.length), icon: 'ticket', foot: `${activeCount} activos · ${services.length - activeCount} inactivos` },
           { label: 'Tiempo medido prom.', value: measuredAvg == null ? '—' : formatDuration(measuredAvg * 60), icon: 'clock', foot: 'Medido en atención' },
-          { label: 'Satisfacción global', value: globalRating == null ? '—' : String(globalRating), icon: 'star', foot: totalVotes === 0 ? 'Sin votos aún' : `${totalVotes} votos` },
+          { label: 'Satisfacción global', value: globalRating == null ? '—' : `${globalRating} (${totalVotes})`, icon: 'star', foot: totalVotes === 0 ? 'Sin votos aún' : 'Promedio de clientes' },
         ]}
       />
       <SectionCard
@@ -421,7 +420,7 @@ export function ServicesPage() {
                 <tr>
                   <th scope="col">Servicio</th>
                   <th scope="col">Duración estimada</th>
-                  <th scope="col">Precio</th>
+                  <th scope="col">Precio ref.</th>
                   <th scope="col">Barberos</th>
                   <th scope="col">Satisfacción</th>
                   <th scope="col">Estado</th>
@@ -449,17 +448,17 @@ export function ServicesPage() {
                     <td>{formatPrice(service.priceCents)}</td>
                     <td className="cell--nowrap">
                       {service.barberIds.length === 0 ? (
-                        <span className="muted">Sin asignar</span>
+                        <span className="muted">Sin asignar: no genera turnos</span>
                       ) : service.barberIds.length === 1 ? (
                         <span>{barberName(service.barberIds[0])}</span>
                       ) : (
-                        <button
-                          className="badge badge--brand"
-                          onClick={() => setModal({ id: service.id, type: 'barbers' })}
-                          style={{ cursor: 'pointer' }}
-                          title="Ver barberos asignados"
-                          type="button"
-                        >
+                          <button
+                            className="badge badge--brand"
+                            onClick={() => setModal({ id: service.id, type: 'detail' })}
+                            style={{ cursor: 'pointer' }}
+                            title="Ver ficha y barberos asignados"
+                            type="button"
+                          >
                           <Icon name="users" size={13} />
                           {service.barberIds.length} asignados
                         </button>
@@ -563,16 +562,55 @@ export function ServicesPage() {
                   : `${performance[modalService.name]?.avgRating?.toFixed(1)} · ${performance[modalService.name]?.votes} votos`
               }
             />
-            <DetailRow label="Precio base" value={formatPrice(modalService.priceCents)} />
+            <DetailRow label="Precio de referencia" value={`${formatPrice(modalService.priceCents)} (lo que ve el cliente)`} />
             <DetailRow label="Estado" value={modalService.active ? 'Activo' : 'Inactivo'} />
-            <DetailRow
-              label="Barberos asignados"
-              value={
-                modalService.barberIds.length === 0
-                  ? 'Sin asignar'
-                  : modalService.barberIds.map(barberName).join(', ')
-              }
-            />
+            <DetailRow label="Barberos asignados" value={modalService.barberIds.length === 0 ? 'Sin asignar: no genera turnos' : `${modalService.barberIds.length} asignados`} />
+            {modalService.barberIds.length === 0 ? null : (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {modalService.barberIds.map((id) => {
+                  const member = team.find((person) => person.id === id);
+
+                  return (
+                    <div
+                      key={id}
+                      className="row-split"
+                      style={{
+                        background: 'var(--surface-muted)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '10px 14px',
+                      }}
+                    >
+                      <span style={{ alignItems: 'center', display: 'flex', gap: 10 }}>
+                        <span className="stat__icon">
+                          <Icon name="user" size={17} />
+                        </span>
+                        <span style={{ display: 'grid' }}>
+                          <strong style={{ font: 'var(--text-body-strong)' }}>
+                            {member?.name ?? 'Barbero no disponible'}
+                          </strong>
+                          <span className="muted" style={{ font: 'var(--text-caption)' }}>
+                            {member?.currentTicket ? `Atendiendo ${member.currentTicket}` : 'Sin turno asignado'}
+                          </span>
+                        </span>
+                      </span>
+
+                      <Badge
+                        tone={
+                          member?.availability === 'disponible'
+                            ? 'success'
+                            : member?.availability === 'atencion'
+                              ? 'brand'
+                              : 'neutral'
+                        }
+                      >
+                        {member ? availabilityLabels[member.availability] : 'Sin datos'}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             <DetailRow
               label="Solicitado hoy"
               value={`${
@@ -581,73 +619,6 @@ export function ServicesPage() {
             />
             <DetailRow label="Creado el" value={modalService.createdAt} />
           </div>
-        </Modal>
-      ) : null}
-
-      {modal?.type === 'barbers' && modalService ? (
-        <Modal
-          detail="Barberos habilitados para atender este servicio."
-          onClose={() => setModal(null)}
-          title={`Barberos asignados (${modalService.barberIds.length})`}
-          footer={
-            <>
-              <Button onClick={() => setModal(null)} variant="secondary">
-                Cerrar
-              </Button>
-              <Button icon="edit" onClick={() => openEdit(modalService)}>
-                Editar asignación
-              </Button>
-            </>
-          }
-        >
-          {modalService.barberIds.length === 0 ? (
-            <EmptyState detail="Asigna barberos desde el formulario de edición." title="Sin barberos asignados" />
-          ) : (
-            <div style={{ display: 'grid', gap: 10 }}>
-              {modalService.barberIds.map((id) => {
-                const member = team.find((person) => person.id === id);
-
-                return (
-                  <div
-                    key={id}
-                    className="row-split"
-                    style={{
-                      background: 'var(--surface-muted)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--radius-sm)',
-                      padding: '10px 14px',
-                    }}
-                  >
-                    <span style={{ alignItems: 'center', display: 'flex', gap: 10 }}>
-                      <span className="stat__icon">
-                        <Icon name="user" size={17} />
-                      </span>
-                      <span style={{ display: 'grid' }}>
-                        <strong style={{ font: 'var(--text-body-strong)' }}>
-                          {member?.name ?? 'Barbero no disponible'}
-                        </strong>
-                        <span className="muted" style={{ font: 'var(--text-caption)' }}>
-                          {member?.currentTicket ? `Atendiendo ${member.currentTicket}` : 'Sin turno asignado'}
-                        </span>
-                      </span>
-                    </span>
-
-                    <Badge
-                      tone={
-                        member?.availability === 'disponible'
-                          ? 'success'
-                          : member?.availability === 'atencion'
-                            ? 'brand'
-                            : 'neutral'
-                      }
-                    >
-                      {member ? availabilityLabels[member.availability] : 'Sin datos'}
-                    </Badge>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </Modal>
       ) : null}
 
