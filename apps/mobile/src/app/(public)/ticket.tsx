@@ -370,10 +370,10 @@ export default function GuestTicketScreen() {
                     </View>
                     <View style={styles.heroStatCopy}>
                       <Text
-                        accessibilityLabel={`Espera aproximada ${estimatedWaitSeconds > 0 ? formatEstimatedWait(estimatedWaitSeconds) : 'por confirmar'}`}
+                        accessibilityLabel={`Espera aproximada ${ticket.peopleAhead === 0 ? 'es tu turno ahora' : estimatedWaitSeconds > 0 ? `unos ${Math.ceil(estimatedWaitSeconds / 60)} minutos` : `vas puesto ${ticketPosition(ticket.peopleAhead)}`}`}
                         style={[TypeScale.title, { color: Palette.goldInk }]}
                       >
-                        {estimatedWaitSeconds > 0 ? `~${formatEstimatedWait(estimatedWaitSeconds)}` : '—'}
+                        {ticket.peopleAhead === 0 ? 'Ahora' : estimatedWaitSeconds > 0 ? `~${Math.ceil(estimatedWaitSeconds / 60)} min` : `${ticketPosition(ticket.peopleAhead)}°`}
                       </Text>
                       <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>espera aprox.</Text>
                     </View>
@@ -391,9 +391,30 @@ export default function GuestTicketScreen() {
 
             {ticket.serviceName || barberName ? (
               <Card padding="md">
-                <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>
-                  {[ticket.serviceName, barberName ? `${ticket.assignedBarberName ? 'con' : 'pref.'} ${barberName}` : null].filter(Boolean).join(' · ')}
-                </Text>
+                {ticket.serviceName ? (
+                  <View style={styles.factRow}>
+                    <View style={styles.factIcon}>
+                      <Icon color={Palette.brand} name="ticket" size={19} />
+                    </View>
+                    <View style={styles.factCopy}>
+                      <Text style={styles.factLabel}>Servicio elegido</Text>
+                      <Text style={[TypeScale.body, { color: Palette.ink }]}>{ticket.serviceName}</Text>
+                    </View>
+                  </View>
+                ) : null}
+                {barberName ? (
+                  <View style={styles.factRow}>
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>{initials(barberName)}</Text>
+                    </View>
+                    <View style={styles.factCopy}>
+                      <Text style={styles.factLabel}>
+                        {ticket.assignedBarberName ? 'Te atiende' : 'Preferencia (se confirma al llamarte)'}
+                      </Text>
+                      <Text style={[TypeScale.body, { color: Palette.ink }]}>{barberName}</Text>
+                    </View>
+                  </View>
+                ) : null}
               </Card>
             ) : null}
 
