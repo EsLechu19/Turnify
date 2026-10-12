@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, AppState, Easing, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, AppState, StyleSheet, Text, View } from 'react-native';
 
 import { BrandMark, Button, Card, Icon, Pill, TextField } from '@/components/ui';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
@@ -21,28 +21,13 @@ export default function PublicWelcomeScreen() {
   const [error, setError] = useState<string | null>(null);
   const { ticketAccess, hasActiveTicketAccess, endGuestTicketSession } = useGuestFlow();
   const [activeTicket, setActiveTicket] = useState<GuestTicketState | null>(null);
-  const scanProgress = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const scanLoop = Animated.loop(
-      Animated.sequence([
-        Animated.delay(250),
-        Animated.timing(scanProgress, {
-          duration: 1800,
-          easing: Easing.inOut(Easing.ease),
-          toValue: 1,
-          useNativeDriver: true,
-        }),
-        Animated.delay(350),
-        Animated.timing(scanProgress, { duration: 0, toValue: 0, useNativeDriver: true }),
-      ]),
-    );
-    scanLoop.start();
-    return () => scanLoop.stop();
-  }, [scanProgress]);
+  const [isTicketLoading, setIsTicketLoading] = useState(false);
+  const [ticketError, setTicketError] = useState<string | null>(null);
 
   const refreshActiveTicket = useCallback(async () => {
     if (!ticketAccess) return;
+    setIsTicketLoading(true);
+    setTicketError(null);
     try {
       const ticket = await getGuestTicketState(ticketAccess);
       if (isActiveGuestTicketStatus(ticket.status)) {
@@ -52,7 +37,9 @@ export default function PublicWelcomeScreen() {
         endGuestTicketSession();
       }
     } catch {
-      // Capability failures stay private and never enter route or UI state.
+      setTicketError('No pudimos recuperar tu turno. Revisa tu conexión.');
+    } finally {
+      setIsTicketLoading(false);
     }
   }, [endGuestTicketSession, ticketAccess]);
 
@@ -108,34 +95,48 @@ export default function PublicWelcomeScreen() {
       <View style={styles.centered}>
         <BrandMark size={44} />
         <Text style={[TypeScale.eyebrow, styles.eyebrow]}>TU TURNO SIGUE ACTIVO</Text>
-        <Text style={TypeScale.display}>{activeTicket ? `Turno ${activeTicket.visibleCode}` : 'Recuperando tu turno…'}</Text>
-        {activeTicket ? <Pill label={statusPill.label} tone={statusPill.tone} /> : null}
-        {activeTicket ? (
-          <Card tone={activeTicket.status === 'llamado' ? 'gold' : 'brand'} padding="lg" style={styles.activeMetrics}>
-            <Text style={[TypeScale.body, { color: Palette.inkMuted }]}>
-              {activeTicket.status === 'llamado'
-                ? 'Te están llamando ahora: acércate al personal'
-                : activeTicket.status === 'en_atencion'
-                  ? 'Te están atendiendo'
-                  : 'Tu lugar en la fila está reservado'}
-            </Text>
-            <Text style={[TypeScale.title, { color: Palette.brandDeep }]}>
-              {activeTicket.peopleAhead} delante · {activeTicket.waitMinutes} min
-            </Text>
-            {activeTicket.serviceName || barberName ? (
-              <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>
-                {[activeTicket.serviceName, barberName].filter(Boolean).join(' · ')}
-              </Text>
-            ) : null}
-          </Card>
+        {isTicketLoading && !activeTicket ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator color={Palette.brand} />
+            <Text style={TypeScale.body}>Recuperando tu turno…</Text>
+          </View>
         ) : null}
-        <Button
-          fullWidth
-          iconRight="arrow-right"
-          label="Ver mi turno"
-          onPress={() => router.push(activeGuestTicketRoute(activeTicket?.status ?? 'en_espera'))}
-          size="lg"
-        />
+        {ticketError && !activeTicket ? (
+          <>
+            <Text style={[TypeScale.body, styles.mutedCenter]}>{ticketError}</Text>
+            <Button fullWidth label="Reintentar" onPress={() => void refreshActiveTicket()} variant="secondary" />
+          </>
+        ) : null}
+        {activeTicket ? (
+          <>
+            <Text style={TypeScale.display}>Turno {activeTicket.visibleCode}</Text>
+            <Pill label={statusPill.label} tone={statusPill.tone} />
+            <Card tone={activeTicket.status === 'llamado' ? 'gold' : 'brand'} padding="lg" style={styles.activeMetrics}>
+              <Text style={[TypeScale.body, { color: Palette.inkMuted }]}>
+                {activeTicket.status === 'llamado'
+                  ? 'Te están llamando ahora: acércate al personal'
+                  : activeTicket.status === 'en_atencion'
+                    ? 'Te están atendiendo'
+                    : 'Tu lugar en la fila está reservado'}
+              </Text>
+              <Text style={[TypeScale.title, { color: Palette.brandDeep }]}>
+                {activeTicket.peopleAhead} delante · {activeTicket.waitMinutes} min
+              </Text>
+              {activeTicket.serviceName || barberName ? (
+                <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>
+                  {[activeTicket.serviceName, barberName].filter(Boolean).join(' · ')}
+                </Text>
+              ) : null}
+            </Card>
+            <Button
+              fullWidth
+              iconRight="arrow-right"
+              label="Ver mi turno"
+              onPress={() => router.push(activeGuestTicketRoute(activeTicket.status))}
+              size="lg"
+            />
+          </>
+        ) : null}
         <Text style={[TypeScale.caption, styles.mutedCenter]}>
           Cuando este turno termine, podrás escanear o ingresar otro código.
         </Text>
@@ -151,38 +152,11 @@ export default function PublicWelcomeScreen() {
       </View>
 
       <View style={styles.narrative}>
-        <View style={styles.pill}>
-          <Icon color={Palette.brand} name="storefront" size={16} />
-          <Text style={[TypeScale.eyebrow, { color: Palette.brandDeep }]}>BARBERÍAS</Text>
-        </View>
         <Text style={[TypeScale.display, styles.narrativeTitle]}>Tu turno, sin esperar de más</Text>
         <Text style={[TypeScale.body, styles.narrativeDetail]}>
-          Escanea el código QR en la entrada de la barbería o ingresa su código para sumarte a la fila al instante.
+          Apunta al QR de la entrada para sumarte a la fila al instante.
         </Text>
       </View>
-
-      <Card tone="soft" padding="lg" style={styles.scannerCard}>
-          <View style={styles.reticle}>
-            <View style={[styles.reticleCorner, styles.topLeft]} />
-            <View style={[styles.reticleCorner, styles.topRight]} />
-            <View style={[styles.reticleCorner, styles.bottomLeft]} />
-            <View style={[styles.reticleCorner, styles.bottomRight]} />
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.scanBeam,
-                {
-                  opacity: scanProgress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.25, 0.9, 0.25] }),
-                  transform: [{ translateY: scanProgress.interpolate({ inputRange: [0, 1], outputRange: [18, 128] }) }],
-                },
-              ]}
-            />
-            <View style={styles.scanBadge}>
-              <Icon color={Palette.brand} name="qr" size={42} />
-            </View>
-        </View>
-        <Text style={[TypeScale.label, { color: Palette.inkMuted }]}>Listo para enfocar</Text>
-      </Card>
 
       <View style={styles.actions}>
         <Button
@@ -193,17 +167,14 @@ export default function PublicWelcomeScreen() {
           size="lg"
         />
         <Button
-          fullWidth
-          icon="code"
-          label="Ingresar código del negocio"
+          label="¿Sin cámara? Ingresar código"
           onPress={toggleCodeDrawer}
-          size="lg"
-          variant="secondary"
+          variant="link"
         />
         {isDrawerOpen ? (
           <View style={styles.drawer}>
             <Text style={[TypeScale.h3, styles.drawerTitle]}>Busca tu barbería</Text>
-            <Text style={[TypeScale.body, styles.drawerHelper]}>Escribe el código que aparece en el mostrador o en el cartel de la barbería.</Text>
+            <Text style={[TypeScale.body, styles.drawerHelper]}>Escribe el código del mostrador. Si no lo encuentra, revisa mayúsculas y guiones.</Text>
             <TextField
               autoCapitalize="characters"
               autoCorrect={false}
@@ -220,22 +191,13 @@ export default function PublicWelcomeScreen() {
         ) : null}
       </View>
 
-      <View style={styles.trustRow}>
-        <Card style={styles.trustCard} padding="sm">
-          <Icon color={Palette.brand} name="clock" size={20} />
-          <Text style={[TypeScale.label, { color: Palette.ink }]}>Tiempo real</Text>
-          <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>Sigue tu posición</Text>
-        </Card>
-        <Card style={styles.trustCard} padding="sm">
-          <Icon color={Palette.brand} name="bell" size={20} />
-          <Text style={[TypeScale.label, { color: Palette.ink }]}>Aviso de llamado</Text>
-          <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>Te avisamos al llamarte</Text>
-        </Card>
+      <View style={styles.trustLine}>
+        <Icon color={Palette.brand} name="clock" size={16} />
+        <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>Posición en vivo · te avisamos al llamarte (deja la app abierta).</Text>
       </View>
 
       <View style={styles.workerFooter}>
-        <Text style={[TypeScale.caption, styles.workerCaption]}>¿Eres trabajador de la barbería?</Text>
-        <Button href={workerSignInRoute} label="Iniciar sesión como trabajador" variant="link" />
+        <Button href={workerSignInRoute} label="Soy trabajador" variant="link" />
       </View>
 
     </View>
@@ -269,58 +231,13 @@ const styles = StyleSheet.create({
   narrative: { alignItems: 'center', gap: space(2) },
   narrativeTitle: { color: Palette.ink, textAlign: 'center' },
   narrativeDetail: { color: Palette.inkMuted, textAlign: 'center' },
-  pill: {
-    alignItems: 'center',
-    backgroundColor: Palette.brandSoft,
-    borderRadius: Radius.pill,
-    flexDirection: 'row',
-    gap: space(1.5),
-    paddingHorizontal: space(3),
-    paddingVertical: space(1.5),
-  },
-  scannerCard: { alignItems: 'center', gap: space(2) },
-  reticle: {
-    alignItems: 'center',
-    backgroundColor: Palette.surface,
-    borderRadius: Radius.large,
-    height: 168,
-    justifyContent: 'center',
-    overflow: 'hidden',
-    position: 'relative',
-    width: 168,
-  },
-  scanBeam: {
-    backgroundColor: Palette.brand,
-    height: 2,
-    left: 18,
-    position: 'absolute',
-    right: 18,
-    shadowColor: Palette.brand,
-    shadowOffset: { height: 0, width: 0 },
-    shadowOpacity: 0.7,
-    shadowRadius: 6,
-  },
-  reticleCorner: { borderColor: Palette.brand, height: 28, position: 'absolute', width: 28 },
-  topLeft: { borderLeftWidth: 3, borderTopWidth: 3, left: 10, top: 10 },
-  topRight: { borderRightWidth: 3, borderTopWidth: 3, right: 10, top: 10 },
-  bottomLeft: { borderBottomWidth: 3, borderLeftWidth: 3, bottom: 10, left: 10 },
-  bottomRight: { borderBottomWidth: 3, borderRightWidth: 3, bottom: 10, right: 10 },
-  scanBadge: {
-    alignItems: 'center',
-    backgroundColor: Palette.brandSoftest,
-    borderRadius: Radius.pill,
-    height: 84,
-    justifyContent: 'center',
-    width: 84,
-  },
-  actions: { gap: space(3) },
+  loadingRow: { alignItems: 'center', flexDirection: 'row', gap: space(2) },
+  actions: { gap: space(2) },
   drawer: { backgroundColor: Palette.surface, borderColor: Palette.border, borderRadius: Radius.large, borderWidth: 1, gap: space(2), padding: space(4) },
   drawerTitle: { color: Palette.ink },
   drawerHelper: { color: Palette.inkMuted },
-  trustRow: { flexDirection: 'row', gap: space(2) },
-  trustCard: { alignItems: 'flex-start', flex: 1, gap: space(1) },
+  trustLine: { alignItems: 'center', flexDirection: 'row', gap: space(1.5), justifyContent: 'center' },
   workerFooter: { alignItems: 'center', gap: space(1), paddingBottom: space(2) },
-  workerCaption: { color: Palette.inkMuted, textAlign: 'center' },
   activeMetrics: { alignItems: 'center', gap: space(1), width: '100%' },
   mutedCenter: { color: Palette.inkMuted, textAlign: 'center' },
 });

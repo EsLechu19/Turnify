@@ -55,13 +55,20 @@ describe('public guest flow contracts', () => {
     expect(home).toContain('/(public)/scan');
     expect(home).toContain('normalizeBusinessCode');
     expect(home).toContain('workerSignInRoute');
-    expect(home).toContain('Iniciar sesión como trabajador');
+    expect(home).toContain('Soy trabajador');
     expect(home).not.toContain("router.replace('/(auth)/login')");
     expect(session).not.toMatch(/AsyncStorage|SecureStore|capability.*params/i);
   });
 
-  it('redirects discovery entry points to the active ticket while ticket access exists', () => {
-    const scan = readFileSync('apps/mobile/src/app/(public)/scan.tsx', 'utf8');
+  it('shows a friendly closed shop with a way back to the launch screen', () => {
+    const shop = readFileSync('apps/mobile/src/app/(public)/shop.tsx', 'utf8');
+
+    expect(shop).toContain('Negocio cerrado');
+    expect(shop).toContain('Volver al inicio');
+    expect(shop).toContain("router.replace('/')");
+  });
+
+  it('redirects discovery entry points to the active ticket while ticket access exists', () => {    const scan = readFileSync('apps/mobile/src/app/(public)/scan.tsx', 'utf8');
     const shop = readFileSync('apps/mobile/src/app/(public)/shop.tsx', 'utf8');
 
     expect(scan).toContain('hasActiveTicketAccess');
