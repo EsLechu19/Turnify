@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 import { Icon } from '@/components/Icon';
 import { Button } from '@/components/common';
@@ -91,6 +91,10 @@ export function LoginPage() {
             {pending ? 'Verificando…' : 'Entrar al panel'}
           </Button>
         </form>
+
+        <p className="auth__hint muted">
+          ¿Sin barbería? <Link to="/register">Regístrala aquí</Link>
+        </p>
 
         {!isSupabaseConfigured() ? (
           <p className="auth__hint muted">

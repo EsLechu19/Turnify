@@ -111,6 +111,21 @@ export async function fetchBranch(): Promise<BranchLocation> {
   };
 }
 
+/**
+ * Creates the caller's first shop and promotes them to its admin
+ * (`crear_empresa` also seeds the default queue). Fails when the account
+ * already belongs to a shop.
+ */
+export async function createBusiness(name: string): Promise<{ id: string; name: string; code: string }> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.rpc('crear_empresa', { p_nombre: name.trim() });
+
+  if (error) throw new Error(error.message);
+  const row = (data ?? {}) as { id?: string; nombre?: string; codigo?: string };
+  if (!row.id || !row.codigo) throw new Error('La barbería no devolvió identidad.');
+  return { id: row.id, name: row.nombre ?? name.trim(), code: row.codigo };
+}
+
 export async function fetchQueues(): Promise<QueueSummary[]> {
   const supabase = getSupabase();
   const empresaId = await companyId();

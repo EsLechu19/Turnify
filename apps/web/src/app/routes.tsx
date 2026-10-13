@@ -5,7 +5,7 @@ import { RedirectIfAuthenticated, RequireAdmin, RequireAuth } from '@/app/Requir
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { HistoryPage } from '@/features/history/HistoryPage';
 import { LoginPage } from '@/features/auth/LoginPage';
-import { QueuePage } from '@/features/queue/QueuePage';
+import { RegisterPage } from '@/features/auth/RegisterPage';
 import { ServicesPage } from '@/features/services/ServicesPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { TeamPage } from '@/features/team/TeamPage';
@@ -16,14 +16,14 @@ export function AppRoutes() {
     <Routes>
       <Route element={<RedirectIfAuthenticated />}>
         <Route element={<LoginPage />} path="/login" />
+        <Route element={<RegisterPage />} path="/register" />
       </Route>
 
       <Route element={<RequireAuth />}>
         <Route element={<RequireAdmin />}>
           <Route element={<AppShell />}>
-            <Route element={<DashboardPage />} index />
-            <Route element={<QueuePage />} path="cola" />
-            <Route element={<ServicesPage />} path="servicios" />
+          <Route element={<DashboardPage />} index />
+          <Route element={<ServicesPage />} path="servicios" />
             <Route element={<TeamPage />} path="equipo" />
             <Route element={<HistoryPage />} path="historial" />
             <Route element={<SettingsPage />} path="configuracion" />

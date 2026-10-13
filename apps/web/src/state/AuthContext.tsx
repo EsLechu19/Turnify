@@ -72,6 +72,7 @@ function reducer(state: AuthState, action: AuthAction): AuthState {
 
 interface AuthContextValue extends AuthState {
   signIn: (email: string, password: string) => Promise<boolean>;
+  signUp: (email: string, password: string, name: string) => Promise<'authenticated' | 'confirm-email' | string>;
   signOut: () => void;
   clearError: () => void;
 }
@@ -99,6 +100,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   }, []);
 
+  const signUp = useCallback(async (email: string, password: string, name: string) => {
+    dispatch({ type: 'submitting' });
+
+    const result = await authRepository.signUp(email, password, name);
+
+    if (!result.ok) {
+      dispatch({ type: 'failed', message: result.message });
+      return result.message;
+    }
+
+    if (!result.session) {
+      dispatch({ type: 'signed-out' });
+      return 'confirm-email' as const;
+    }
+
+    dispatch({ type: 'succeeded', session: result.session });
+    return 'authenticated' as const;
+  }, []);
+
   const signOut = useCallback(() => {
     authRepository.signOut();
     dispatch({ type: 'signed-out' });
@@ -107,8 +127,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearError = useCallback(() => dispatch({ type: 'error-cleared' }), []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ ...state, signIn, signOut, clearError }),
-    [state, signIn, signOut, clearError],
+    () => ({ ...state, signIn, signUp, signOut, clearError }),
+    [state, signIn, signUp, signOut, clearError],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

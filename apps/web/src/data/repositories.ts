@@ -69,8 +69,13 @@ export type SignInResult =
   | { ok: true; session: AuthSession }
   | { ok: false; message: string };
 
+export type SignUpResult =
+  | { ok: true; session: AuthSession | null }
+  | { ok: false; message: string };
+
 export interface AuthRepository {
   signIn(email: string, password: string): Promise<SignInResult>;
+  signUp(email: string, password: string, name: string): Promise<SignUpResult>;
   restore(): Promise<AuthSession | null>;
   signOut(): void;
 }
@@ -175,6 +180,38 @@ export const authRepository: AuthRepository = {
     if (!profile || (profile.rol !== 'admin' && profile.rol !== 'personal')) {
       await supabase.auth.signOut();
       return { ok: false, message: 'Esta cuenta no tiene acceso al panel.' };
+    }
+
+    const session = toPanelSession(data.session.user.email ?? email.trim(), profile);
+    persist(session);
+    return { ok: true, session };
+  },
+
+  async signUp(email, password, name) {
+    if (!isSupabaseConfigured()) {
+      return { ok: false, message: 'El panel no está disponible: falta configurar Supabase.' };
+    }
+
+    const supabase = getSupabase();
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: { data: { nombre: name.trim() } },
+    });
+
+    if (error) {
+      return { ok: false, message: translateSupabaseAuthError(error.message) };
+    }
+
+    if (!data.session) {
+      return { ok: true, session: null };
+    }
+
+    const profile = await fetchOwnPanelProfile(data.session.user.id);
+
+    if (!profile) {
+      await supabase.auth.signOut();
+      return { ok: false, message: 'No pudimos crear tu perfil. Intenta de nuevo.' };
     }
 
     const session = toPanelSession(data.session.user.email ?? email.trim(), profile);
