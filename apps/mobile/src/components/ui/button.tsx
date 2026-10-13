@@ -1,8 +1,52 @@
-import { Pressable, StyleSheet, Text, type PressableProps, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Easing, Pressable, StyleSheet, Text, type PressableProps, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { router, type Href } from 'expo-router';
 
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Palette, Radius, Shadows, space, TypeScale } from '@/constants/theme';
+
+/**
+ * Three bouncing dots for loading buttons. Staggered 140ms, 600ms bounce —
+ * the button keeps its height so nothing jumps when work starts.
+ */
+function LoadingDot({ color, delay }: { color: string; delay: number }) {
+  const bounce = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.timing(bounce, { duration: 300, easing: Easing.inOut(Easing.ease), toValue: 1, useNativeDriver: true }),
+        Animated.timing(bounce, { duration: 300, easing: Easing.inOut(Easing.ease), toValue: 0, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [bounce, delay]);
+
+  return (
+    <Animated.View
+      style={{
+        backgroundColor: color,
+        borderRadius: 999,
+        height: 7,
+        opacity: bounce.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }),
+        transform: [{ translateY: bounce.interpolate({ inputRange: [0, 1], outputRange: [0, -3.5] }) }],
+        width: 7,
+      }}
+    />
+  );
+}
+
+function LoadingDots({ color }: { color: string }) {
+  return (
+    <Animated.View style={{ alignItems: 'center', flexDirection: 'row', gap: 5 }}>
+      {[0, 1, 2].map((index) => (
+        <LoadingDot color={color} delay={index * 140} key={index} />
+      ))}
+    </Animated.View>
+  );
+}
 
 export type ButtonVariant = 'primary' | 'secondary' | 'soft' | 'ghost' | 'gold' | 'danger' | 'success' | 'link' | 'logout';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -28,7 +72,7 @@ const surfaces: Record<ButtonVariant, { background: string; border: string; text
   soft: { background: Palette.brandSoft, border: Palette.brandSoft, text: Palette.brandDeep },
   ghost: { background: 'transparent', border: 'transparent', text: Palette.inkMuted },
   gold: { background: Palette.gold, border: Palette.gold, text: Palette.ink },
-  danger: { background: Palette.dangerSoft, border: Palette.dangerSoft, text: Palette.danger },
+  danger: { background: Palette.dangerSoft, border: Palette.dangerSoft, text: Palette.dangerInk },
   success: { background: Palette.success, border: Palette.success, text: '#FFFFFF' },
   link: { background: 'transparent', border: 'transparent', text: Palette.brand },
   logout: { background: Palette.dangerSoft, border: Palette.dangerBorder, text: Palette.dangerInk },
@@ -61,11 +105,13 @@ export function Button({
   const isLink = variant === 'link';
   const contentColor = isDisabled ? Palette.inkFaint : surface.text;
   const handlePress = href ? () => router.push(href as Href) : onPress;
+  const isFilled = variant === 'primary' || variant === 'danger' || variant === 'gold' || variant === 'success' || variant === 'logout';
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ busy: loading, disabled: isDisabled }}
+      android_ripple={{ color: isFilled ? 'rgba(255,255,255,0.28)' : 'rgba(18,100,232,0.14)' }}
       disabled={isDisabled}
       onPress={handlePress}
       {...rest}
@@ -85,11 +131,17 @@ export function Button({
         style,
       ]}
     >
-      {icon ? <Icon color={contentColor} name={icon} size={metric.icon} strokeWidth={2} /> : null}
-      <Text numberOfLines={1} style={[TypeScale.bodyStrong, { color: contentColor }, textStyle]}>
-        {loading ? 'Cargando…' : label}
-      </Text>
-      {iconRight ? <Icon color={contentColor} name={iconRight} size={metric.icon} strokeWidth={2} /> : null}
+      {loading ? (
+        <LoadingDots color={contentColor} />
+      ) : (
+        <>
+          {icon ? <Icon color={contentColor} name={icon} size={metric.icon} strokeWidth={2} /> : null}
+          <Text numberOfLines={1} style={[TypeScale.bodyStrong, { color: contentColor }, textStyle]}>
+            {label}
+          </Text>
+          {iconRight ? <Icon color={contentColor} name={iconRight} size={metric.icon} strokeWidth={2} /> : null}
+        </>
+      )}
     </Pressable>
   );
 }
@@ -120,6 +172,7 @@ export function IconButton({
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
       accessibilityState={{ disabled }}
+      android_ripple={{ borderless: true, color: 'rgba(18,100,232,0.16)' }}
       disabled={disabled}
       hitSlop={6}
       onPress={onPress}

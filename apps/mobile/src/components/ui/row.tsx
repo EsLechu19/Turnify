@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Pill, type PillTone } from '@/components/ui/pill';
@@ -64,6 +64,7 @@ export function Row({
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled }}
+      android_ripple={{ color: 'rgba(18,100,232,0.12)' }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed ? styles.pressed : null, disabled ? styles.disabled : null]}
@@ -79,6 +80,7 @@ export function OptionCard({
   detail,
   meta,
   icon,
+  imageUrl,
   selected = false,
   onPress,
   disabled = false,
@@ -90,6 +92,7 @@ export function OptionCard({
   detail?: string;
   meta?: string;
   icon?: IconName;
+  imageUrl?: string | null;
   selected?: boolean;
   onPress?: () => void;
   disabled?: boolean;
@@ -102,6 +105,7 @@ export function OptionCard({
       accessibilityLabel={accessibilityLabel ?? title}
       accessibilityRole="radio"
       accessibilityState={{ checked: selected, disabled }}
+      android_ripple={{ color: 'rgba(18,100,232,0.12)' }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
@@ -111,7 +115,9 @@ export function OptionCard({
         disabled ? styles.disabled : null,
       ]}
     >
-      {icon ? (
+      {imageUrl ? (
+        <Image accessibilityIgnoresInvertColors source={{ uri: imageUrl }} style={styles.avatarImage} />
+      ) : icon ? (
         <View style={[styles.iconDisc, selected ? styles.iconDiscSelected : null]}>
           <Icon color={selected ? '#FFFFFF' : Palette.brand} name={icon} size={20} />
         </View>
@@ -163,6 +169,7 @@ const styles = StyleSheet.create({
     width: 38,
   },
   iconDiscSelected: { backgroundColor: Palette.brand },
+  avatarImage: { borderRadius: Radius.pill, height: 38, width: 38 },
   text: { flex: 1, gap: 2 },
   option: {
     alignItems: 'center',
