@@ -14,7 +14,8 @@ export function Mascot({
   style,
 }: {
   size?: number;
-  celebrate?: boolean;
+  /** true loops the bounce; 'once' plays two bounces on mount then rests. */
+  celebrate?: boolean | 'once';
   style?: StyleProp<ViewStyle>;
 }) {
   const breath = useRef(new Animated.Value(0)).current;
@@ -34,24 +35,31 @@ export function Mascot({
 
   useEffect(() => {
     if (reduceMotion) return;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(breath, {
-          duration: celebrate ? 550 : 1100,
-          easing: Easing.inOut(Easing.ease),
-          toValue: 1,
-          useNativeDriver: true,
-        }),
-        Animated.timing(breath, {
-          duration: celebrate ? 550 : 1100,
-          easing: Easing.inOut(Easing.ease),
-          toValue: 0,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
+    if (celebrate === 'once') {
+      Animated.sequence([bounce(), rest(), bounce(), rest()]).start();
+      return;
+    }
+    const loop = Animated.loop(Animated.sequence([bounce(), rest()]));
     loop.start();
     return () => loop.stop();
+
+    function bounce() {
+      return Animated.timing(breath, {
+        duration: celebrate ? 550 : 1100,
+        easing: Easing.inOut(Easing.ease),
+        toValue: 1,
+        useNativeDriver: true,
+      });
+    }
+
+    function rest() {
+      return Animated.timing(breath, {
+        duration: celebrate ? 550 : 1100,
+        easing: Easing.inOut(Easing.ease),
+        toValue: 0,
+        useNativeDriver: true,
+      });
+    }
   }, [breath, celebrate, reduceMotion]);
 
   if (reduceMotion) {

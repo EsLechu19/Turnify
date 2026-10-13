@@ -2,6 +2,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
 import { Button, Card, Icon, IconButton, Sheet } from '@/components/ui';
 import { CalledGuestTicket } from '@/components/customer/called-guest-ticket';
@@ -127,6 +128,15 @@ export default function GuestTicketScreen() {
   useEffect(() => {
     if (ticketAccess) rateAccess.current = ticketAccess;
   }, [ticketAccess]);
+
+  const prevStatus = useRef<GuestTicketState['status'] | null>(null);
+  useEffect(() => {
+    const status = ticket?.status ?? null;
+    if (prevStatus.current !== 'llamado' && status === 'llamado') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+    }
+    prevStatus.current = status;
+  }, [ticket?.status]);
 
   const refresh = useCallback(async () => {
     if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {

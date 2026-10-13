@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, AppState, LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, View } from 'react-native';
 
 import { WorkerButton, WorkerIcon, WorkerPill, WorkerText, workerColors, workerUiStyles } from '@/components/worker/worker-ui';
 import { WorkerScreenContainer } from '@/components/worker/worker-screen-container';
@@ -10,6 +10,10 @@ import { useRemainingTolerance } from '@/features/worker/use-remaining-tolerance
 import { getSupabase } from '@/lib/supabase';
 
 let queueSubscriptionId = 0;
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const DEMO_QUEUE: WorkerTicket[] = [
   {
@@ -68,6 +72,16 @@ export default function WorkerQueueScreen() {
   useFocusEffect(useCallback(() => {
     void refresh();
   }, [refresh]));
+
+  const waitingIds = waitingTickets(tickets).map((ticket) => ticket.ticketId).join(',');
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+  }, [waitingIds]);
 
   useEffect(() => {
     if (!profile?.businessId || process.env.EXPO_PUBLIC_SKIP_AUTH === '1') return;

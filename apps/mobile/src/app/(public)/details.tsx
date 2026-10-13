@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
 import { BrandBar, Button, Card, Icon, IconButton, Screen, StickyBar, StepTracker, TextField } from '@/components/ui';
 import { CustomerPage, CustomerState } from '@/components/customer/customer-ui';
@@ -103,6 +104,7 @@ export default function DetailsScreen() {
         details,
       });
       setTicketAccess(access);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
       router.replace('/(public)/ticket');
     } catch (reason) {
       setError(

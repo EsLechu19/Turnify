@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 import { CustomerButton, CustomerCard, CustomerHeading, CustomerState } from '@/components/customer/customer-ui';
-import { Button, Icon, Pill } from '@/components/ui';
+import { Button, Icon, Mascot, Pill } from '@/components/ui';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import type { GuestTicketState } from '@/features/queue/public-guest-ticket-api';
 
@@ -38,11 +39,22 @@ export function CompletedGuestTicket({
     ]);
   }
 
+  function chooseRating(star: number) {
+    setSelected(star);
+    Haptics.selectionAsync().catch(() => undefined);
+  }
+
   return (
     <>
-      <View accessibilityElementsHidden style={styles.completionIcon}>
-        <Icon color={isTerminalBad ? Palette.danger : Palette.brand} name={isTerminalBad ? 'alert' : 'check-circle'} size={30} />
-      </View>
+      {isTerminalBad ? (
+        <View accessibilityElementsHidden style={styles.completionIcon}>
+          <Icon color={Palette.danger} name="alert" size={30} />
+        </View>
+      ) : (
+        <View style={{ alignItems: 'center' }}>
+          <Mascot size={64} celebrate="once" />
+        </View>
+      )}
 
       <CustomerHeading
         detail={
@@ -115,7 +127,7 @@ export function CompletedGuestTicket({
                     disabled={isRating}
                     hitSlop={12}
                     key={star}
-                    onPress={() => setSelected(star)}
+                    onPress={() => chooseRating(star)}
                     style={({ pressed }) => [pressed ? styles.starPressed : null, isRating ? styles.ratingBusy : null]}
                   >
                     <Icon color={star <= selected ? Palette.gold : Palette.inkFaint} name="star" size={40} />
