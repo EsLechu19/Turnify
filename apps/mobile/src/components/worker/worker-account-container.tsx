@@ -1,9 +1,9 @@
 import { router, type Href } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandMark, Icon } from '@/components/ui';
-import { BottomTabInset, Palette, Shadows, space } from '@/constants/theme';
+import { Palette, Shadows, space } from '@/constants/theme';
 import { accountNavigationItems, type WorkerAccountNavigationKey } from '@/features/worker/worker-account-navigation';
 import { WorkerText, workerColors } from '@/components/worker/worker-ui';
 
@@ -14,6 +14,9 @@ type WorkerAccountContainerProps = {
 
 /** Account frame for choosing barberías and editing the worker profile. */
 export function WorkerAccountContainer({ activeNavigation, children }: WorkerAccountContainerProps) {
+  // Real device inset — never a static guess — so the bar sits on the edge.
+  const bottomInset = Math.max(useSafeAreaInsets().bottom, 8);
+
   return (
     <SafeAreaView edges={['top']} style={styles.shell}>
       <View style={styles.header}>
@@ -26,7 +29,7 @@ export function WorkerAccountContainer({ activeNavigation, children }: WorkerAcc
         </View>
       </View>
       <View style={styles.content}>{children}</View>
-      <View style={styles.navigation}>
+      <View style={[styles.navigation, { minHeight: 64 + bottomInset, paddingBottom: bottomInset }]}>
         {accountNavigationItems.map((item) => {
           const active = item.key === activeNavigation;
           return (
@@ -72,8 +75,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     flexDirection: 'row',
     maxWidth: 640,
-    minHeight: 64 + BottomTabInset,
-    paddingBottom: BottomTabInset,
     paddingHorizontal: space(2),
     width: '100%',
   },

@@ -1,9 +1,9 @@
 import { router, type Href } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandMark, Icon, Pill } from '@/components/ui';
-import { BottomTabInset, Palette, Radius, Shadows, space } from '@/constants/theme';
+import { Palette, Radius, Shadows, space } from '@/constants/theme';
 import { workerNavigationItems, type WorkerNavigationKey } from '@/features/worker/worker-navigation';
 import { WorkerIcon, WorkerText, workerColors } from '@/components/worker/worker-ui';
 
@@ -15,6 +15,9 @@ type WorkerScreenContainerProps = {
 
 /** Persistent worker frame for assignment-safe operational destinations. */
 export function WorkerScreenContainer({ activeNavigation, children, shopName }: WorkerScreenContainerProps) {
+  // Real device inset — never a static guess — so the bar sits on the edge.
+  const bottomInset = Math.max(useSafeAreaInsets().bottom, 8);
+
   return (
     <SafeAreaView edges={['top']} style={styles.shell}>
       <View style={styles.header}>
@@ -55,7 +58,7 @@ export function WorkerScreenContainer({ activeNavigation, children, shopName }: 
 
       <View style={styles.content}>{children}</View>
 
-      <View style={styles.navigation}>
+      <View style={[styles.navigation, { minHeight: 64 + bottomInset, paddingBottom: bottomInset }]}>
         {workerNavigationItems.map((item) => {
           const active = item.key === activeNavigation;
 
@@ -137,8 +140,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     flexDirection: 'row',
     maxWidth: 640,
-    minHeight: 64 + BottomTabInset,
-    paddingBottom: BottomTabInset,
     paddingHorizontal: space(2),
     width: '100%',
   },

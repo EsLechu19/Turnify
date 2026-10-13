@@ -202,5 +202,4 @@ export const Shadows = {
   sheet: shadow({ offsetY: -8, opacity: 0.18, radius: 28, elevation: 16 }),
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 56, android: 84 }) ?? 0;
 export const MaxContentWidth = 560;

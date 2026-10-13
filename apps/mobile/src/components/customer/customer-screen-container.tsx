@@ -1,8 +1,8 @@
 import { router, type Href } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomTabInset, Palette, Radius, Shadows, space } from '@/constants/theme';
+import { Palette, Radius, Shadows, space } from '@/constants/theme';
 import { BrandMark, Icon } from '@/components/ui';
 import { customerNavigationItems, type CustomerNavigationKey } from '@/features/customer/customer-navigation';
 
@@ -12,6 +12,9 @@ type CustomerScreenContainerProps = {
 };
 
 export function CustomerScreenContainer({ activeNavigation, children }: CustomerScreenContainerProps) {
+  // Real device inset — never a static guess — so the bar sits on the edge.
+  const bottomInset = Math.max(useSafeAreaInsets().bottom, 8);
+
   return (
     <SafeAreaView edges={['top']} style={styles.shell}>
       <View style={styles.header}>
@@ -26,7 +29,7 @@ export function CustomerScreenContainer({ activeNavigation, children }: Customer
 
       <View style={styles.content}>{children}</View>
 
-      <View style={styles.navigation}>
+      <View style={[styles.navigation, { minHeight: 64 + bottomInset, paddingBottom: bottomInset }]}>
         {customerNavigationItems.map((item) => {
           const active = item.key === activeNavigation;
           return (
@@ -81,8 +84,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     flexDirection: 'row',
     maxWidth: 640,
-    minHeight: 64 + BottomTabInset,
-    paddingBottom: BottomTabInset,
     paddingHorizontal: space(2),
     width: '100%',
   },
