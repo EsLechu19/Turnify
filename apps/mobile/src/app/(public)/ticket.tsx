@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 48,
   },
-  heroStats: { flexDirection: 'row', gap: space(2) },
+  heroStats: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
   heroStat: {
     alignItems: 'center',
     backgroundColor: Palette.brandSoftest,
@@ -538,6 +538,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.medium,
     borderWidth: 1,
     flex: 1,
+    flexBasis: 140,
     gap: space(1.5),
     justifyContent: 'center',
     minHeight: 68,
