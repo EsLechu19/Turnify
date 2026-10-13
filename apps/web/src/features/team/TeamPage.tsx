@@ -118,8 +118,12 @@ export function TeamPage() {
 
     try {
       setInviteCode(await generateWorkerInvitation(inviteEmail));
-    } catch {
-      setInviteError('No pudimos generar la invitación. Intenta de nuevo.');
+    } catch (reason) {
+      setInviteError(
+        reason instanceof Error && reason.message.includes('Ya pertenece')
+          ? 'Ya pertenece a esta barbería: no necesita invitación.'
+          : 'No pudimos generar la invitación. Intenta de nuevo.',
+      );
     } finally {
       setInviting(false);
     }
