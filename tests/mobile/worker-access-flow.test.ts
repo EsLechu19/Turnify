@@ -140,9 +140,9 @@ describe('Worker authenticated access flow', () => {
     expect(shops).not.toContain('Mi perfil, editar foto, nombre y teléfono');
     expect(operationalNavigation).toContain("label: 'Hoy'");
     expect(operationalNavigation).toContain("label: 'Cola'");
-    expect(operationalNavigation).toContain("label: 'Clientes'");
     expect(operationalNavigation).toContain("label: 'Historial'");
     expect(operationalNavigation).toContain("label: 'Cuenta'");
-    expect(operationalNavigation.match(/label: '/g)).toHaveLength(5);
+    expect(operationalNavigation).not.toContain("label: 'Clientes'");
+    expect(operationalNavigation.match(/label: '/g)).toHaveLength(4);
   });
 });

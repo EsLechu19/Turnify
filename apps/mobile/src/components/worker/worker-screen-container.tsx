@@ -147,10 +147,9 @@ const styles = StyleSheet.create({
   navigationLabel: { marginTop: 3 },
 });
 
-const navigationIcons: Record<WorkerNavigationKey, 'live' | 'queue' | 'clientes' | 'history' | 'profile'> = {
+const navigationIcons: Record<WorkerNavigationKey, 'live' | 'queue' | 'history' | 'profile'> = {
   live: 'live',
   queue: 'queue',
-  clientes: 'clientes',
   history: 'history',
   profile: 'profile',
 };

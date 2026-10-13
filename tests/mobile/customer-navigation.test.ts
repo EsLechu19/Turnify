@@ -40,7 +40,6 @@ describe('customer navigation', () => {
     expect(workerNavigationItems).toEqual([
       { key: 'live', label: 'Hoy', href: '/(app)/worker' },
       { key: 'queue', label: 'Cola', href: '/(app)/worker-queue' },
-      { key: 'clientes', label: 'Clientes', href: '/(app)/worker-walk-in' },
       { key: 'history', label: 'Historial', href: '/(app)/worker-history' },
       { key: 'profile', label: 'Cuenta', href: '/(app)/worker-profile' },
     ]);

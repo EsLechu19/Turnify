@@ -13,7 +13,6 @@ export default function WorkerWalkInScreen() {
   const [queueId, setQueueId] = useState<string | null>(null);
   const [barberId, setBarberId] = useState<string | null>(null);
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
   const [customerInRoom, setCustomerInRoom] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +34,6 @@ export default function WorkerWalkInScreen() {
 
   async function submit() {
     const cleanName = name.trim();
-    const cleanPhone = phone.replace(/[^\d+]/g, '');
 
     if (!cleanName) {
       setError('El nombre del cliente es requerido.');
@@ -45,10 +43,6 @@ export default function WorkerWalkInScreen() {
       setError('Selecciona un servicio para continuar.');
       return;
     }
-    if (cleanPhone.length < 7) {
-      setError('Ingresa un teléfono móvil válido para enviar la alerta.');
-      return;
-    }
 
     setLoading(true);
     setError(null);
@@ -56,31 +50,30 @@ export default function WorkerWalkInScreen() {
       const service = services.find((item) => item.queueId === queueId);
       const barber = barberId ? barbers.find((item) => item.barberId === barberId) : null;
       const visibleCode = await createMyWalkInTicket(queueId, cleanName);
-      setNotice(`Turno creado: ${visibleCode} · ${service?.name ?? 'Servicio'} · ${barber?.name ?? 'Cualquiera disponible'} · WhatsApp a ${cleanPhone}`);
+      setNotice(`Turno creado: ${visibleCode} · ${service?.name ?? 'Servicio'} · ${barber?.name ?? 'Cualquiera disponible'}. Sin teléfono: espera en sala y atiende al llamado por voz.`);
       setName('');
-      setPhone('');
       setBarberId(null);
     } catch {
-      setError('No pudimos crear el turno presencial. Verifica la barbería seleccionada e intenta nuevamente.');
+      setError('No pudimos crear el turno manual. Verifica la barbería seleccionada e intenta nuevamente.');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <WorkerScreenContainer activeNavigation="clientes">
+    <WorkerScreenContainer activeNavigation="queue">
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={workerUiStyles.page}>
         <View style={styles.top}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Cerrar registro presencial" onPress={() => router.back()}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Volver a la cola" onPress={() => router.back()}>
             <WorkerIcon name="close" />
           </Pressable>
-          <WorkerPill label="AGREGAR CLIENTE" tone="teal" />
+          <WorkerPill label="TICKET MANUAL" tone="teal" />
         </View>
 
         <View style={styles.heading}>
-          <WorkerText variant="eyebrow" color={workerColors.teal}>Registro rápido</WorkerText>
-          <WorkerText variant="title">Cliente presencial</WorkerText>
-          <WorkerText color={workerColors.muted}>Completa los datos para crear un turno real.</WorkerText>
+          <WorkerText variant="eyebrow" color={workerColors.teal}>Excepción, no flujo normal</WorkerText>
+          <WorkerText variant="title">Ticket manual</WorkerText>
+          <WorkerText color={workerColors.muted}>Solo cuando el cliente no puede generarlo solo: sin celular, sin batería o sin datos. Nombre y servicio, nada más.</WorkerText>
         </View>
 
         <View style={workerUiStyles.card}>
@@ -95,21 +88,6 @@ export default function WorkerWalkInScreen() {
               placeholderTextColor={workerColors.muted}
               style={styles.input}
             />
-          </View>
-
-          <View style={styles.field}>
-            <WorkerText variant="label">Teléfono móvil *</WorkerText>
-            <TextInput
-              accessibilityLabel="Teléfono móvil"
-              value={phone}
-              onChangeText={setPhone}
-              editable={!loading}
-              keyboardType="phone-pad"
-              placeholder="Ej. 987 654 321"
-              placeholderTextColor={workerColors.muted}
-              style={styles.input}
-            />
-            <WorkerText color={workerColors.muted}>Se enviará alerta por WhatsApp cuando falten 5 min para su turno.</WorkerText>
           </View>
         </View>
 
@@ -197,7 +175,7 @@ export default function WorkerWalkInScreen() {
           </View>
         ) : null}
 
-        <WorkerButton label="Asignar turno" disabled={loading || !name.trim() || !queueId || !phone.trim()} onPress={() => void submit()} />
+        <WorkerButton label="Crear ticket manual" disabled={loading || !name.trim() || !queueId} onPress={() => void submit()} />
       </ScrollView>
     </WorkerScreenContainer>
   );

@@ -78,7 +78,6 @@ export function WorkerButton({
 const workerGlyphs: Record<string, IconName> = {
   live: 'zap',
   queue: 'list',
-  clientes: 'plus',
   history: 'history',
   profile: 'user',
   back: 'arrow-left',
@@ -92,7 +91,7 @@ export function WorkerIcon({
   color = workerColors.ink,
   size = 22,
 }: {
-  name: 'live' | 'queue' | 'clientes' | 'history' | 'profile' | 'back' | 'close' | 'add' | 'check';
+  name: 'live' | 'queue' | 'history' | 'profile' | 'back' | 'close' | 'add' | 'check';
   color?: string;
   size?: number;
 }) {

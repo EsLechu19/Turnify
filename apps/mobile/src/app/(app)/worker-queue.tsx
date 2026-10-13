@@ -207,7 +207,7 @@ export default function WorkerQueueScreen() {
           />
         ))}
 
-        <WorkerButton label="Agregar cliente presencial" onPress={() => router.push('/(app)/worker-walk-in')} />
+        <WorkerButton label="Ticket manual (solo sin celular)" tone="secondary" onPress={() => router.push('/(app)/worker-walk-in')} />
       </ScrollView>
     </WorkerScreenContainer>
   );

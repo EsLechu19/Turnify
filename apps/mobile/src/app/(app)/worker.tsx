@@ -378,7 +378,6 @@ function LiveQueue({ availability, tickets, attentionTicket, stations, stationsL
       </View>
 
       <WorkerButton label={`Ver cola completa (${tickets.length})`} tone="secondary" onPress={() => router.push('/(app)/worker-queue')} />
-      <WorkerButton label="Agregar cliente presencial" tone="secondary" onPress={() => router.push('/(app)/worker-walk-in')} />
     </>
   );
 
