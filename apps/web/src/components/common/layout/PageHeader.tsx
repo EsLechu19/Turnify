@@ -17,15 +17,15 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div className={`dashboard__header ${className}`}>
-      <div className="dashboard__panel-header" style={{ flexWrap: 'wrap', rowGap: 14 }}>
-        <div style={{ display: 'grid', gap: 6 }}>
-          <h1 style={{ font: 'var(--text-display)', margin: 0 }}>{title}</h1>
-          {subtitle && <span className="muted" style={{ font: 'var(--text-body)' }}>{subtitle}</span>}
-          {statusBadge && <span style={{ marginTop: 4 }}>{statusBadge}</span>}
+      <div className="dashboard__header-content">
+        <div className="dashboard__header-copy">
+          <h1>{title}</h1>
+          {subtitle && <span className="muted">{subtitle}</span>}
+          {statusBadge && <span className="dashboard__header-status">{statusBadge}</span>}
         </div>
 
         {actions && (
-          <div className="panel-actions" style={{ alignSelf: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+          <div className="panel-actions">
             {actions}
           </div>
         )}
