@@ -10,7 +10,7 @@ import { createMyWalkInTicket, getWorkerWalkInOptions, type WorkerWalkInBarberOp
 export default function WorkerWalkInScreen() {
   const [services, setServices] = useState<WorkerWalkInServiceOption[]>([]);
   const [barbers, setBarbers] = useState<WorkerWalkInBarberOption[]>([]);
-  const [queueId, setQueueId] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [barberId, setBarberId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [customerInRoom, setCustomerInRoom] = useState(true);
@@ -23,7 +23,10 @@ export default function WorkerWalkInScreen() {
       .then((next) => {
         setServices(next.services);
         setBarbers(next.barbers);
-        setQueueId((current) => current && next.services.some((service) => service.queueId === current) ? current : next.services[0]?.queueId ?? null);
+        setSelectedKey((current) => {
+          const keys = next.services.map((service) => service.serviceId ?? `fila:${service.queueId}`);
+          return current && keys.includes(current) ? current : keys[0] ?? null;
+        });
         setBarberId((current) => current && next.barbers.some((barber) => barber.barberId === current) ? current : null);
         setError(null);
       })
@@ -39,7 +42,8 @@ export default function WorkerWalkInScreen() {
       setError('El nombre del cliente es requerido.');
       return;
     }
-    if (!queueId) {
+    const selected = services.find((item) => (item.serviceId ?? `fila:${item.queueId}`) === selectedKey) ?? null;
+    if (!selected) {
       setError('Selecciona un servicio para continuar.');
       return;
     }
@@ -47,9 +51,9 @@ export default function WorkerWalkInScreen() {
     setLoading(true);
     setError(null);
     try {
-      const service = services.find((item) => item.queueId === queueId);
+      const service = selected;
       const barber = barberId ? barbers.find((item) => item.barberId === barberId) : null;
-      const visibleCode = await createMyWalkInTicket(queueId, cleanName);
+      const visibleCode = await createMyWalkInTicket(service.queueId, cleanName, service.serviceId);
       setNotice(`Turno creado: ${visibleCode} · ${service?.name ?? 'Servicio'} · ${barber?.name ?? 'Cualquiera disponible'}. Sin teléfono: espera en sala y atiende al llamado por voz.`);
       setName('');
       setBarberId(null);
@@ -98,13 +102,14 @@ export default function WorkerWalkInScreen() {
           </View>
           <View style={styles.servicesGrid}>
             {services.map((service) => {
-              const selected = service.queueId === queueId;
+              const key = service.serviceId ?? `fila:${service.queueId}`;
+              const selected = key === selectedKey;
               return (
                 <Pressable
-                  key={service.queueId}
+                  key={key}
                   accessibilityRole="radio"
                   accessibilityState={{ selected }}
-                  onPress={() => setQueueId(service.queueId)}
+                  onPress={() => setSelectedKey(key)}
                   style={[styles.serviceCard, selected ? styles.serviceCardSelected : null]}
                 >
                   <View style={styles.serviceCardTop}>
@@ -175,7 +180,7 @@ export default function WorkerWalkInScreen() {
           </View>
         ) : null}
 
-        <WorkerButton label="Crear ticket manual" disabled={loading || !name.trim() || !queueId} onPress={() => void submit()} />
+        <WorkerButton label="Crear ticket manual" disabled={loading || !name.trim() || !selectedKey} onPress={() => void submit()} />
       </ScrollView>
     </WorkerScreenContainer>
   );

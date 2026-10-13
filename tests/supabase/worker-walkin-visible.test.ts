@@ -7,6 +7,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (...parts: string[]) => readFileSync(join(root, ...parts), 'utf8');
 
 const migration = read('supabase', 'migrations', '0049_ticket_manual_visible.sql');
+const migration50 = read('supabase', 'migrations', '0050_ticket_manual_con_servicio.sql');
 const walkinApi = read('apps', 'mobile', 'src', 'features', 'queue', 'worker-barber-api.ts');
 
 describe('manual ticket visibility', () => {
@@ -18,12 +19,21 @@ describe('manual ticket visibility', () => {
   });
 
   it('lets llamar_mi_siguiente fall back to walk-ins after compatible tickets', () => {
-    expect(migration).toContain('create or replace function public.llamar_mi_siguiente(p_fila_id uuid)');
-    expect(migration).toContain('t.servicio_id is null and t.barbero_solicitado_id=v_id');
-    expect(migration).toContain('minutos_gracia');
+    expect(migration50).toContain('create or replace function public.llamar_mi_siguiente(p_fila_id uuid)');
+    expect(migration50).toContain("t.origen='presencial' and t.barbero_solicitado_id=v_id");
+    expect(migration50).toContain('minutos_gracia');
   });
 
   it('labels manual options with the real service name instead of the queue name', () => {
-    expect(walkinApi).toContain('name: service?.nombre ?? queue.name');
+    expect(walkinApi).toContain('name: service.nombre');
+  });
+
+  it('stores the chosen service on manual tickets through an optional validated parameter', () => {
+    const sql = read('supabase', 'migrations', '0050_ticket_manual_con_servicio.sql');
+
+    expect(sql).toContain('p_servicio_id uuid default null');
+    expect(sql).toContain('grant execute on function public.crear_mi_ticket_presencial(uuid, public.prioridad_ticket, text, uuid) to authenticated;');
+    expect(sql).toContain('servicio_id,servicio_nombre,servicio_duracion_seg');
+    expect(walkinApi).toContain('serviceId?: string | null');
   });
 });
