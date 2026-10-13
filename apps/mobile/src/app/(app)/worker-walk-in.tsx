@@ -52,17 +52,27 @@ export default function WorkerWalkInScreen() {
     setError(null);
     try {
       const service = selected;
-      const barber = barberId ? barbers.find((item) => item.barberId === barberId) : null;
-      const visibleCode = await createMyWalkInTicket(service.queueId, cleanName, service.serviceId);
-      setNotice(`Turno creado: ${visibleCode} · ${service?.name ?? 'Servicio'} · ${barber?.name ?? 'Cualquiera disponible'}. Sin teléfono: espera en sala y atiende al llamado por voz.`);
+      const compatible = service.serviceId ? barbers.filter((item) => item.serviceIds.includes(service.serviceId as string)) : barbers;
+      const effectiveBarberId = barberId && compatible.some((item) => item.barberId === barberId) ? barberId : null;
+      const barber = effectiveBarberId ? barbers.find((item) => item.barberId === effectiveBarberId) : null;
+      const visibleCode = await createMyWalkInTicket(service.queueId, cleanName, service.serviceId, effectiveBarberId);
+      setNotice(
+        barber
+          ? `Turno creado: ${visibleCode} · ${service?.name ?? 'Servicio'} · asignado a ${barber.name}: lo verá en su Cola.`
+          : `Turno creado: ${visibleCode} · ${service?.name ?? 'Servicio'}. Sin teléfono: espera en sala y atiende al llamado por voz.`,
+      );
       setName('');
       setBarberId(null);
-    } catch {
-      setError('No pudimos crear el turno manual. Verifica la barbería seleccionada e intenta nuevamente.');
+    } catch (reason) {
+      setError(reason instanceof Error && reason.message.includes('no atiende') ? 'Ese barbero no atiende este servicio.' : 'No pudimos crear el turno manual. Verifica la barbería seleccionada e intenta nuevamente.');
     } finally {
       setLoading(false);
     }
   }
+
+  const pickedService = services.find((item) => (item.serviceId ?? `fila:${item.queueId}`) === selectedKey) ?? null;
+  const compatibleBarbers = pickedService?.serviceId ? barbers.filter((item) => item.serviceIds.includes(pickedService.serviceId as string)) : barbers;
+  const hiddenBarberCount = barbers.length - compatibleBarbers.length;
 
   return (
     <WorkerScreenContainer activeNavigation="queue">
@@ -109,7 +119,12 @@ export default function WorkerWalkInScreen() {
                   key={key}
                   accessibilityRole="radio"
                   accessibilityState={{ selected }}
-                  onPress={() => setSelectedKey(key)}
+                  onPress={() => {
+                    setSelectedKey(key);
+                    if (barberId && service.serviceId && !barbers.some((item) => item.barberId === barberId && item.serviceIds.includes(service.serviceId as string))) {
+                      setBarberId(null);
+                    }
+                  }}
                   style={[styles.serviceCard, selected ? styles.serviceCardSelected : null]}
                 >
                   <View style={styles.serviceCardTop}>
@@ -131,17 +146,22 @@ export default function WorkerWalkInScreen() {
 
         <View style={workerUiStyles.card}>
           <WorkerText variant="headline">Barbero asignado</WorkerText>
+          <WorkerText color={workerColors.muted}>
+            {pickedService?.serviceId
+              ? `Solo quienes atienden ${pickedService.name}.`
+              : 'Sin servicio del catálogo: atiende quien lo crea.'}
+          </WorkerText>
           <Pressable
             accessibilityRole="radio"
             accessibilityState={{ selected: barberId === null }}
             onPress={() => setBarberId(null)}
             style={[styles.barberAny, barberId === null ? styles.barberAnySelected : null]}
           >
-            <WorkerText variant="label" color={barberId === null ? '#FFFFFF' : workerColors.body}>Cualquiera disponible</WorkerText>
+            <WorkerText variant="label" color={barberId === null ? '#FFFFFF' : workerColors.body}>Quien lo crea</WorkerText>
             {barberId === null ? <WorkerIcon name="check" color="#FFFFFF" size={16} /> : null}
           </Pressable>
           <View style={styles.barberList}>
-            {barbers.map((barber) => {
+            {compatibleBarbers.map((barber) => {
               const selected = barberId === barber.barberId;
               return (
                 <Pressable
@@ -151,13 +171,19 @@ export default function WorkerWalkInScreen() {
                   onPress={() => setBarberId(barber.barberId)}
                   style={[styles.barberRow, selected ? styles.barberRowSelected : null]}
                 >
-                  <WorkerText variant="label" color={selected ? '#FFFFFF' : workerColors.body}>{barber.name}</WorkerText>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <WorkerText variant="label" color={selected ? '#FFFFFF' : workerColors.body}>{barber.name}</WorkerText>
+                    <WorkerText variant="label" color={selected ? 'rgba(255,255,255,0.82)' : workerColors.muted}>
+                      Atiende este servicio · lo verá en su Cola
+                    </WorkerText>
+                  </View>
                   {selected ? <WorkerIcon name="check" color="#FFFFFF" size={16} /> : null}
                 </Pressable>
               );
             })}
           </View>
-          {barbers.length === 0 && <WorkerText color={workerColors.muted}>No hay otros barberos disponibles.</WorkerText>}
+          {compatibleBarbers.length === 0 && <WorkerText color={workerColors.muted}>Nadie atiende este servicio todavía.</WorkerText>}
+          {hiddenBarberCount > 0 && <WorkerText color={workerColors.muted}>{hiddenBarberCount} no {hiddenBarberCount === 1 ? 'atiende' : 'atienden'} este servicio.</WorkerText>}
         </View>
 
         <View style={workerUiStyles.card}>

@@ -126,9 +126,10 @@ export function reassignCalledTicket(ticketId: string, targetBarberId: string): 
   });
 }
 
-export async function createMyWalkInTicket(queueId: string, referenceName: string, serviceId?: string | null): Promise<string> {
+export async function createMyWalkInTicket(queueId: string, referenceName: string, serviceId?: string | null, barberId?: string | null): Promise<string> {
   const args: Record<string, string | null> = { p_fila_id: queueId, p_prioridad: 'normal', p_nombre_ref: referenceName.trim() || null };
   if (serviceId) args.p_servicio_id = serviceId;
+  if (barberId) args.p_barbero_solicitado_id = barberId;
   const { data, error } = await getSupabase().rpc('crear_mi_ticket_presencial', args);
   if (error) throw new Error(error.message);
   return (data as { codigo_visible: string }).codigo_visible;
@@ -185,7 +186,7 @@ export async function getWorkerQueues(): Promise<Array<{ queueId: string; name: 
 }
 
 export type WorkerWalkInServiceOption = { serviceId: string | null; queueId: string; name: string; durationSeconds: number | null; priceCents: number | null };
-export type WorkerWalkInBarberOption = { barberId: string; name: string };
+export type WorkerWalkInBarberOption = { barberId: string; name: string; serviceIds: string[] };
 
 export async function getWorkerWalkInOptions(): Promise<{ services: WorkerWalkInServiceOption[]; barbers: WorkerWalkInBarberOption[] }> {
   const [shops, queues] = await Promise.all([getWorkerShops(), getWorkerQueues()]);
@@ -210,6 +211,20 @@ export async function getWorkerWalkInOptions(): Promise<{ services: WorkerWalkIn
   if (servicesError) throw new Error(servicesError.message);
   if (barbersError) throw new Error(barbersError.message);
 
+  const barberIds = ((barberRows ?? []) as Array<{ id: string }>).map((barber) => barber.id);
+  const { data: pivotRows } = barberIds.length === 0
+    ? { data: [] as Array<{ barbero_id: string; servicio_id: string }> }
+    : await getSupabase()
+      .from('barbero_servicios')
+      .select('barbero_id,servicio_id')
+      .in('barbero_id', barberIds);
+  const servicesByBarber = new Map<string, string[]>();
+  for (const link of (pivotRows ?? []) as Array<{ barbero_id: string; servicio_id: string }>) {
+    const list = servicesByBarber.get(link.barbero_id) ?? [];
+    list.push(link.servicio_id);
+    servicesByBarber.set(link.barbero_id, list);
+  }
+
   const servicesByName = new Map(
     ((serviceRows ?? []) as Array<{ id: string; nombre: string; duracion_estimada_seg: number; precio_referencia_centavos: number | null }>).map((service) => [
       service.nombre.trim().toLowerCase(),
@@ -232,7 +247,7 @@ export async function getWorkerWalkInOptions(): Promise<{ services: WorkerWalkIn
           priceCents: service.precio_referencia_centavos,
         }))
         .sort((left, right) => left.name.localeCompare(right.name, 'es')),
-      barbers: ((barberRows ?? []) as Array<{ id: string; nombre: string }>).map((barber) => ({ barberId: barber.id, name: barber.nombre })),
+      barbers: ((barberRows ?? []) as Array<{ id: string; nombre: string }>).map((barber) => ({ barberId: barber.id, name: barber.nombre, serviceIds: servicesByBarber.get(barber.id) ?? [] })),
     };
   }
 
@@ -247,9 +262,9 @@ export async function getWorkerWalkInOptions(): Promise<{ services: WorkerWalkIn
         priceCents: service?.precio_referencia_centavos ?? null,
       };
     }),
-    barbers: ((barberRows ?? []) as Array<{ id: string; nombre: string }>).map((barber) => ({ barberId: barber.id, name: barber.nombre })),
-  };
-}
+      barbers: ((barberRows ?? []) as Array<{ id: string; nombre: string }>).map((barber) => ({ barberId: barber.id, name: barber.nombre, serviceIds: servicesByBarber.get(barber.id) ?? [] })),
+    };
+  }
 
 export type ShopStationState = 'disponible' | 'ocupado' | 'fuera_de_turno';
 

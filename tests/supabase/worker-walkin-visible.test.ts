@@ -36,4 +36,14 @@ describe('manual ticket visibility', () => {
     expect(sql).toContain('servicio_id,servicio_nombre,servicio_duracion_seg');
     expect(walkinApi).toContain('serviceId?: string | null');
   });
+
+  it('routes manual tickets to a barber actually authorized for the service', () => {
+    const sql = read('supabase', 'migrations', '0051_ticket_manual_asignado.sql');
+
+    expect(sql).toContain('p_barbero_solicitado_id uuid default null');
+    expect(sql).toContain('grant execute on function public.crear_mi_ticket_presencial(uuid, public.prioridad_ticket, text, uuid, uuid) to authenticated;');
+    expect(sql).toContain('Ese barbero no atiende este servicio');
+    expect(walkinApi).toContain('serviceIds: string[]');
+    expect(walkinApi).toContain('barberId?: string | null');
+  });
 });
