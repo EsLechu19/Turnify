@@ -10,6 +10,7 @@ import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import { bookingExpectation, formatReferencePrice, selectedBarber } from '@/features/queue/commercial-booking';
 import { GUEST_AGE_RANGES, GUEST_GENDERS, normalizeGuestDetails, type GuestAgeRange, type GuestGender } from '@/features/queue/guest-ticket-details';
 import { createGuestTicket } from '@/features/queue/public-guest-ticket-api';
+import { registerGuestDeviceForTicket } from '@/features/notifications/guest-device-api';
 import { useGuestFlow } from '@/features/public/guest-flow-session';
 import { translateQueueError } from '@/features/queue/queue-api';
 
@@ -105,6 +106,9 @@ export default function DetailsScreen() {
       });
       setTicketAccess(access);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+      // Best effort: bind this device to the ticket so the llamado push can
+      // find it with the app closed. Never blocks entering the ticket.
+      void registerGuestDeviceForTicket(access.ticketId, access.capability);
       router.replace('/(public)/ticket');
     } catch (reason) {
       setError(

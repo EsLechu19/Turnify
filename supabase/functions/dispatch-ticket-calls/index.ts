@@ -7,6 +7,7 @@ type Delivery = {
   id: string;
   notificacion_id: string;
   dispositivo: { push_token: string } | null;
+  dispositivo_invitado: { push_token: string } | null;
   notificacion: {
     ticket_id: string;
     ticket: { fila_id: string } | null;
@@ -89,10 +90,10 @@ async function supabase(
 }
 
 async function claimDelivery(url: string, serviceKey: string, deliveryId: string): Promise<Delivery | null> {
-  const response = await supabase(
-    url,
-    serviceKey,
-    `notificacion_entregas?id=eq.${encodeURIComponent(deliveryId)}&estado=eq.pendiente&select=id,notificacion_id,dispositivo:dispositivos(push_token),notificacion:notificaciones_salientes(ticket_id,ticket:tickets(fila_id))`,
+    const response = await supabase(
+      url,
+      serviceKey,
+      `notificacion_entregas?id=eq.${encodeURIComponent(deliveryId)}&estado=eq.pendiente&select=id,notificacion_id,dispositivo:dispositivos(push_token),dispositivo_invitado:dispositivos_invitados(push_token),notificacion:notificaciones_salientes(ticket_id,ticket:tickets(fila_id))`,
     {
       method: 'PATCH',
       headers: { prefer: 'return=representation' },
@@ -127,6 +128,17 @@ Deno.serve(async (request) => {
       return new Response('Unauthorized', { status: 401 });
     }
 
+    try {
+      await supabase(
+        env.SUPABASE_URL,
+        env.SUPABASE_SERVICE_ROLE_KEY,
+        `dispositivos_invitados?expira_en=lt.${encodeURIComponent(new Date().toISOString())}`,
+        { method: 'DELETE' },
+      );
+    } catch {
+      // Hygiene only: expired guest devices never block the delivery batch.
+    }
+
     const pending = await supabase(
       env.SUPABASE_URL,
       env.SUPABASE_SERVICE_ROLE_KEY,
@@ -143,7 +155,8 @@ Deno.serve(async (request) => {
       // A delivery is claimed before its provider request. Any uncertain outcome
       // is never automatically retried, preferring no duplicate alert.
       try {
-        if (!delivery.dispositivo?.push_token) throw new Error('Recipient device is unavailable.');
+        const pushToken = delivery.dispositivo?.push_token ?? delivery.dispositivo_invitado?.push_token;
+        if (!pushToken) throw new Error('Recipient device is unavailable.');
         if (!delivery.notificacion?.ticket || !delivery.notificacion.ticket_id) {
           throw new Error('Called-ticket routing metadata is unavailable.');
         }
@@ -154,7 +167,7 @@ Deno.serve(async (request) => {
             'content-type': 'application/json',
           },
           body: JSON.stringify({
-            to: delivery.dispositivo.push_token,
+            to: pushToken,
             title: 'Turnify',
             body: 'Tu turno fue llamado.',
             data: {
