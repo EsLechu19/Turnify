@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandBar, Button, Card, Icon, Pill, QrLoader, StateBlock } from '@/components/ui';
+import { BrandBar, Button, Card, Icon, Pill, StateBlock } from '@/components/ui';
 import { HowToGetThere } from '@/components/customer/how-to-get-there';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import { useGuestFlow } from '@/features/public/guest-flow-session';
@@ -62,14 +62,14 @@ export default function ShopScreen() {
   return (
     <View style={[styles.shell, { paddingTop: insets.top }]}>
       <ScrollView
-        contentContainerStyle={[styles.page, { paddingBottom: Math.max(insets.bottom, 20) + 24 }, isLoading && styles.loadingPage]}
+        contentContainerStyle={[styles.page, { paddingBottom: Math.max(insets.bottom, 20) + 24 }]}
         showsVerticalScrollIndicator={false}
       >
         <BrandBar onBack={returnHome} />
 
         {isLoading ? (
-          <View accessibilityLabel="Consultando la barbería" accessibilityRole="progressbar" style={styles.loadingCenter}>
-            <QrLoader label="Leyendo código QR" />
+          <View accessibilityLabel="Consultando la barbería" accessibilityRole="progressbar">
+            <StateBlock detail="Verificamos el código que te mostraron." icon="search" loading title="Buscando la barbería…" />
           </View>
         ) : null}
 
@@ -157,8 +157,6 @@ const styles = StyleSheet.create({
   shell: { backgroundColor: Palette.canvas, flex: 1 },
   page: { alignSelf: 'center', gap: space(5), maxWidth: 520, paddingHorizontal: space(5), paddingTop: space(2), width: '100%' },
   stateCard: { marginTop: space(6) },
-  loadingPage: { flexGrow: 1 },
-  loadingCenter: { alignItems: 'center', flex: 1, justifyContent: 'center' },
 
   intro: { alignItems: 'center', gap: space(2.5), paddingTop: space(2) },
 

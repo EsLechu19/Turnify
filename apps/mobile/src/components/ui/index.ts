@@ -1,6 +1,5 @@
 export { BrandMark } from './brand-mark';
 export { Mascot } from './mascot';
-export { QrLoader } from './qr-loader';
 export { Skeleton } from './skeleton';
 export { BottomTabs, type BottomTabItem } from './bottom-tabs';
 export { Button, IconButton, type ButtonProps, type ButtonSize, type ButtonVariant } from './button';
