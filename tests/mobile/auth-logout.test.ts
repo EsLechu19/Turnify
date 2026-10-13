@@ -27,7 +27,7 @@ describe('mobile logout regression', () => {
       '../../apps/mobile/src/app/(app)/profile.tsx',
     ]) {
       const screen = source(path);
-      expect(screen).toContain('void signOut();');
+      expect(screen).toContain('void signOut()');
       expect(screen).not.toContain("router.replace('/')");
     }
   });

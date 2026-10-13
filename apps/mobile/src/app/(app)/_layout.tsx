@@ -18,7 +18,7 @@ export default function AppLayout() {
   }
 
   if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
-    return <Stack screenOptions={{ headerShown: false }} />;
+    return <Stack screenOptions={{ headerShown: false, animation: 'fade', animationDuration: 200 }} />;
   }
 
   if (isSigningOut) {
@@ -37,5 +37,7 @@ export default function AppLayout() {
     return <Redirect href={staffLanding(profile)} />;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  // Lateral tab-level destinations: fade avoids a false forward hierarchy
+  // and keeps replace-based navigation instant-feeling.
+  return <Stack screenOptions={{ headerShown: false, animation: 'fade', animationDuration: 200 }} />;
 }

@@ -25,5 +25,5 @@ export default function AuthLayout() {
     return <Redirect href={staffLanding(profile)} />;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return <Stack screenOptions={{ headerShown: false, animation: 'fade', animationDuration: 220 }} />;
 }
