@@ -68,7 +68,7 @@ export default function ShopScreen() {
         <BrandBar onBack={returnHome} />
 
         {isLoading ? (
-          <View accessibilityLabel="Consultando la barbería" accessibilityRole="progressbar">
+          <View accessibilityLabel="Consultando la barbería" accessibilityRole="progressbar" style={styles.loadingCenter}>
             <QrLoader label="Leyendo código QR" />
           </View>
         ) : null}
@@ -157,6 +157,7 @@ const styles = StyleSheet.create({
   shell: { backgroundColor: Palette.canvas, flex: 1 },
   page: { alignSelf: 'center', gap: space(5), maxWidth: 520, paddingHorizontal: space(5), paddingTop: space(2), width: '100%' },
   stateCard: { marginTop: space(6) },
+  loadingCenter: { alignItems: 'center', justifyContent: 'center', minHeight: 420 },
 
   intro: { alignItems: 'center', gap: space(2.5), paddingTop: space(2) },
 
