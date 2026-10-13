@@ -17,6 +17,7 @@ export const navItems: NavItem[] = [
   { to: '/equipo', label: 'Barberos y empleados', icon: 'users' },
   { to: '/historial', label: 'Historial y reportes', icon: 'chart' },
   { to: '/configuracion', label: 'Configuración', icon: 'settings' },
+  { to: '/cuenta', label: 'Mi cuenta', icon: 'user' },
 ];
 
 /**

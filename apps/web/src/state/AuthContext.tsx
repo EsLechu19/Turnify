@@ -73,6 +73,7 @@ function reducer(state: AuthState, action: AuthAction): AuthState {
 interface AuthContextValue extends AuthState {
   signIn: (email: string, password: string) => Promise<boolean>;
   signUp: (email: string, password: string, name: string) => Promise<'authenticated' | 'confirm-email' | string>;
+  refreshProfile: () => Promise<void>;
   signOut: () => void;
   clearError: () => void;
 }
@@ -119,6 +120,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return 'authenticated' as const;
   }, []);
 
+  const refreshProfile = useCallback(async () => {
+    const session = await authRepository.restore();
+    dispatch({ type: 'restored', session });
+  }, []);
+
   const signOut = useCallback(() => {
     authRepository.signOut();
     dispatch({ type: 'signed-out' });
@@ -127,8 +133,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearError = useCallback(() => dispatch({ type: 'error-cleared' }), []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ ...state, signIn, signUp, signOut, clearError }),
-    [state, signIn, signUp, signOut, clearError],
+    () => ({ ...state, signIn, signUp, refreshProfile, signOut, clearError }),
+    [state, signIn, signUp, refreshProfile, signOut, clearError],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

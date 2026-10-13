@@ -111,6 +111,65 @@ export async function fetchBranch(): Promise<BranchLocation> {
   };
 }
 
+export type MyAccount = { name: string | null; photoUrl: string | null; email: string };
+
+/** The admin's own account row: name and photo, nothing operational. */
+export async function fetchMyAccount(): Promise<MyAccount> {
+  const supabase = getSupabase();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error('Sin sesión.');
+
+  const { data, error } = await supabase
+    .from('perfiles')
+    .select('nombre,foto_url')
+    .eq('id', auth.user.id)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  const row = (data ?? {}) as { nombre?: string | null; foto_url?: string | null };
+  return { name: row.nombre ?? null, photoUrl: row.foto_url ?? null, email: auth.user.email ?? '' };
+}
+
+export async function updateMyAccountName(name: string): Promise<void> {
+  const clean = name.trim();
+  if (!clean) throw new Error('El nombre es obligatorio.');
+
+  const supabase = getSupabase();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error('Sin sesión.');
+
+  const { error } = await supabase.from('perfiles').update({ nombre: clean }).eq('id', auth.user.id);
+  if (error) throw new Error(error.message);
+}
+
+/** Uploads the admin photo to their self-owned slot and records it. */
+export async function uploadMyAccountPhoto(file: File): Promise<string> {
+  const supabase = getSupabase();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error('Sin sesión.');
+
+  const path = `${auth.user.id}/avatar.jpg`;
+  const { error: uploadError } = await supabase.storage
+    .from('avatares-barberos')
+    .upload(path, file, { contentType: file.type || 'image/jpeg', upsert: true });
+
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { data } = supabase.storage.from('avatares-barberos').getPublicUrl(path);
+  const publicUrl = `${data.publicUrl}${data.publicUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
+  const { error: saveError } = await supabase.from('perfiles').update({ foto_url: publicUrl }).eq('id', auth.user.id);
+  if (saveError) throw new Error(saveError.message);
+  return publicUrl;
+}
+
+export async function changeMyPassword(password: string): Promise<void> {
+  if (password.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres.');
+
+  const supabase = getSupabase();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw new Error(error.message);
+}
+
 /**
  * Creates the caller's first shop and promotes them to its admin
  * (`crear_empresa` also seeds the default queue). Fails when the account

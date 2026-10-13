@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { AppShell } from '@/layouts/AppShell';
 import { RedirectIfAuthenticated, RequireAdmin, RequireAuth } from '@/app/RequireAuth';
+import { AccountPage } from '@/features/account/AccountPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { HistoryPage } from '@/features/history/HistoryPage';
 import { LoginPage } from '@/features/auth/LoginPage';
@@ -23,6 +24,7 @@ export function AppRoutes() {
         <Route element={<RequireAdmin />}>
           <Route element={<AppShell />}>
           <Route element={<DashboardPage />} index />
+          <Route element={<AccountPage />} path="cuenta" />
           <Route element={<ServicesPage />} path="servicios" />
             <Route element={<TeamPage />} path="equipo" />
             <Route element={<HistoryPage />} path="historial" />
