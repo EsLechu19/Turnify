@@ -29,4 +29,15 @@ describe('admin account section', () => {
     expect(sql).toContain("p.rol = 'admin'");
     expect(sql).not.toContain('personal');
   });
+
+  it('records the admin photo through a worker-mirrored RPC, never a direct write', () => {
+    const sql = read('supabase', 'migrations', '0048_cuenta_admin_foto_rpc.sql');
+    const live = read('apps', 'web', 'src', 'data', 'live.ts');
+
+    expect(sql).toContain('create or replace function public.actualizar_mi_foto_admin(p_foto_url text)');
+    expect(sql).toContain("p.rol = 'admin'");
+    expect(sql).toContain('grant execute on function public.actualizar_mi_foto_admin(text) to authenticated;');
+    expect(live).toContain("rpc('actualizar_mi_foto_admin'");
+    expect(live).not.toContain(".from('perfiles').update({ foto_url:");
+  });
 });

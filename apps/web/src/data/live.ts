@@ -157,7 +157,7 @@ export async function uploadMyAccountPhoto(file: File): Promise<string> {
 
   const { data } = supabase.storage.from('avatares-barberos').getPublicUrl(path);
   const publicUrl = `${data.publicUrl}${data.publicUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
-  const { error: saveError } = await supabase.from('perfiles').update({ foto_url: publicUrl }).eq('id', auth.user.id);
+  const { error: saveError } = await supabase.rpc('actualizar_mi_foto_admin', { p_foto_url: publicUrl });
   if (saveError) throw new Error(saveError.message);
   return publicUrl;
 }
