@@ -38,6 +38,63 @@ const statusOptions: { label: string; value: StatusFilter }[] = [
   { label: 'Inactivos', value: 'inactivo' },
 ];
 
+type RequestErrorAction = 'load' | 'approve' | 'deny';
+
+function requestErrorMessage(reason: unknown): string {
+  if (reason instanceof Error) return reason.message;
+  if (typeof reason === 'string') return reason;
+  if (typeof reason === 'object' && reason !== null && 'message' in reason) {
+    const message = (reason as { message?: unknown }).message;
+    return typeof message === 'string' ? message : '';
+  }
+  return '';
+}
+
+function safeRemoteDetail(message: string): string {
+  const clean = message.replace(/\s+/g, ' ').trim();
+  if (
+    !clean ||
+    clean.length > 120 ||
+    /https?:\/\/|\b(select|insert|update|delete|from|where|join|union|drop|alter|create|grant|revoke)\b|[;{}]|\b(token|secret|password|jwt|bearer|authorization|api[_ -]?key)\b/i.test(clean)
+  ) {
+    return '';
+  }
+  return clean;
+}
+
+export function translateRequestError(reason: unknown, action: RequestErrorAction): string {
+  const remote = requestErrorMessage(reason);
+  const normalized = remote.toLowerCase();
+  const operation = action === 'load' ? 'cargar' : action === 'approve' ? 'aprobar' : 'denegar';
+
+  if (/pgrst202|42883|function .*does not exist|could not find function|undefined function|no existe la función/.test(normalized)) {
+    return 'La función de solicitudes no está disponible en el servidor. Verifica que la versión de Supabase esté actualizada.';
+  }
+  if (/42501|permission denied|not authorized|unauthorized|forbidden|row-level security|rls|permiso/.test(normalized)) {
+    return 'Tu cuenta no tiene permisos para gestionar solicitudes. Inicia sesión con una cuenta administradora de la barbería.';
+  }
+  if (/request.*not found|solicitud.*no encontrada|solicitud.*inexistente|not found|no existe la solicitud/.test(normalized)) {
+    return 'La solicitud ya no está disponible. Actualiza la lista para continuar.';
+  }
+  if (/already resolved|ya fue resuelta|ya está resuelta|already processed|estado.*(approved|denied|resolved)|solicitud.*(aprobada|denegada)/.test(normalized)) {
+    return 'La solicitud ya fue resuelta. Actualiza la lista para ver el estado actual.';
+  }
+  if (/sin barbería|sin empresa|empresa.*(null|inexistente)|barbería seleccionada|shop.*(missing|null)|company.*(missing|null)/.test(normalized)) {
+    return 'No hay una barbería seleccionada para tu cuenta. Selecciona una barbería y vuelve a intentar.';
+  }
+  if (/23505|constraint|duplicate|conflict|conflicto|unique|409/.test(normalized)) {
+    return 'La solicitud entra en conflicto con otro cambio. Actualiza la lista e inténtalo de nuevo.';
+  }
+  if (/failed to fetch|network|fetch|timeout|timed out|conexión|conexion|red/.test(normalized)) {
+    return `No pudimos ${operation} la solicitud por un problema de conexión. Revisa tu red e inténtalo de nuevo.`;
+  }
+
+  const detail = safeRemoteDetail(remote);
+  return detail
+    ? `No pudimos ${operation} la solicitud. Referencia: solicitudes. Detalle: ${detail}`
+    : `No pudimos ${operation} la solicitud. Referencia: solicitudes.`;
+}
+
 function emptyDraft(member: StaffRecord, serviceIds: string[]): StaffDraft {
     return {
       active: member.active,
@@ -93,8 +150,8 @@ export function TeamPage() {
         setRequests(rows);
         setLoadingRequests(false);
       })
-      .catch(() => {
-        setRequestsError('No pudimos traer las solicitudes. Revisa tu conexión.');
+      .catch((reason: unknown) => {
+        setRequestsError(translateRequestError(reason, 'load'));
         setLoadingRequests(false);
       });
   }
@@ -153,8 +210,8 @@ export function TeamPage() {
       setDenying(null);
       loadRequests();
       loadStaff();
-    } catch {
-      setRequestsError(approve ? 'No pudimos aprobar la solicitud.' : 'No pudimos denegar la solicitud.');
+    } catch (reason) {
+      setRequestsError(translateRequestError(reason, approve ? 'approve' : 'deny'));
     } finally {
       setResolvingId(null);
     }
