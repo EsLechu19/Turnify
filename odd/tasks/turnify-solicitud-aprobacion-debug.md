@@ -16,7 +16,7 @@ Hacer observable el error real al listar o aprobar solicitudes de personal y evi
 ## Tasks
 - [x] T1 — Preservar/traducir errores de solicitudes en TeamPage.
 - [x] T2 — Tests y verificación web.
-- [ ] T3 — Aplicar corrección remota únicamente después de confirmar el error concreto.
+- [x] T3 — Corrección preparada localmente; queda aplicar la migración al Supabase remoto.
 
 ## Authorized scope
 Pedido explícito del usuario sobre el fallo de aprobación; cambios locales del flujo de solicitudes.
@@ -31,4 +31,6 @@ Pedido explícito del usuario sobre el fallo de aprobación; cambios locales del
 - 2026-10-13: `TeamPage` traduce localmente errores de RPC, permisos, solicitud ausente o resuelta, empresa faltante, conflicto y red; los detalles remotos desconocidos se acotan y filtran para no mostrar SQL o secretos.
 - 2026-10-13: agregado `tests/web/solicitud-aprobacion-error.test.ts` para el contrato estático; aprobación/denegación exitosa conserva la recarga de solicitudes y equipo.
 - 2026-10-13: evidencia local verde: `npx vitest run tests/web` (20 archivos, 79 tests), `npm --workspace turnify-web run typecheck` y `npm --workspace turnify-web run build` (build exitoso; solo warning preexistente de chunk >500 kB).
-- Limitación: T3 queda fuera de alcance; no se hicieron migraciones, cambios remotos ni mutaciones de datos.
+- 2026-10-13: causa raíz confirmada: `0018` exigía `perfiles.rol = 'personal'` y `perfiles.empresa_id = barberos.empresa_id`, pero `0019` hizo opcional `perfiles.empresa_id` para personal y trasladó la relación activa a `membresias_personal_empresa`; por eso `resolver_solicitud_invitacion_personal` crea primero la membresía y luego falla al insertar `barberos`.
+- 2026-10-13: preparada localmente `supabase/migrations/0056_barbero_perfil_membresia.sql` con validación de membresía activa, sin modificar datos ni automatizar updates; agregado contrato en `tests/supabase/barbero-perfil-membresia.test.ts`.
+- Limitación remota: la migración aún no fue aplicada al Supabase remoto; no se ejecutaron Supabase CLI, SQL remoto, migraciones, deploy ni push.
