@@ -1,7 +1,8 @@
-import { Alert, Image, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 
+import { Skeleton } from '@/components/ui';
 import { WorkerButton, WorkerText, workerColors, workerUiStyles } from '@/components/worker/worker-ui';
 import { useAuth } from '@/features/auth/use-auth';
 import { getMyWorkerAvatar, pickWorkerAvatar, uploadWorkerAvatar } from '@/features/worker/worker-avatar';
@@ -16,6 +17,7 @@ export function WorkerProfileContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   useFocusEffect(useCallback(() => {
     let active = true;
@@ -23,6 +25,7 @@ export function WorkerProfileContent() {
     if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
       setName('Esau S');
       setPhone('987 654 321');
+      setIsLoadingProfile(false);
       return () => {
         active = false;
       };
@@ -32,9 +35,13 @@ export function WorkerProfileContent() {
       if (active) {
         setName(details.name);
         setPhone(details.phone);
+        setIsLoadingProfile(false);
       }
     }).catch(() => {
-      if (active) setNotice(null);
+      if (active) {
+        setNotice(null);
+        setIsLoadingProfile(false);
+      }
     });
     void getMyWorkerAvatar().then((next) => {
       if (active) setFotoUrl(next);
@@ -99,39 +106,55 @@ export function WorkerProfileContent() {
         <WorkerText color={workerColors.muted}>Tu foto y tus datos. Se muestran igual en todas tus barberías.</WorkerText>
       </View>
 
-      <View style={[workerUiStyles.card, styles.heroCard]}>
-        {fotoUrl ? (
-          <Image accessibilityLabel="Tu foto de perfil" source={{ uri: fotoUrl }} style={styles.avatarImage} />
-        ) : (
-          <View style={styles.avatar}>
-            <WorkerText variant="metric" color="#FFFFFF">{email.trim().charAt(0).toUpperCase() || 'U'}</WorkerText>
+      {isLoadingProfile ? (
+        <View style={[workerUiStyles.card, styles.heroCard]}>
+          <Skeleton height={54} width={54} radius={999} />
+          <View style={{ flex: 1, gap: 6 }}>
+            <Skeleton height={18} width="60%" />
+            <Skeleton height={14} width="80%" />
           </View>
-        )}
-        <View style={{ flex: 1, gap: 2 }}>
-          <WorkerText variant="headline">{name || email}</WorkerText>
-          <WorkerText color={workerColors.muted}>{email}</WorkerText>
         </View>
-        <WorkerButton
-          label={isPhotoLoading ? 'Subiendo…' : 'Cambiar foto'}
-          tone="secondary"
-          disabled={isPhotoLoading}
-          onPress={() => void changePhoto()}
-        />
-      </View>
+      ) : (
+        <View style={[workerUiStyles.card, styles.heroCard]}>
+          {fotoUrl ? (
+            <Image accessibilityLabel="Tu foto de perfil" source={{ uri: fotoUrl }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.avatar}>
+              <WorkerText variant="metric" color="#FFFFFF">{email.trim().charAt(0).toUpperCase() || 'U'}</WorkerText>
+            </View>
+          )}
+          <View style={{ flex: 1, gap: 2 }}>
+            <WorkerText variant="headline">{name || email}</WorkerText>
+            <WorkerText color={workerColors.muted}>{email}</WorkerText>
+          </View>
+          <WorkerButton
+            label={isPhotoLoading ? 'Subiendo…' : 'Cambiar foto'}
+            tone="secondary"
+            disabled={isPhotoLoading}
+            onPress={() => void changePhoto()}
+          />
+        </View>
+      )}
 
       <View style={workerUiStyles.card}>
         <WorkerText variant="eyebrow" color={workerColors.muted}>Información de cuenta</WorkerText>
         <WorkerText variant="headline">Datos personales</WorkerText>
         <WorkerText color={workerColors.muted}>Mantén tus datos actualizados para que el equipo pueda reconocerte.</WorkerText>
+        {isLoadingProfile ? (
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <ActivityIndicator color={workerColors.teal} />
+            <WorkerText color={workerColors.muted}>Cargando tus datos…</WorkerText>
+          </View>
+        ) : null}
         <View style={styles.field}>
           <WorkerText variant="label">Nombre</WorkerText>
-          <TextInput accessibilityLabel="Nombre" value={name} onChangeText={setName} placeholder="Tu nombre" placeholderTextColor={workerColors.muted} style={styles.input} />
+          <TextInput accessibilityLabel="Nombre" editable={!isLoadingProfile && !isSaving} value={name} onChangeText={setName} placeholder="Tu nombre" placeholderTextColor={workerColors.muted} style={styles.input} />
         </View>
         <View style={styles.field}>
           <WorkerText variant="label">Teléfono</WorkerText>
-          <TextInput accessibilityLabel="Teléfono" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="Tu teléfono" placeholderTextColor={workerColors.muted} style={styles.input} />
+          <TextInput accessibilityLabel="Teléfono" editable={!isLoadingProfile && !isSaving} value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="Tu teléfono" placeholderTextColor={workerColors.muted} style={styles.input} />
         </View>
-        <WorkerButton label={isSaving ? 'Guardando…' : 'Guardar datos'} disabled={isSaving} onPress={() => void save()} />
+        <WorkerButton label={isSaving ? 'Guardando…' : 'Guardar datos'} disabled={isSaving || isLoadingProfile} onPress={() => void save()} />
         {notice ? <WorkerText variant="label" color={workerColors.teal}>{notice}</WorkerText> : null}
       </View>
 

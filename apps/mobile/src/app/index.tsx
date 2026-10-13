@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { BrandMark, Button, Card, Icon, Pill, TextField } from '@/components/ui';
+import { BrandMark, Button, Card, Icon, Mascot, Pill, TextField } from '@/components/ui';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import { getGuestTicketState, type GuestTicketState } from '@/features/queue/public-guest-ticket-api';
 import { createGuestTicketHomeChannelName, subscribeToGuestTicketHomeChanges } from '@/features/queue/public-ticket-home-realtime';
@@ -149,7 +149,7 @@ export default function PublicWelcomeScreen() {
   return (
     <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
       <View style={styles.brand}>
-        <BrandMark size={44} />
+        <Mascot size={52} />
         <Text style={[TypeScale.title, { color: Palette.ink }]}>turnify</Text>
       </View>
 

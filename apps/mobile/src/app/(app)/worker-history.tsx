@@ -2,6 +2,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { Skeleton } from '@/components/ui';
 import { WorkerButton, WorkerPill, WorkerText, workerColors, workerUiStyles } from '@/components/worker/worker-ui';
 import { WorkerScreenContainer } from '@/components/worker/worker-screen-container';
 import { getWorkerHistory, type WorkerHistoryEntry } from '@/features/queue/worker-barber-api';
@@ -29,6 +30,7 @@ export default function WorkerHistoryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<WorkerHistoryPeriod>('hoy');
   const [shopName, setShopName] = useState<string | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   const load = useCallback(() => {
     if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
@@ -53,13 +55,18 @@ export default function WorkerHistoryScreen() {
       ]);
       setShopName('Barbería Demo');
       setError(null);
+      setHasLoaded(true);
       return;
     }
 
     void getWorkerHistory().then((next) => {
       setEntries(next);
       setError(null);
-    }).catch(() => setError('No pudimos cargar tu historial para la barbería seleccionada.'));
+      setHasLoaded(true);
+    }).catch(() => {
+      setError('No pudimos cargar tu historial para la barbería seleccionada.');
+      setHasLoaded(true);
+    });
     void getWorkerShops().then((next) => {
       setShopName(next.find((shop) => shop.isCurrent)?.name ?? null);
     }).catch(() => setShopName(null));
@@ -107,18 +114,29 @@ export default function WorkerHistoryScreen() {
           </View>
         </View>
 
-        <View style={styles.metrics}>
-          <MetricCard label="ATENDIDOS" value={String(summary.attended)} tone={workerColors.teal} />
-          <MetricCard label={`AUSENTES · ${absentPct}%`} value={String(summary.absent)} tone={workerColors.error} />
-          <MetricCard label={`PROMEDIO · ${measuredCount} MED.`} value={formatHistoryDuration(summary.averageDurationSeconds)} tone={workerColors.ink} />
-        </View>
-
-        <View style={workerUiStyles.card}>
-          <View style={styles.listHeader}>
-            <WorkerText variant="headline">{listTitle}</WorkerText>
-            <WorkerPill label={`${filteredEntries.length} REGISTROS`} tone="neutral" />
+        {!hasLoaded ? (
+          <View style={[workerUiStyles.card, { gap: 10 }]}>
+            <Skeleton height={44} />
+            <Skeleton height={14} width="70%" />
+            <Skeleton height={14} width="50%" />
           </View>
-          {error ? (
+        ) : null}
+
+        {hasLoaded ? (
+          <View style={styles.metrics}>
+            <MetricCard label="ATENDIDOS" value={String(summary.attended)} tone={workerColors.teal} />
+            <MetricCard label={`AUSENTES · ${absentPct}%`} value={String(summary.absent)} tone={workerColors.error} />
+            <MetricCard label={`PROMEDIO · ${measuredCount} MED.`} value={formatHistoryDuration(summary.averageDurationSeconds)} tone={workerColors.ink} />
+          </View>
+        ) : null}
+
+        {hasLoaded ? (
+          <View style={workerUiStyles.card}>
+            <View style={styles.listHeader}>
+              <WorkerText variant="headline">{listTitle}</WorkerText>
+              <WorkerPill label={`${filteredEntries.length} REGISTROS`} tone="neutral" />
+            </View>
+            {error ? (
             <View style={{ backgroundColor: workerColors.errorContainer, borderRadius: 12, gap: 8, padding: 12 }}>
               <WorkerText variant="label" color={workerColors.error}>{error}</WorkerText>
               <WorkerButton label="Reintentar" tone="secondary" onPress={() => load()} />
@@ -149,8 +167,9 @@ export default function WorkerHistoryScreen() {
                 ))}
               </View>
             ))
-          )}
-        </View>
+            )}
+          </View>
+        ) : null}
       </ScrollView>
     </WorkerScreenContainer>
   );

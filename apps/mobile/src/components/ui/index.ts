@@ -1,4 +1,6 @@
 export { BrandMark } from './brand-mark';
+export { Mascot } from './mascot';
+export { Skeleton } from './skeleton';
 export { BottomTabs, type BottomTabItem } from './bottom-tabs';
 export { Button, IconButton, type ButtonProps, type ButtonSize, type ButtonVariant } from './button';
 export { Card, Divider, type CardPadding, type CardProps, type CardTone } from './card';

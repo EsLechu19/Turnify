@@ -4,7 +4,7 @@ import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { AuthErrorMessage } from '@/components/auth/auth-ui';
 import { WorkerAccountContainer } from '@/components/worker/worker-account-container';
-import { Button, Card, Icon, OptionCard, Pill, Row, Screen, TextField } from '@/components/ui';
+import { Button, Card, Icon, OptionCard, Pill, Row, Screen, Skeleton, TextField } from '@/components/ui';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import { useAuth } from '@/features/auth/use-auth';
 import { getMyPendingWorkerRequests, getWorkerShops, requestWorkerInvitation, selectWorkerShop, type PendingWorkerRequest, type WorkerShop } from '@/features/worker/worker-membership-api';
@@ -111,6 +111,13 @@ export default function WorkerShopsScreen() {
           Elige dónde operar hoy. Puedes pertenecer a varias y cambiar cuando quieras.
         </Text>
       </Card>
+
+      {!hasLoaded && !error ? (
+        <View style={styles.section}>
+          <Skeleton height={76} />
+          <Skeleton height={76} />
+        </View>
+      ) : null}
 
       {shops.length > 0 ? (
         <View style={styles.section}>

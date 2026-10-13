@@ -2,6 +2,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { Skeleton } from '@/components/ui';
 import { WorkerButton, WorkerPill, WorkerText, workerColors, workerUiStyles } from '@/components/worker/worker-ui';
 import { WorkerScreenContainer } from '@/components/worker/worker-screen-container';
 import { formatReferencePrice } from '@/features/queue/commercial-booking';
@@ -13,6 +14,7 @@ export default function WorkerServicesScreen() {
   const [serviceGroups, setServiceGroups] = useState<WorkerServiceGroup[]>([]);
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
   const [servicesError, setServicesError] = useState<string | null>(null);
+  const [hasLoadedServices, setHasLoadedServices] = useState(false);
 
   useFocusEffect(useCallback(() => {
     let active = true;
@@ -25,6 +27,7 @@ export default function WorkerServicesScreen() {
         { serviceId: 'demo-2', name: 'Perfilado de barba', description: null, durationSeconds: 1200, priceCents: 1500 },
       ] }]);
       setServicesError(null);
+      setHasLoadedServices(true);
       return () => {
         active = false;
       };
@@ -42,9 +45,13 @@ export default function WorkerServicesScreen() {
       if (active) {
         setServiceGroups(next);
         setServicesError(null);
+        setHasLoadedServices(true);
       }
     }).catch(() => {
-      if (active) setServicesError('No pudimos cargar tus servicios.');
+      if (active) {
+        setServicesError('No pudimos cargar tus servicios.');
+        setHasLoadedServices(true);
+      }
     });
 
     return () => {
@@ -69,7 +76,14 @@ export default function WorkerServicesScreen() {
         </View>
 
         {servicesError ? <WorkerText color={workerColors.error}>{servicesError}</WorkerText> : null}
-        {!servicesError && serviceShopOptions.length === 0 ? <WorkerText color={workerColors.muted}>No tienes barberías aprobadas todavía.</WorkerText> : null}
+        {!hasLoadedServices && !servicesError ? (
+          <View style={workerUiStyles.card}>
+            <Skeleton height={20} width="50%" />
+            <Skeleton height={14} width="80%" />
+            <Skeleton height={14} width="65%" />
+          </View>
+        ) : null}
+        {hasLoadedServices && !servicesError && serviceShopOptions.length === 0 ? <WorkerText color={workerColors.muted}>No tienes barberías aprobadas todavía.</WorkerText> : null}
 
         <View style={styles.selector}>
           {serviceShopOptions.map((shop) => {
