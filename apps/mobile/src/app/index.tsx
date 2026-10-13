@@ -121,12 +121,16 @@ export default function PublicWelcomeScreen() {
                 {activeTicket.status === 'llamado'
                   ? 'Te están llamando ahora: acércate al personal'
                   : activeTicket.status === 'en_atencion'
-                    ? 'Te están atendiendo'
+                    ? 'Permanece en tu lugar hasta que termine.'
                     : 'Tu lugar en la fila está reservado'}
               </Text>
               {activeTicket.status === 'llamado' ? (
                 <Text style={[TypeScale.title, { color: Palette.brandDeep }]}>
                   {calledRemaining ? `Te quedan ${calledRemaining}` : 'Acércate ya al personal'}
+                </Text>
+              ) : activeTicket.status === 'en_atencion' ? (
+                <Text style={[TypeScale.title, { color: Palette.brandDeep }]}>
+                  {barberName ? `Te atiende ${barberName}` : 'En atención ahora'}
                 </Text>
               ) : (
                 <Text style={[TypeScale.title, { color: Palette.brandDeep }]}>
