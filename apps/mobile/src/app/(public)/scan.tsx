@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
 import { BrandBar, Button, Card, Icon, StateBlock } from '@/components/ui';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
@@ -68,10 +69,12 @@ export default function PublicScanScreen() {
     if (!code) {
       setHasScanned(true);
       setError('Este código QR no es válido para Turnify.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => undefined);
       return;
     }
 
     setHasScanned(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
     router.replace({ pathname: publicShopRoute, params: { code } });
   }
 

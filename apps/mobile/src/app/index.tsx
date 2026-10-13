@@ -137,6 +137,11 @@ export default function PublicWelcomeScreen() {
               onPress={() => router.push(activeGuestTicketRoute(activeTicket.status))}
               size="lg"
             />
+            <Button
+              label="Cancelar mi turno"
+              onPress={() => router.push(activeGuestTicketRoute(activeTicket.status))}
+              variant="link"
+            />
           </>
         ) : null}
         <Text style={[TypeScale.caption, styles.mutedCenter]}>
@@ -207,23 +212,16 @@ export default function PublicWelcomeScreen() {
       <Card padding="lg" style={styles.stepsCard}>
         <Text style={[TypeScale.headline, { color: Palette.ink }]}>¿Cómo funciona?</Text>
         <View style={styles.step}>
-          <Icon color={Palette.brand} name="qr" size={20} />
-          <View style={styles.stepCopy}>
-            <Text style={[TypeScale.label, { color: Palette.ink }]}>1 · Escanea el QR</Text>
-            <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>Está en la entrada de la barbería.</Text>
-          </View>
-        </View>
-        <View style={styles.step}>
           <Icon color={Palette.brand} name="ticket" size={20} />
           <View style={styles.stepCopy}>
-            <Text style={[TypeScale.label, { color: Palette.ink }]}>2 · Elige tu servicio</Text>
+            <Text style={[TypeScale.label, { color: Palette.ink }]}>1 · Elige tu servicio</Text>
             <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>Corte, barba o lo que necesites.</Text>
           </View>
         </View>
         <View style={styles.step}>
           <Icon color={Palette.brand} name="bell" size={20} />
           <View style={styles.stepCopy}>
-            <Text style={[TypeScale.label, { color: Palette.ink }]}>3 · Sigue tu turno</Text>
+            <Text style={[TypeScale.label, { color: Palette.ink }]}>2 · Sigue tu turno</Text>
             <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>Posición en vivo · deja la app abierta al llamarte.</Text>
           </View>
         </View>
