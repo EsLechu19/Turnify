@@ -220,7 +220,7 @@ export async function getWorkerWalkInOptions(): Promise<{ services: WorkerWalkIn
       const service = servicesByName.get(queue.name.trim().toLowerCase());
       return {
         queueId: queue.queueId,
-        name: queue.name,
+        name: service?.nombre ?? queue.name,
         durationSeconds: service?.duracion_estimada_seg ?? null,
         priceCents: service?.precio_referencia_centavos ?? null,
       };
