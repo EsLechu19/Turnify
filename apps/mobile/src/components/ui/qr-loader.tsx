@@ -19,8 +19,8 @@ function LetterTile({ letter, delay, reduceMotion }: { letter: string; delay: nu
     const loop = Animated.loop(
       Animated.sequence([
         Animated.delay(delay),
-        Animated.timing(bounce, { duration: 350, easing: Easing.inOut(Easing.ease), toValue: 1, useNativeDriver: true }),
-        Animated.timing(bounce, { duration: 350, easing: Easing.inOut(Easing.ease), toValue: 0, useNativeDriver: true }),
+        Animated.timing(bounce, { duration: 650, easing: Easing.inOut(Easing.ease), toValue: 1, useNativeDriver: true }),
+        Animated.timing(bounce, { duration: 650, easing: Easing.inOut(Easing.ease), toValue: 0, useNativeDriver: true }),
       ]),
     );
     loop.start();

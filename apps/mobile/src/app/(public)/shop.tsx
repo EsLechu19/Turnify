@@ -62,7 +62,7 @@ export default function ShopScreen() {
   return (
     <View style={[styles.shell, { paddingTop: insets.top }]}>
       <ScrollView
-        contentContainerStyle={[styles.page, { paddingBottom: Math.max(insets.bottom, 20) + 24 }]}
+        contentContainerStyle={[styles.page, { paddingBottom: Math.max(insets.bottom, 20) + 24 }, isLoading && styles.loadingPage]}
         showsVerticalScrollIndicator={false}
       >
         <BrandBar onBack={returnHome} />
@@ -157,7 +157,8 @@ const styles = StyleSheet.create({
   shell: { backgroundColor: Palette.canvas, flex: 1 },
   page: { alignSelf: 'center', gap: space(5), maxWidth: 520, paddingHorizontal: space(5), paddingTop: space(2), width: '100%' },
   stateCard: { marginTop: space(6) },
-  loadingCenter: { alignItems: 'center', justifyContent: 'center', minHeight: 420 },
+  loadingPage: { flexGrow: 1 },
+  loadingCenter: { alignItems: 'center', flex: 1, justifyContent: 'center' },
 
   intro: { alignItems: 'center', gap: space(2.5), paddingTop: space(2) },
 
