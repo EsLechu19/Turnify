@@ -62,9 +62,24 @@ export function normalizeBusinessCode(value: string): string | null {
 }
 
 export function parseTurnifyQr(value: string): string | null {
-  const payload = value.trim();
-  const code = payload.toLowerCase().startsWith('turnify:') ? payload.slice(8) : payload;
-  return normalizeBusinessCode(code);
+  try {
+    const payload = value.trim();
+    if (payload.toLowerCase().startsWith('turnify:')) {
+      return normalizeBusinessCode(decodeURIComponent(payload.slice(8)));
+    }
+
+    const rawCode = normalizeBusinessCode(payload);
+    if (rawCode) return rawCode;
+
+    const urlPayload = /^https?:\/\//i.test(payload) ? payload : `https://${payload}`;
+    const url = new URL(urlPayload);
+    if (url.hostname.toLowerCase() !== 'turnify.app' || url.search || url.hash) return null;
+
+    const match = /^\/t\/([^/]+)$/.exec(url.pathname);
+    return match ? normalizeBusinessCode(decodeURIComponent(match[1])) : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getBusinessSummary(code: string): Promise<BusinessSummary> {

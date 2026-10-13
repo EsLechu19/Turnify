@@ -176,7 +176,7 @@ function ServiceForm({
 }
 
 export function ServicesPage() {
-  const { services, createService, updateService, removeService } = useServices();
+  const { services, error, reloadServices, createService, updateService, removeService } = useServices();
   const { tickets, team } = useQueue();
   const serviceMix = useMemo(() => computeServiceMix(tickets), [tickets]);
   const [performance, setPerformance] = useState<Record<string, ServicePerformance>>({});
@@ -339,6 +339,12 @@ export function ServicesPage() {
           </Button>
         }
       />
+      {error ? (
+        <div style={{ alignItems: 'center', display: 'flex', gap: 12 }}>
+          <p className="auth__error" role="alert" style={{ margin: 0 }}>{error}</p>
+          <Button variant="secondary" size="sm" onClick={reloadServices}>Reintentar</Button>
+        </div>
+      ) : null}
 
       <StatsRow
         stats={[

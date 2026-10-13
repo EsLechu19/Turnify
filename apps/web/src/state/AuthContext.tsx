@@ -30,6 +30,7 @@ interface AuthState {
 
 type AuthAction =
   | { type: 'restored'; session: AuthSession | null }
+  | { type: 'restore-failed'; message: string }
   | { type: 'submitting' }
   | { type: 'succeeded'; session: AuthSession }
   | { type: 'failed'; message: string }
@@ -52,6 +53,9 @@ function reducer(state: AuthState, action: AuthAction): AuthState {
         error: null,
         pending: false,
       };
+
+    case 'restore-failed':
+      return { status: 'anonymous', session: null, error: action.message, pending: false };
 
     case 'submitting':
       return { ...state, error: null, pending: true };
@@ -84,7 +88,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
-    void authRepository.restore().then((session) => dispatch({ type: 'restored', session }));
+    void authRepository.restore()
+      .then((session) => dispatch({ type: 'restored', session }))
+      .catch((error: unknown) => {
+        dispatch({
+          type: 'restore-failed',
+          message: error instanceof Error ? error.message : 'No pudimos restaurar la sesión.',
+        });
+      });
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
@@ -121,8 +132,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshProfile = useCallback(async () => {
-    const session = await authRepository.restore();
-    dispatch({ type: 'restored', session });
+    try {
+      const session = await authRepository.restore();
+      dispatch({ type: 'restored', session });
+    } catch (error: unknown) {
+      dispatch({
+        type: 'restore-failed',
+        message: error instanceof Error ? error.message : 'No pudimos restaurar la sesión.',
+      });
+    }
   }, []);
 
   const signOut = useCallback(() => {

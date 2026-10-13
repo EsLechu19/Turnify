@@ -20,7 +20,7 @@ const todayLabel = new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'num
  */
 export function DashboardPage() {
   const { tickets, team, stats, loading, error, refresh, refreshVersion, next } = useQueue();
-  const { business, open, refreshShop } = useShop();
+  const { business, open, error: shopError, refreshShop } = useShop();
   const [togglingOpen, setTogglingOpen] = useState(false);
   const [toggleError, setToggleError] = useState<string | null>(null);
   const [compare, setCompare] = useState<StatsCompare | null>(null);
@@ -76,6 +76,12 @@ export function DashboardPage() {
         }
       />
       {toggleError ? <p className="auth__error" role="alert">{toggleError}</p> : null}
+      {shopError ? (
+        <div style={{ alignItems: 'center', display: 'flex', gap: 12 }}>
+          <p className="auth__error" role="alert" style={{ margin: 0 }}>{shopError}</p>
+          <Button variant="secondary" size="sm" onClick={refreshShop}>Reintentar</Button>
+        </div>
+      ) : null}
 
       {loading ? <p className="muted" role="status">Actualizando la operación…</p> : null}
       {error || metricsError ? (
