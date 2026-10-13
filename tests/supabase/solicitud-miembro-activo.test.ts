@@ -21,6 +21,14 @@ describe('invitation requests from existing members', () => {
     expect(migration).toContain('m.perfil_id = s.solicitada_por and m.empresa_id = s.empresa_id and m.activa');
   });
 
+  it('answers membership even when the code was already redeemed by the caller', () => {
+    const fix = read('supabase', 'migrations', '0054_solicitud_codigo_reutilizado.sql');
+
+    expect(fix).toContain("s.estado = 'issued' or (s.estado = 'requested' and s.solicitada_por = auth.uid())");
+    expect(fix).toContain("raise exception 'Ya perteneces a esta barbería'");
+    expect(fix).toContain("if v_estado <> 'issued' then raise exception 'No se pudo enviar la solicitud'; end if;");
+  });
+
   it('surfaces the membership message in the app instead of the generic error', () => {
     expect(membershipApi).toContain("error.message.includes('Ya perteneces')");
     expect(membershipApi).toContain("throw new Error('Ya perteneces a esta barbería.')");
