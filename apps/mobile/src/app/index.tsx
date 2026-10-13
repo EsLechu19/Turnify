@@ -7,8 +7,10 @@ import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import { getGuestTicketState, type GuestTicketState } from '@/features/queue/public-guest-ticket-api';
 import { createGuestTicketHomeChannelName, subscribeToGuestTicketHomeChanges } from '@/features/queue/public-ticket-home-realtime';
 import { normalizeBusinessCode } from '@/features/queue/queue-api';
+import { canCancelTicket } from '@/features/queue/ticket-presentation';
 import { useGuestFlow } from '@/features/public/guest-flow-session';
 import { activeGuestTicketRoute, isActiveGuestTicketStatus, publicShopRoute, workerSignInRoute } from '@/features/public/public-route-policy';
+import { useRemainingTolerance } from '@/features/worker/use-remaining-tolerance';
 import { getSupabase } from '@/lib/supabase';
 
 /**
@@ -24,6 +26,7 @@ export default function PublicWelcomeScreen() {
   const [activeTicket, setActiveTicket] = useState<GuestTicketState | null>(null);
   const [isTicketLoading, setIsTicketLoading] = useState(false);
   const [ticketError, setTicketError] = useState<string | null>(null);
+  const calledRemaining = useRemainingTolerance(activeTicket?.calledDeadlineAt ?? null);
 
   const refreshActiveTicket = useCallback(async () => {
     if (!ticketAccess) return;
@@ -121,9 +124,15 @@ export default function PublicWelcomeScreen() {
                     ? 'Te están atendiendo'
                     : 'Tu lugar en la fila está reservado'}
               </Text>
-              <Text style={[TypeScale.title, { color: Palette.brandDeep }]}>
-                {activeTicket.peopleAhead} delante · {activeTicket.waitMinutes} min
-              </Text>
+              {activeTicket.status === 'llamado' ? (
+                <Text style={[TypeScale.title, { color: Palette.brandDeep }]}>
+                  {calledRemaining ? `Te quedan ${calledRemaining}` : 'Acércate ya al personal'}
+                </Text>
+              ) : (
+                <Text style={[TypeScale.title, { color: Palette.brandDeep }]}>
+                  {activeTicket.peopleAhead} delante · {activeTicket.waitMinutes} min
+                </Text>
+              )}
               {activeTicket.serviceName || barberName ? (
                 <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>
                   {[activeTicket.serviceName, barberName].filter(Boolean).join(' · ')}
@@ -137,11 +146,13 @@ export default function PublicWelcomeScreen() {
               onPress={() => router.push(activeGuestTicketRoute(activeTicket.status))}
               size="lg"
             />
-            <Button
-              label="Cancelar mi turno"
-              onPress={() => router.push(activeGuestTicketRoute(activeTicket.status))}
-              variant="link"
-            />
+            {canCancelTicket(activeTicket.status) ? (
+              <Button
+                label="Cancelar mi turno"
+                onPress={() => router.push(activeGuestTicketRoute(activeTicket.status))}
+                variant="link"
+              />
+            ) : null}
           </>
         ) : null}
         <Text style={[TypeScale.caption, styles.mutedCenter]}>
