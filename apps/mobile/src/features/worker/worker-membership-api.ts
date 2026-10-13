@@ -34,7 +34,9 @@ export async function getShopWorkers(): Promise<Array<{ profileId: string; name:
 
 export async function requestWorkerInvitation(code: string): Promise<void> {
   const { error } = await getSupabase().rpc('solicitar_invitacion_personal', { p_codigo: code.trim().toLowerCase() });
-  if (error) throw new Error('No se pudo enviar la solicitud. Revisa el código e inténtalo nuevamente.');
+  if (!error) return;
+  if (error.message.includes('Ya perteneces')) throw new Error('Ya perteneces a esta barbería.');
+  throw new Error('No se pudo enviar la solicitud. Revisa el código e inténtalo nuevamente.');
 }
 
 export async function getMyPendingWorkerRequests(): Promise<PendingWorkerRequest[]> {
