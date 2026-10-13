@@ -13,7 +13,6 @@ export default function WorkerWalkInScreen() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [barberId, setBarberId] = useState<string | null>(null);
   const [name, setName] = useState('');
-  const [customerInRoom, setCustomerInRoom] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -135,13 +134,18 @@ export default function WorkerWalkInScreen() {
                     {service.durationSeconds != null ? `${Math.round(service.durationSeconds / 60)} min` : 'Tiempo estimado'}
                   </WorkerText>
                   <WorkerText variant="label" color={selected ? 'rgba(255,255,255,0.82)' : workerColors.muted}>
-                    {formatReferencePrice(service.priceCents) ?? 'Precio por confirmar'}
+                    {service.priceCents != null && formatReferencePrice(service.priceCents) ? `${formatReferencePrice(service.priceCents)} ref.` : 'Precio por confirmar'}
                   </WorkerText>
                 </Pressable>
               );
             })}
           </View>
-          {services.length === 0 && <WorkerText color={workerColors.muted}>No hay servicios compatibles disponibles para asignar.</WorkerText>}
+          {services.length === 0 && (
+            <View style={{ gap: 8 }}>
+              <WorkerText color={workerColors.muted}>Sin catálogo en esta barbería: pide al admin que registre servicios.</WorkerText>
+              <WorkerButton label="Volver a la cola" tone="secondary" onPress={() => router.back()} />
+            </View>
+          )}
         </View>
 
         <View style={workerUiStyles.card}>
@@ -186,15 +190,6 @@ export default function WorkerWalkInScreen() {
           {hiddenBarberCount > 0 && <WorkerText color={workerColors.muted}>{hiddenBarberCount} no {hiddenBarberCount === 1 ? 'atiende' : 'atienden'} este servicio.</WorkerText>}
         </View>
 
-        <View style={workerUiStyles.card}>
-          <CheckRow
-            checked={customerInRoom}
-            label="Cliente en sala / sin dispositivo"
-            detail="Llamado por voz alta y pantalla general del estudio"
-            onPress={() => setCustomerInRoom((current) => !current)}
-          />
-        </View>
-
         {notice ? (
           <View accessibilityRole="alert" style={[workerUiStyles.card, { backgroundColor: workerColors.tealContainer }]}>
             <WorkerText variant="label" color={workerColors.teal}>{notice}</WorkerText>
@@ -206,23 +201,14 @@ export default function WorkerWalkInScreen() {
           </View>
         ) : null}
 
+        {name.trim() && pickedService ? (
+          <WorkerText color={workerColors.muted}>
+            Se creará para {name.trim()} · {pickedService.name} · {barberId ? (barbers.find((item) => item.barberId === barberId)?.name ?? 'barbero elegido') : 'quien lo crea'}.
+          </WorkerText>
+        ) : null}
         <WorkerButton label="Crear ticket manual" disabled={loading || !name.trim() || !selectedKey} onPress={() => void submit()} />
       </ScrollView>
     </WorkerScreenContainer>
-  );
-}
-
-function CheckRow({ checked, label, detail, onPress }: { checked: boolean; label: string; detail?: string; onPress(): void }) {
-  return (
-    <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} onPress={onPress} style={styles.checkRow}>
-      <View style={[styles.checkbox, checked ? styles.checkboxChecked : null]}>
-        {checked ? <WorkerIcon name="check" color="#FFFFFF" size={14} /> : null}
-      </View>
-      <View style={{ flex: 1, gap: 2 }}>
-        <WorkerText variant="label">{label}</WorkerText>
-        {detail ? <WorkerText color={workerColors.muted}>{detail}</WorkerText> : null}
-      </View>
-    </Pressable>
   );
 }
 
@@ -241,7 +227,4 @@ const styles = StyleSheet.create({
   barberList: { gap: 8 },
   barberRow: { alignItems: 'center', backgroundColor: workerColors.card, borderColor: workerColors.outline, borderRadius: 10, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', minHeight: 48, paddingHorizontal: 12 },
   barberRowSelected: { backgroundColor: workerColors.ink, borderColor: workerColors.ink },
-  checkRow: { alignItems: 'flex-start', flexDirection: 'row', gap: 10 },
-  checkbox: { alignItems: 'center', borderColor: workerColors.outline, borderRadius: 6, borderWidth: 1.5, height: 22, justifyContent: 'center', width: 22 },
-  checkboxChecked: { backgroundColor: workerColors.teal, borderColor: workerColors.teal },
 });
