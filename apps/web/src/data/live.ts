@@ -786,6 +786,7 @@ export async function saveShopSettings(input: {
   shopLatitude?: number | null;
   shopLongitude?: number | null;
   shopAddress?: string | null;
+  shopName?: string;
 }): Promise<void> {
   const supabase = getSupabase();
   const empresaId = await companyId();
@@ -797,6 +798,7 @@ export async function saveShopSettings(input: {
     latitud?: number | null;
     longitud?: number | null;
     direccion?: string | null;
+    nombre?: string;
   } = {
     abierta: input.open,
     minutos_gracia: Math.max(1, Math.round(input.graceMinutes)),
@@ -810,6 +812,11 @@ export async function saveShopSettings(input: {
   if (input.shopLongitude !== undefined) update.longitud = input.shopLongitude;
   // Address is optional so coordinate-only edits preserve the canonical address.
   if (input.shopAddress !== undefined) update.direccion = input.shopAddress;
+  // The shop name travels with the same save so the header updates together.
+  if (input.shopName !== undefined) {
+    if (!input.shopName.trim()) throw new Error('El nombre de la barbería es obligatorio.');
+    update.nombre = input.shopName.trim();
+  }
 
   const { error } = await supabase.from('empresas').update(update).eq('id', empresaId);
 

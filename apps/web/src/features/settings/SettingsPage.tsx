@@ -58,7 +58,7 @@ function Divider() {
 }
 
 export function SettingsPage() {
-  const { business } = useShop();
+  const { business, refreshShop } = useShop();
   const ticketUrl = business?.ticketUrl ?? '';
   const [config, setConfig] = useState<ShopConfig>(demoConfig);
   const [identity, setIdentity] = useState<{ name: string; code: string; timezone: string } | null>(null);
@@ -71,6 +71,7 @@ export function SettingsPage() {
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [showDiscard, setShowDiscard] = useState(false);
   const [togglingOpen, setTogglingOpen] = useState(false);
+  const [shopName, setShopName] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -93,6 +94,7 @@ export function SettingsPage() {
           shopAddress: settings.shopAddress,
         });
         setIdentity({ name: settings.name, code: settings.code, timezone: settings.timezone });
+        setShopName(settings.name);
         setLoading(false);
       })
       .catch(() => {
@@ -167,12 +169,20 @@ export function SettingsPage() {
 
     setSaved(false);
     setError(null);
+
+    if (!shopName.trim()) {
+      setError('El nombre de la barbería es obligatorio.');
+      return;
+    }
+
     setStatus('saving');
 
-    saveShopSettings(config)
+    saveShopSettings({ ...config, shopName: shopName.trim() })
       .then(() => {
         setStatus('idle');
         setSaved(true);
+        setIdentity((current) => (current ? { ...current, name: shopName.trim() } : current));
+        refreshShop();
         setLastModified(
           new Date().toLocaleString('es-PE', {
             timeZone: 'America/Lima',
@@ -211,6 +221,8 @@ export function SettingsPage() {
            shopLongitude: settings.shopLongitude,
             shopAddress: settings.shopAddress,
         });
+        setShopName(settings.name);
+        setIdentity({ name: settings.name, code: settings.code, timezone: settings.timezone });
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -264,10 +276,24 @@ export function SettingsPage() {
 
         <Divider />
 
+        <label className="field">
+          <span>Nombre de la barbería</span>
+          <input
+            disabled={loading || status === 'saving'}
+            maxLength={80}
+            onChange={(event) => {
+              setSaved(false);
+              setError(null);
+              setShopName(event.target.value);
+            }}
+            placeholder="Ej. Barba Negra"
+            type="text"
+            value={shopName}
+          />
+          <small>Se muestra en la app, el QR y el panel al guardar.</small>
+        </label>
+
         <div style={{ display: 'grid', gap: 8 }}>
-          <div className="muted" style={{ font: 'var(--text-body)' }}>
-            Local: <strong style={{ color: 'var(--ink)' }}>{identity?.name ?? business?.name ?? '—'}</strong>
-          </div>
           <div className="muted" style={{ font: 'var(--text-body)' }}>
             Código: <strong style={{ color: 'var(--ink)' }}>{identity?.code ?? business?.accessCode ?? '—'}</strong>
             {' · '}

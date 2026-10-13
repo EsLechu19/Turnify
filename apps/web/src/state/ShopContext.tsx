@@ -19,8 +19,8 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ShopContextValue>({ business: null, branch: null, loading: true, open: null, refreshShop: () => undefined });
 
   const refreshShop = useCallback(() => {
-    fetchShopOpen()
-      .then((open) => setState((current) => ({ ...current, open })))
+    Promise.all([panelRepository.business(), panelRepository.branch(), fetchShopOpen()])
+      .then(([business, branch, open]) => setState((current) => ({ ...current, business, branch, loading: false, open, refreshShop })))
       .catch(() => undefined);
   }, []);
 
