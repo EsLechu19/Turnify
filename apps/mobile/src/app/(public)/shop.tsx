@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandBar, Button, Card, Icon, Pill, StateBlock } from '@/components/ui';
+import { BrandBar, Button, Card, Icon, Pill, QrLoader, StateBlock } from '@/components/ui';
 import { HowToGetThere } from '@/components/customer/how-to-get-there';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import { useGuestFlow } from '@/features/public/guest-flow-session';
@@ -69,7 +69,7 @@ export default function ShopScreen() {
 
         {isLoading ? (
           <View accessibilityLabel="Consultando la barbería" accessibilityRole="progressbar">
-            <StateBlock detail="Verificamos el código que te mostraron." icon="search" loading title="Buscando la barbería…" />
+            <QrLoader label="Leyendo código QR" />
           </View>
         ) : null}
 
