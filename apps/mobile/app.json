@@ -21,8 +21,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.CAMERA"
       ]
     },
     "web": {
@@ -45,6 +44,12 @@
         "expo-camera",
         {
           "cameraPermission": "Turnify necesita la camara para escanear el codigo de la empresa."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Turnify usa tu ubicación solo para calcular la distancia y el tiempo estimado hasta la barbería."
         }
       ]
     ],
