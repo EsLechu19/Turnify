@@ -30,6 +30,7 @@ const service = (id: string, name: string, description: string, minutes: number,
   name,
   description,
   estimatedDurationSeconds: minutes * 60,
+  measuredDurationSeconds: null,
   referencePriceCents: price,
 });
 
@@ -37,6 +38,7 @@ const barber = (id: string, name: string, state: CommercialBarber['operationalSt
   barberId: id,
   name,
   operationalState: state,
+  fotoUrl: null,
   serviceIds,
 });
 

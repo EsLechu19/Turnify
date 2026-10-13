@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -8,11 +9,14 @@ import {
 } from '../../apps/mobile/src/features/queue/commercial-booking';
 import type { CommercialCatalog, CommercialService } from '../../apps/mobile/src/features/queue/commercial-queue-api';
 
+const source = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
+
 const service: CommercialService = {
   serviceId: 'service-cut',
   name: 'Corte',
   description: null,
   estimatedDurationSeconds: 1800,
+  measuredDurationSeconds: 1650,
   referencePriceCents: 4500,
 };
 
@@ -21,9 +25,9 @@ const catalog: CommercialCatalog = {
   open: true,
   services: [service],
   barbers: [
-    { barberId: 'busy', name: 'Luis', operationalState: 'ocupado', serviceIds: ['service-cut'] },
-    { barberId: 'free', name: 'Marco', operationalState: 'disponible', serviceIds: ['service-cut'] },
-    { barberId: 'other', name: 'Ana', operationalState: 'disponible', serviceIds: ['other-service'] },
+    { barberId: 'busy', name: 'Luis', operationalState: 'ocupado', fotoUrl: null, serviceIds: ['service-cut'] },
+    { barberId: 'free', name: 'Marco', operationalState: 'disponible', fotoUrl: null, serviceIds: ['service-cut'] },
+    { barberId: 'other', name: 'Ana', operationalState: 'disponible', fotoUrl: null, serviceIds: ['other-service'] },
   ],
 };
 
@@ -44,5 +48,16 @@ describe('commercial customer booking choices', () => {
   it('formats optional reference prices only when the catalog supplies one', () => {
     expect(formatReferencePrice(4500)).toBe('S/ 45.00');
     expect(formatReferencePrice(null)).toBeNull();
+  });
+
+  it('prefers the measured duration with a fallback to the estimate', () => {
+    const api = source('../../apps/mobile/src/features/queue/commercial-queue-api.ts');
+    const serviceScreen = source('../../apps/mobile/src/app/(public)/service.tsx');
+    const detailsScreen = source('../../apps/mobile/src/app/(public)/details.tsx');
+
+    expect(api).toContain('measuredDurationSeconds');
+    expect(api).toContain('duracion_medida_seg');
+    expect(serviceScreen).toContain('measuredDurationSeconds');
+    expect(detailsScreen).toContain('measuredDurationSeconds');
   });
 });

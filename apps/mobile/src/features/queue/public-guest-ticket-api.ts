@@ -20,6 +20,7 @@ export type GuestTicketState = {
   customerResponse: 'presente' | 'llega_en_2_min' | null;
   customerResponseAt: string | null;
   puntuacion: number | null;
+  graciaMin: number | null;
 };
 
 type GuestTicketAccessPayload = { ticket_id: string; codigo_visible: string; capacidad: string };
@@ -35,6 +36,7 @@ type GuestTicketStatePayload = {
   respuesta_cliente: GuestTicketState['customerResponse'];
   respuesta_cliente_en: string | null;
   puntuacion: number | null;
+  gracia_min: number | null;
 };
 
 /** The capability is an in-memory handoff only; callers must not persist it. */
@@ -76,6 +78,7 @@ export async function getGuestTicketState(access: Pick<GuestTicketAccess, 'ticke
     customerResponse: ticket.respuesta_cliente,
     customerResponseAt: ticket.respuesta_cliente_en,
     puntuacion: ticket.puntuacion,
+    graciaMin: ticket.gracia_min,
   };
 }
 

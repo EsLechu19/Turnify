@@ -28,12 +28,12 @@ describe('worker intent authentication', () => {
     expect(roleCanAccessAppRoute(worker, 'worker-profile')).toBe(true);
   });
 
-  it('blocks direct worker navigation for an unassociated personal profile', () => {
+  it('blocks operational navigation but allows account navigation for an unassociated personal profile', () => {
     const unassociatedWorker = { role: 'personal' as const, businessId: null };
 
     expect(roleCanAccessAppRoute(unassociatedWorker, 'worker')).toBe(false);
     expect(roleCanAccessAppRoute(unassociatedWorker, 'worker-queue')).toBe(false);
     expect(roleCanAccessAppRoute(unassociatedWorker, 'worker-history')).toBe(false);
-    expect(roleCanAccessAppRoute(unassociatedWorker, 'worker-profile')).toBe(false);
+    expect(roleCanAccessAppRoute(unassociatedWorker, 'worker-profile')).toBe(true);
   });
 });

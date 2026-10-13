@@ -26,15 +26,33 @@ async function companyId(): Promise<string> {
 
   if (!auth.user) throw new Error('Sin sesión.');
 
+  // Personal lleva empresa_id = NULL por diseño (0019): su barbería vive en
+  // empresa_personal_actual_id + membresias. Resolver por rol en cliente
+  // porque mi_empresa_id() no tiene grant a authenticated para RPC directo.
   const { data, error } = await supabase
     .from('perfiles')
-    .select('empresa_id')
+    .select('rol,empresa_id,empresa_personal_actual_id')
     .eq('id', auth.user.id)
     .maybeSingle();
 
   if (error || !data) throw new Error('Sin barbería seleccionada.');
 
-  return (data as { empresa_id: string | null }).empresa_id ?? '';
+  const row = data as {
+    rol: string | null;
+    empresa_id: string | null;
+    empresa_personal_actual_id: string | null;
+  };
+  const resolved = row.rol === 'personal' ? row.empresa_personal_actual_id : row.empresa_id;
+
+  if (!resolved) {
+    throw new Error(
+      row.rol === 'personal'
+        ? 'Sin barbería seleccionada. Pedí que te asignen una barbería o seleccionala en tu perfil.'
+        : 'Sin barbería seleccionada.',
+    );
+  }
+
+  return resolved;
 }
 
 function limaISODate(when: Date = new Date()): string {

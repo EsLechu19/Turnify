@@ -62,10 +62,12 @@ export interface StaffRecord {
   availability: StaffAvailability;
   currentTicket: string | null;
   completedToday: number;
+  paceMinutes: number | null;
   shift: string;
   restStart: string;
   restEnd: string;
   createdAt: string;
+  fotoUrl: string | null;
 }
 
 /** Narrow projection of `StaffRecord` used by the dashboard and the queue board. */

@@ -63,7 +63,6 @@ apps/web/src/
 | `services-view.tsx` | Usa `PageHeader`, `StatsRow`, `SectionCard` |
 | `team-view.tsx` | Usa `PageHeader`, `StatsRow`, `SectionCard` |
 | `history-view.tsx` | Usa `PageHeader` y `StatsRow` |
-| `queue-view.tsx` | Header, secciones y grids reemplazados por componentes comunes |
 
 ## Hooks reutilizables
 
