@@ -54,8 +54,9 @@ The current mobile auth model resolves one global `cliente | admin | personal` r
 
 ## Progress
 
-- Current state: contracts mapped; additive business role membership foundation implemented; routing and capability adoption remain pending.
+- Current state: contracts mapped; additive business role membership foundation and authenticated membership RPC implemented; routing and capability adoption remain pending.
 - Existing bounded fix: admin worker-login rejection is present locally in `apps/mobile/src/features/auth/use-auth.tsx` and must be reconciled with T4.
 - Key discovery: existing `membresias_personal_empresa` already models worker memberships, while admin ownership still comes from `perfiles.rol`/`empresa_id`. The additive design must not overload `empresa_personal_actual_id` for admin context.
 - Product decision resolved: `membresias_empresa` represents ADMIN and WORKER independently, so a future ADMIN+WORKER account can hold both rows without changing legacy role or worker-selection fields.
-- Next step: keep routing adoption and mobile/web destination changes out of this bounded foundation work unit.
+- Implemented foundation: migrations `0057_business_role_memberships.sql` and `0058_mis_membresias_empresa.sql`, with 20 focused Supabase tests passing.
+- Next step: adopt the membership RPC in auth state and add explicit owner/worker destinations without breaking legacy fallback.
