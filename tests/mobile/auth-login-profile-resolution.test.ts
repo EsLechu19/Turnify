@@ -50,4 +50,13 @@ describe('mobile login profile resolution', () => {
     expect(signUp).toContain("return translateAuthError('profile load failed');");
     expect(signUp).toContain('clearAuthenticatedState();');
   });
+
+  it('loads memberships through the additive RPC and recognizes an old backend', () => {
+    const auth = source('../../apps/mobile/src/features/auth/use-auth.tsx');
+
+    expect(auth).toContain("rpc('mis_membresias_empresa')");
+    expect(auth).toContain('isMembershipRpcUnavailable');
+    expect(auth).toContain("error.code === 'PGRST202'");
+    expect(auth).toContain('activeMembership');
+  });
 });

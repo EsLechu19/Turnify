@@ -54,7 +54,7 @@ describe('customer navigation', () => {
   it('redirects authenticated staff to their existing role-safe operational landing', () => {
     expect(staffLanding({ role: 'personal', businessId: 'shop' })).toBe('/(app)/worker-shops');
     expect(staffLanding({ role: 'personal', businessId: null })).toBe('/(app)/worker-shops');
-    expect(staffLanding({ role: 'admin', businessId: 'shop' })).toBe('/(app)/admin');
+    expect(staffLanding({ role: 'admin', businessId: 'shop' })).toBe('/admin');
     expect(staffLanding({ role: 'cliente', businessId: null })).toBe('/');
   });
 

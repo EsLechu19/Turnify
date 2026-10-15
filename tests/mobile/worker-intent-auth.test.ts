@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { workerIntentOutcome, workerSignInRoute } from '../../apps/mobile/src/features/public/public-route-policy';
+import { staffLanding, workerIntentOutcome, workerSignInRoute } from '../../apps/mobile/src/features/public/public-route-policy';
 import { roleCanAccessAppRoute } from '../../apps/mobile/src/features/worker/worker-navigation';
 
 describe('worker intent authentication', () => {
   it('opens the single static login from the public footer', () => {
     expect(workerSignInRoute).toBe('/(auth)/login');
+  });
+
+  it('sends administrators to the explicit mobile landing without granting worker access', () => {
+    expect(staffLanding({ role: 'admin', businessId: 'shop' })).toBe('/admin');
+    expect(roleCanAccessAppRoute({ role: 'admin', businessId: 'shop' }, 'worker')).toBe(false);
   });
 
   it('routes only an associated personal profile to the worker lifecycle', () => {

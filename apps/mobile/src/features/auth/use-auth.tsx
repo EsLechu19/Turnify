@@ -7,9 +7,18 @@ import { getSupabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export type AuthError = string | null;
 
+export type AuthMembership = Readonly<{
+  businessId: string;
+  businessName: string | null;
+  businessCode: string | null;
+  role: 'ADMIN' | 'WORKER';
+}>;
+
 export type AuthProfile = {
   role: 'cliente' | 'admin' | 'personal';
   businessId: string | null;
+  readonly memberships: readonly AuthMembership[];
+  readonly activeMembership: AuthMembership | null;
 };
 
 export interface AuthContextValue {
@@ -32,7 +41,15 @@ const isDemoSkipAuth = process.env.EXPO_PUBLIC_SKIP_AUTH === '1';
 const demoProfile: AuthProfile = {
   role: 'personal',
   businessId: process.env.EXPO_PUBLIC_DEMO_BUSINESS_ID?.trim() || null,
+  memberships: [],
+  activeMembership: null,
 };
+
+function isMembershipRpcUnavailable(error: { code?: string; message?: string }): boolean {
+  const message = (error.message ?? '').toLowerCase();
+  return error.code === '42883' || error.code === 'PGRST202' ||
+    (message.includes('mis_membresias_empresa') && (message.includes('not found') || message.includes('does not exist')));
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -85,7 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /** Reads the profile row without touching state: shared by sign-in and reload. */
   const fetchProfileData = useCallback(async (userId: string): Promise<AuthProfile | null> => {
-    const { data, error } = await getSupabase()
+    const supabase = getSupabase();
+    const { data, error } = await supabase
       .from('perfiles')
       .select('rol, empresa_id, empresa_personal_actual_id')
       .eq('id', userId)
@@ -99,9 +117,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     }
 
+    const businessId = data.rol === 'personal' ? data.empresa_personal_actual_id : data.empresa_id;
+    let memberships: AuthMembership[] = [];
+
+    const { data: membershipData, error: membershipError } = await supabase.rpc('mis_membresias_empresa');
+    if (membershipError) {
+      if (!isMembershipRpcUnavailable(membershipError)) {
+        throw new Error(membershipError.message);
+      }
+    } else {
+      memberships = (membershipData ?? []).map((membership: {
+        empresa_id: string;
+        empresa_nombre: string;
+        empresa_codigo: string;
+        rol: 'ADMIN' | 'WORKER';
+      }) => ({
+        businessId: membership.empresa_id,
+        businessName: membership.empresa_nombre,
+        businessCode: membership.empresa_codigo,
+        role: membership.rol,
+      }));
+    }
+
+    if (memberships.length === 0 && businessId) {
+      memberships = [{
+        businessId,
+        businessName: null,
+        businessCode: null,
+        role: data.rol === 'admin' ? 'ADMIN' : 'WORKER',
+      }];
+    }
+
     return {
       role: data.rol as AuthProfile['role'],
-      businessId: data.rol === 'personal' ? data.empresa_personal_actual_id : data.empresa_id,
+      businessId,
+      memberships,
+      activeMembership: memberships.find((membership) => membership.businessId === businessId) ?? null,
     };
   }, []);
 
@@ -148,10 +199,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const nextProfile = await fetchProfileData(data.session.user.id);
         if (!nextProfile) {
           throw new Error('profile load failed');
-        }
-        if (nextProfile.role === 'admin') {
-          await clearAuthenticatedState();
-          return 'Esta cuenta es administradora. Ingresa desde el panel web de Turnify.';
         }
         setProfile(nextProfile);
       } catch {
