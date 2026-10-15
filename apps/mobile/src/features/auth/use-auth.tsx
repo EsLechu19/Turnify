@@ -149,6 +149,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!nextProfile) {
           throw new Error('profile load failed');
         }
+        if (nextProfile.role === 'admin') {
+          await clearAuthenticatedState();
+          return 'Esta cuenta es administradora. Ingresa desde el panel web de Turnify.';
+        }
         setProfile(nextProfile);
       } catch {
         await clearAuthenticatedState();
