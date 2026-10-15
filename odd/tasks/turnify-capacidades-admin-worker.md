@@ -28,9 +28,9 @@ The current mobile auth model resolves one global `cliente | admin | personal` r
 
 - [x] T1. Map current profile, membership, barber, RLS, RPC, auth-provider, and route contracts; define the additive capability contract.
 - [x] T2. Add/backfill business-scoped memberships for existing admins and workers without breaking legacy reads.
-- [ ] T3. Make admin and worker destinations explicit in mobile and web auth state without merging their roles.
-- [ ] T4. Replace ambiguous role redirects with explicit owner/web and worker/mobile handling; prevent admin login loops.
-- [ ] T5. Add focused tests for admin-only, worker-only, unassigned worker, and customer route boundaries.
+- [x] T3. Make admin and worker destinations explicit in mobile and web auth state without merging their roles.
+- [x] T4. Replace ambiguous role redirects with explicit owner/web and worker/mobile handling; prevent admin login loops.
+- [x] T5. Add focused tests for admin-only, worker-only, unassigned worker, and customer route boundaries.
 - [ ] T6. Add only the minimal owner mobile overview: local status, queue summary, team state, critical alerts, QR/code, and quick metrics.
 - [ ] T7. Verify migrations, RLS/RPC behavior, mobile navigation, web regression checks, and document rollout/rollback.
 
@@ -54,9 +54,10 @@ The current mobile auth model resolves one global `cliente | admin | personal` r
 
 ## Progress
 
-- Current state: contracts mapped; additive business role membership foundation and authenticated membership RPC implemented; routing and capability adoption remain pending.
-- Existing bounded fix: admin worker-login rejection is present locally in `apps/mobile/src/features/auth/use-auth.tsx` and must be reconciled with T4.
+- Current state: contracts mapped; additive business role membership foundation, authenticated membership RPC, and explicit mobile admin landing implemented; the full owner overview remains pending.
+- Existing bounded fix: admin accounts now resolve to `/admin` instead of the worker flow or a redirect loop.
 - Key discovery: existing `membresias_personal_empresa` already models worker memberships, while admin ownership still comes from `perfiles.rol`/`empresa_id`. The additive design must not overload `empresa_personal_actual_id` for admin context.
 - Product decision resolved: `membresias_empresa` represents ADMIN and WORKER independently, so a future ADMIN+WORKER account can hold both rows without changing legacy role or worker-selection fields.
 - Implemented foundation: migrations `0057_business_role_memberships.sql` and `0058_mis_membresias_empresa.sql`, with 20 focused Supabase tests passing.
-- Next step: adopt the membership RPC in auth state and add explicit owner/worker destinations without breaking legacy fallback.
+- Implemented routing: mobile auth loads the membership RPC with legacy fallback; admin accounts have a stable `/admin` landing with optional web-panel link, while worker/customer routes remain unchanged.
+- Next step: validate owner-mobile needs with 3–5 barbería owners before building T6's operational overview.
