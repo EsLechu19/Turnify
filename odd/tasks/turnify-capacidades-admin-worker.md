@@ -31,7 +31,7 @@ The current mobile auth model resolves one global `cliente | admin | personal` r
 - [x] T3. Make admin and worker destinations explicit in mobile and web auth state without merging their roles.
 - [x] T4. Replace ambiguous role redirects with explicit owner/web and worker/mobile handling; prevent admin login loops.
 - [x] T5. Add focused tests for admin-only, worker-only, unassigned worker, and customer route boundaries.
-- [ ] T6. Add only the minimal owner mobile overview: local status, queue summary, team state, critical alerts, QR/code, and quick metrics.
+- [x] T6. Add only the minimal owner mobile overview: local status, queue summary, team state, critical alerts, QR/code, and quick metrics.
 - [ ] T7. Verify migrations, RLS/RPC behavior, mobile navigation, web regression checks, and document rollout/rollback.
 
 ## Acceptance criteria
@@ -60,4 +60,5 @@ The current mobile auth model resolves one global `cliente | admin | personal` r
 - Product decision resolved: `membresias_empresa` represents ADMIN and WORKER independently, so a future ADMIN+WORKER account can hold both rows without changing legacy role or worker-selection fields.
 - Implemented foundation: migrations `0057_business_role_memberships.sql` and `0058_mis_membresias_empresa.sql`, with 20 focused Supabase tests passing.
 - Implemented routing: mobile auth loads the membership RPC with legacy fallback; admin accounts have a stable `/admin` landing with optional web-panel link, while worker/customer routes remain unchanged.
-- Next step: validate owner-mobile needs with 3–5 barbería owners before building T6's operational overview.
+- Implemented T6: `/admin` now loads a server-scoped owner overview, exposes objective queue/team/today metrics, verified business QR/code, and an RLS-backed open/close action. The worker action is shown only for active WORKER memberships and remains disabled because safe context switching is not implemented yet.
+- Deferred: a dedicated native clipboard API and worker-context switching remain outside the current account contract; the prototype uses the existing QR dependency and the native share sheet, which exposes the verified code for copying.
