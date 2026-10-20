@@ -1,102 +1,248 @@
-# Turnify — estado de implementación
+# Turnify
 
-Turnify es un MVP de gestión de filas: las personas toman un turno desde la aplicación móvil y los negocios administran la atención en tiempo real. El producto cuenta con una aplicación móvil Expo, un workspace web preparado con Vite + React y una base de datos Supabase.
+> Gestión de turnos virtuales para establecimientos de servicios.
 
-## Estado actual
+Turnify permite que los clientes soliciten un turno virtual, consulten su posición en tiempo real y reciban actualizaciones sin permanecer físicamente en una fila.
 
-| Área | Estado | Evidencia principal |
-|---|---|---|
-| Base del MVP | Completada | Aplicación móvil, workspace web preparado, tipos compartidos y migraciones Supabase disponibles. |
-| Fase 3 — Cliente | Completada con una medición pendiente | C1–C5 completadas; el walkthrough funcional fue satisfactorio. |
-| Fase 4 — Personal y administrador | Completada | A1–A6 completadas y validadas en dispositivos/cuentas separadas cuando corresponde. |
-| Fase 5 — Push y no-show | Completada | F5-T01–F5-T07 completadas; validación física en Android development build. |
-| Fase 6 — Dashboard | Pendiente | El siguiente trabajo es elaborar el brief del dashboard. |
+## Demo
 
-## Producto
+Agregar aquí capturas o un video:
 
-- **Cliente:** registro e inicio de sesión, ingreso por QR o código, vista previa de la fila, toma de turno, seguimiento en vivo, cancelación, historial y perfil.
-- **Personal y administrador:** registro de negocio, código/QR, cola en vivo, atención de turnos, turnos presenciales, invitaciones y configuración.
-- **Notificaciones:** aviso remoto cuando el turno pasa a `llamado`, sin reemplazar la automatización de ausencias.
+- Pantalla de bienvenida
+- Pantalla del turno del cliente
+- Panel de gestión del establecimiento
 
-## Trabajo completado
+## Problema
 
-### Fundación
+Los clientes pierden tiempo esperando en filas físicas sin conocer:
 
-La base se cerró antes de la Fase 3 mediante las tareas **T1–T8** de `turnify-mvp-base` y las validaciones vivas **V1–V4** de `turnify-live-validation`.
+- Cuántas personas tienen delante
+- Cuánto deberán esperar
+- Cuándo deberían regresar al establecimiento
 
-- **Decisiones de producto y plataforma:** aplicación móvil Android-first con Expo SDK 57 y Expo Router; workspace web con Vite, React y TypeScript preparado, pero sin dashboard implementado. Supabase (Postgres, Auth y Realtime) es el backend integral del MVP; la aplicación móvil usa solo la anon key y los secretos de proveedores permanecen en el servidor.
-- **Dominio puro de filas:** la máquina de estados cubre `en_espera`, `notificado`, `llamado`, `en_atencion`, `finalizado`, `cancelado` y `ausente`; la cola ordena por llegada dentro de cada prioridad e intercala preferenciales según `preferencial_cada`. El ETA se deriva de las personas delante, el promedio y los puestos; el barrido de ausencias respeta la ventana de gracia. El dominio no importa Expo, React Native ni Supabase.
-- **Contrato Supabase:** las migraciones base definieron el esquema en español, índices y RLS; las RPC y triggers concentran las escrituras de turnos y las transiciones. RLS protege el aislamiento por empresa y cliente, mientras que las reglas temporales —ausencias y cierre— se ejecutan en el servidor mediante `pg_cron`, no en el cliente.
-- **Validación en vivo:** V1 comprobó RLS con usuarios reales; V2, concurrencia y la restricción de un turno activo; V3, los dos schedules de `pg_cron`, ausencias y cierre; V4, el recálculo del promedio, la publicación de Realtime y la limpieza de datos de prueba. Los hallazgos de extensiones y `search_path` quedaron corregidos en migraciones posteriores.
+Los establecimientos también necesitan una herramienta simple para administrar sus colas y consultar sus tiempos de atención.
 
-### Fase 3 — Cliente
+## Funcionalidades principales
 
-| Entregable | Estado |
-|---|---|
-| C1 — Base Expo y cliente Supabase | Completado |
-| C2 — Autenticación de cliente | Completado |
-| C3 — Ingreso y toma de turno | Completado |
-| C4 — Mi turno en vivo y cancelación | Completado |
-| C5 — Historial y perfil | Completado |
-| C6 — Verificación | Walkthrough funcional completado; pendiente únicamente la medición formal del flujo de toma de turno en menos de 30 segundos. |
+### Cliente
 
-La actualización de posición y estado se validó en vivo sin recargar. La medición formal de menos de 30 segundos sigue pendiente, pero no bloqueó las fases posteriores.
+- Solicitar un turno mediante código o código QR
+- Recibir un número de turno
+- Consultar las personas que tiene delante
+- Consultar el tiempo estimado de espera
+- Recibir actualizaciones en tiempo real
+- Ver el turno actualmente atendido
 
-### Fase 4 — Personal y administrador
+### Establecimiento
 
-Todos los entregables A1–A6 están completados:
+- Registrar un establecimiento
+- Administrar una cola
+- Llamar al siguiente cliente
+- Marcar turnos como atendidos
+- Marcar clientes como ausentes
+- Consultar estadísticas básicas:
+  - Turnos atendidos por hora
+  - Tiempo promedio de espera
+  - Porcentaje de ausencias
 
-- A1: registro de negocio, código y QR.
-- A2: cola en vivo y acciones de atención.
-- A3: turno presencial normal y preferencial.
-- A4: invitaciones y canje para personal.
-- A5: configuración del negocio.
-- A6: walkthrough de administración y personal con actualización en vivo.
+## Arquitectura
 
-### Fase 5 — Push y no-show
-
-Todos los entregables F5-T01–F5-T07 están completados:
-
-- Configuración del development build Android y límites de secretos.
-- Registro, actualización y revocación segura de tokens del dispositivo autenticado.
-- Entrega del aviso de turno `llamado` desde el servidor, con validación de la respuesta del proveedor.
-- Manejo de notificaciones en la aplicación y navegación al turno desde una notificación en segundo plano.
-- Validación física: recepción en primer plano y segundo plano, navegación al tocar la notificación, ausencia de aviso para `notificado` y preservación de la automatización de ausencias.
-- Documentación operativa y correcciones de entrega/registro realizadas durante la validación.
-
-**Seguimiento no bloqueante:** falta probar la navegación al turno cuando la aplicación se inicia desde cero al tocar una notificación. No se probó y requiere autorización separada para trabajo en dispositivo.
-
-## Pendiente y fuera de bloqueo
-
-| Trabajo | Estado | Alcance |
-|---|---|---|
-| Medición formal de toma de turno menor a 30 segundos | Pendiente | Fase 3; no bloquea el trabajo posterior. |
-| Navegación desde notificación con inicio en frío | Seguimiento opcional no bloqueante | Fase 5; requiere validación en dispositivo. |
-| Dashboard web | Pendiente | Fase 6; próximo brief. |
-
-## Flujo de trabajo
-
-El seguimiento vigente se organiza en **GitHub Project** e **issues**. Cada fase se desglosa en issues con alcance, evidencia y estado; el Project permite ver el avance de la fase y priorizar el siguiente bloque de trabajo.
-
-1. Crear o actualizar el issue con el brief y los criterios de aceptación.
-2. Vincularlo al GitHub Project y mantener su estado según la evidencia disponible.
-3. Registrar pendientes y seguimientos no bloqueantes de forma explícita, sin presentarlos como trabajo completado.
-4. Cerrar el issue cuando los criterios aplicables estén verificados y conservar los seguimientos opcionales como trabajo separado.
-
-**Siguiente paso:** preparar el brief de la **Fase 6 — Dashboard** y abrir su issue en el GitHub Project.
-
-## Estructura del repositorio
-
-- `apps/mobile`: aplicación móvil Expo.
-- `apps/web`: aplicación web Vite + React.
-- `packages/types`: tipos compartidos.
-- `supabase/migrations`: migraciones de base de datos.
-- `docs/adr`: decisiones de arquitectura.
-- `docs/operations/called-ticket-push.md`: procedimiento operativo para notificaciones de turno llamado.
-- `odd/tasks`: registros de alcance, evidencia y estado por fase.
-
-## Referencias de estado
-
-- `odd/tasks/turnify-fase-3-cliente.md`
-- `odd/tasks/turnify-fase-4-personal-admin.md`
-- `odd/tasks/turnify-fase-5-push-no-show.md`
+```text
+Aplicación móvil React Native
+            │
+            ▼
+API REST NestJS
+            │
+            ├── Prisma ORM
+            │       │
+            │       ▼
+            │   PostgreSQL en Supabase
+            │
+            └── Socket.IO
+                    │
+                    ▼
+          Actualizaciones en tiempo real
+La aplicación móvil se comunica con el backend mediante una API REST.
+Socket.IO permite transmitir eventos en tiempo real, como:
+- Turno emitido
+- Avance de la cola
+- Turno llamado
+- Turno actualizado
+Modelo de dominio
+Establecimiento
+        └── Cola
+                └── Turno
+En la versión 1.0 cada establecimiento administra una única cola.
+Ciclo de vida de un turno:
+EN_ESPERA
+    │
+    ▼
+LLAMADO
+    │
+    ├── EN_ATENCION ──► FINALIZADO
+    │
+    ├── AUSENTE
+    │
+    └── CANCELADO
+Desafíos técnicos
+Numeración atómica de turnos
+Los números deben ser únicos y secuenciales incluso cuando varios clientes solicitan un turno simultáneamente.
+Turnify utiliza una transacción de PostgreSQL con bloqueo de fila:
+SELECT ... FOR UPDATE
+El contador de la cola y la creación del turno se ejecutan dentro de la misma transacción. Si la creación falla, el contador también se revierte.
+Sincronización en tiempo real
+Los cambios de cada cola se publican mediante salas de Socket.IO:
+cola:{idDeLaCola}
+Los eventos se emiten solamente después de confirmar correctamente la transacción de base de datos.
+Gestión de ausencias
+Un turno puede marcarse como ausente después de:
+- Dos minutos de tolerancia
+- Dos llamados sin respuesta
+La cola continúa avanzando y el cliente puede volver a ingresar una vez al final de la cola.
+Cálculo del tiempo estimado
+El tiempo estimado utiliza un promedio móvil ponderado. Los tiempos de atención más recientes tienen mayor influencia que los antiguos.
+Tecnologías utilizadas
+Aplicación móvil
+- React Native
+- Expo SDK 57
+- TypeScript
+- Expo Router
+- NativeWind
+- React Native Reanimated
+- React Native Gesture Handler
+- TanStack Query
+- Socket.IO Client
+- Expo Camera
+Backend
+- Node.js
+- NestJS
+- TypeScript
+- Prisma
+- Socket.IO
+- API REST
+Base de datos
+- PostgreSQL
+- Supabase
+- Prisma
+- Transacciones y bloqueos de fila
+Estructura del proyecto
+turnify/
+├── backend/
+│   ├── prisma/
+│   │   └── schema.prisma
+│   ├── scripts/
+│   │   └── seed.mjs
+│   └── src/
+│       ├── queue/
+│       ├── registration/
+│       ├── turno/
+│       └── main.ts
+│
+├── mobile/
+│   ├── app/
+│   │   ├── index.tsx
+│   │   ├── (client)/
+│   │   └── (business)/
+│   ├── components/
+│   ├── lib/
+│   ├── theme/
+│   └── app.json
+│
+├── src/
+│   ├── domain/
+│   └── shared/
+│
+└── odd/
+    └── tasks/
+        └── turnify-v10.md
+Pruebas
+El proyecto incluye pruebas para:
+- Reglas del dominio
+- Transiciones de estados
+- Numeración concurrente de turnos
+- Rollback de transacciones
+- Servicios del backend
+- Cálculo de estadísticas
+- Registro automático
+- Gestión de ausencias
+- TypeScript en la aplicación móvil
+- Inicio de NestJS
+- Verificación real contra Supabase
+Resultados verificados:
+Pruebas de dominio: 30 exitosas
+Pruebas de backend: 57 exitosas
+Typecheck móvil: exitoso
+Typecheck backend: exitoso
+Cómo ejecutar el proyecto
+Requisitos
+- Node.js 20 o superior
+- npm
+- Android Studio o Expo Go
+- Proyecto PostgreSQL en Supabase
+Backend
+cd backend
+npm install
+Crear backend/.env:
+DATABASE_URL="tu-url-de-postgresql-de-supabase"
+Nunca subas este archivo al repositorio.
+Ejecutar el backend:
+npm run build
+npm start
+Ejecutar las pruebas:
+npm test
+Cargar datos de demostración:
+npm run seed
+El backend se ejecuta en:
+http://localhost:3000
+Aplicación móvil
+cd mobile
+npm install
+Para el emulador Android, crear mobile/.env:
+EXPO_PUBLIC_API_URL="http://10.0.2.2:3000"
+Iniciar Expo:
+npx expo start
+Abrir el proyecto utilizando una versión de Expo Go compatible con SDK 57.
+Variables de entorno
+Nunca subas secretos al repositorio.
+backend/.env
+mobile/.env
+Utiliza los archivos .env.example como referencia.
+Principios de desarrollo
+Turnify utiliza:
+- Arquitectura hexagonal
+- Modelado orientado al dominio
+- Organic Driven Development
+- Commits organizados por unidades de trabajo
+- Pruebas junto al comportamiento
+- Reglas de negocio explícitas
+- Verificación basada en evidencia
+Documentación técnica
+Las decisiones, reglas, criterios de aceptación y progreso del proyecto se encuentran en:
+odd/tasks/turnify-v10.md
+Documentación futura:
+docs/
+├── arquitectura.md
+├── reglas-del-dominio.md
+├── api.md
+├── eventos-realtime.md
+├── despliegue.md
+└── pruebas.md
+Roadmap
+v1.0
+- Colas virtuales
+- Turnos para clientes
+- Gestión de colas
+- Actualizaciones en tiempo real
+- Gestión de ausencias
+- Estadísticas básicas
+- Acceso mediante código y QR
+v1.1
+- Autenticación y roles
+- Múltiples servicios por establecimiento
+- Notificaciones push
+- Historial de turnos
+- Compartir turnos
+- Migraciones formales de Prisma
+- Despliegue en producción
+Licencia
+Este proyecto se desarrolla actualmente como proyecto universitario.
