@@ -13,7 +13,12 @@ Agregar aquí capturas o un video:
   <img width="542" height="906" alt="image" src="https://github.com/user-attachments/assets/c345ad91-5ed1-45a9-8415-aeb9155ce1d5" />
 
 - Pantalla del turno del cliente
+  
+  <img width="542" height="906" alt="51d81634-9cea-4c74-af8f-af5a9a060fe4" src="https://github.com/user-attachments/assets/842908ab-d7ff-43e3-a3d1-cab04b418788" />
+
 - Panel de gestión del establecimiento
+  <img width="1891" height="911" alt="image" src="https://github.com/user-attachments/assets/6ba54647-c417-4439-bd4c-4a828daad3e1" />
+
 
 ## Problema
 
