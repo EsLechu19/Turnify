@@ -9,6 +9,9 @@ Turnify permite que los clientes soliciten un turno virtual, consulten su posici
 Agregar aquí capturas o un video:
 
 - Pantalla de bienvenida
+  
+  <img width="542" height="906" alt="image" src="https://github.com/user-attachments/assets/c345ad91-5ed1-45a9-8415-aeb9155ce1d5" />
+
 - Pantalla del turno del cliente
 - Panel de gestión del establecimiento
 
