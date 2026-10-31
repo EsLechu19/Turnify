@@ -103,7 +103,6 @@ export async function createGuestTicket(input: {
   details: GuestDetails;
 }): Promise<GuestTicketAccess> {
   const details = normalizeGuestDetails(input.details);
-  // Phone and consent remain client-side until the schema supports them. Do not send unsupported RPC parameters.
   const { data, error } = await getSupabase().rpc('crear_ticket_invitado', {
     p_codigo: input.businessCode,
     p_servicio_id: input.serviceId,
@@ -111,6 +110,8 @@ export async function createGuestTicket(input: {
     p_rango_edad: null,
     p_genero: null,
     p_barbero_solicitado_id: input.requestedBarberId ?? null,
+    p_telefono: details.whatsappConsent ? details.phone : null,
+    p_consentimiento_whatsapp: details.whatsappConsent === true,
   });
   if (error) throw new Error(error.message);
   const ticket = data as { ticket_id: string; codigo_visible: string; capacidad: string } | null;

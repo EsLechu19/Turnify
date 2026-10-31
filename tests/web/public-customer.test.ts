@@ -22,7 +22,8 @@ describe('public customer API contract', () => {
     expect(api).toContain('GUEST_PHONE_CONSENT_ERROR');
     expect(api).toContain('normalizeInternationalPhone');
     expect(api).toContain('p_nombre: details.name');
-    expect(api).not.toMatch(/p_telefono|p_whatsapp/);
+    expect(api).toContain('p_telefono: details.whatsappConsent ? details.phone : null');
+    expect(api).toContain('p_consentimiento_whatsapp: details.whatsappConsent === true');
   });
 
   it('uses the anonymous catalog and guest ticket RPCs', () => {

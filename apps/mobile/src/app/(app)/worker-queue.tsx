@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, View } from 'react-native';
+import { ActivityIndicator, AppState, LayoutAnimation, Linking, Platform, Pressable, ScrollView, StyleSheet, UIManager, View } from 'react-native';
 
 import { WorkerButton, WorkerIcon, WorkerPill, WorkerText, workerColors, workerUiStyles } from '@/components/worker/worker-ui';
 import { WorkerScreenContainer } from '@/components/worker/worker-screen-container';
@@ -21,18 +21,21 @@ const DEMO_QUEUE: WorkerTicket[] = [
     serviceName: 'Corte clásico', requestedBarberName: 'Carlos', assignedBarberName: null,
     calledDeadlineAt: null, customerResponse: null, customerResponseAt: null,
     inicioEn: null, peopleAhead: 0, waitMinutes: 0,
+    phone: null, whatsappConsent: false,
   },
   {
     ticketId: 't3', queueId: 'q2', queueName: 'Barba', visibleCode: 'B11', state: 'en_espera',
     serviceName: 'Perfilado de barba', requestedBarberName: null, assignedBarberName: null,
     calledDeadlineAt: null, customerResponse: null, customerResponseAt: null,
     inicioEn: null, peopleAhead: 1, waitMinutes: 5,
+    phone: null, whatsappConsent: false,
   },
   {
     ticketId: 't4', queueId: 'q1', queueName: 'Cortes', visibleCode: 'A26', state: 'en_espera',
     serviceName: 'Afeitado clásico', requestedBarberName: null, assignedBarberName: null,
     calledDeadlineAt: null, customerResponse: null, customerResponseAt: null,
     inicioEn: null, peopleAhead: 2, waitMinutes: 10,
+    phone: null, whatsappConsent: false,
   },
 ];
 
@@ -47,6 +50,7 @@ export default function WorkerQueueScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCalling, setIsCalling] = useState<string | null>(null);
+  const [whatsappError, setWhatsappError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (process.env.EXPO_PUBLIC_SKIP_AUTH === '1') {
@@ -137,6 +141,18 @@ export default function WorkerQueueScreen() {
       ? 'Cliente: llega en 2 minutos'
       : 'Esperando respuesta del cliente';
 
+  async function openWhatsApp(ticket: WorkerTicket) {
+    if (!ticket.phone || !ticket.whatsappConsent) return;
+    const url = `https://wa.me/${ticket.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, tu turno ${ticket.visibleCode} fue llamado en Turnify.`)}`;
+    try {
+      if (!(await Linking.canOpenURL(url))) throw new Error('unsupported');
+      await Linking.openURL(url);
+      setWhatsappError(null);
+    } catch {
+      setWhatsappError('No pudimos abrir WhatsApp en este dispositivo.');
+    }
+  }
+
   return (
     <WorkerScreenContainer activeNavigation="queue">
       <ScrollView contentContainerStyle={workerUiStyles.page}>
@@ -169,6 +185,12 @@ export default function WorkerQueueScreen() {
             </WorkerText>
             <WorkerText color={workerColors.muted}>{calledResponse}</WorkerText>
             <WorkerText color={workerColors.muted}>El mismo tiempo que ve el cliente, en vivo.</WorkerText>
+            {calledTicket.phone && calledTicket.whatsappConsent ? (
+              <WorkerButton label="Abrir WhatsApp" tone="secondary" onPress={() => void openWhatsApp(calledTicket)} />
+            ) : (
+              <WorkerText color={workerColors.muted}>No se solicitó aviso por WhatsApp.</WorkerText>
+            )}
+            {whatsappError ? <WorkerText color={workerColors.error}>{whatsappError}</WorkerText> : null}
             <WorkerButton label="Abrir en Hoy" tone="secondary" onPress={() => router.push('/(app)/worker')} />
           </View>
         ) : null}

@@ -17,8 +17,12 @@ const ticket = (state: 'en_espera' | 'notificado' | 'llamado' | 'en_atencion', v
   assignedBarberName: null,
   calledDeadlineAt: null,
   customerResponse: null,
-  customerResponseAt: null,
-  inicioEn: null,
+    customerResponseAt: null,
+    inicioEn: null,
+    peopleAhead: 0,
+    waitMinutes: 0,
+    phone: null,
+    whatsappConsent: false,
 });
 
 describe('Worker live operations mapping', () => {
@@ -95,6 +99,17 @@ describe('Worker live operations mapping', () => {
     expect(queue).toContain('restantes');
     expect(hook).toContain('setInterval(() => setNow(Date.now()), 1000)');
     expect(jornada).toContain('@/features/worker/use-remaining-tolerance');
+  });
+
+  it('maps the authorized notification fields and keeps the WhatsApp action manual', () => {
+    const api = source('../../apps/mobile/src/features/queue/worker-barber-api.ts');
+    const queue = source('../../apps/mobile/src/app/(app)/worker-queue.tsx');
+
+    expect(api).toContain('phone: ticket.telefono_invitado');
+    expect(api).toContain('whatsappConsent: ticket.consentimiento_whatsapp');
+    expect(queue).toContain('https://wa.me/');
+    expect(queue).toContain('encodeURIComponent');
+    expect(queue).toContain('No se solicitó aviso por WhatsApp.');
   });
 
   it('renders only server-consistent called-ticket actions and explains the effective tolerance', () => {

@@ -47,25 +47,25 @@ const DEMO_TICKETS: WorkerTicket[] = [
     ticketId: 't1', queueId: 'q1', queueName: 'Cortes', visibleCode: 'A24', state: 'en_atencion',
     serviceName: 'Corte + barba', requestedBarberName: null, assignedBarberName: 'Tú',
     calledDeadlineAt: null, customerResponse: null, customerResponseAt: null,
-    inicioEn: null, peopleAhead: 0, waitMinutes: 0,
+    inicioEn: null, peopleAhead: 0, waitMinutes: 0, phone: null, whatsappConsent: false,
   },
   {
     ticketId: 't2', queueId: 'q1', queueName: 'Cortes', visibleCode: 'A25', state: 'notificado',
     serviceName: 'Corte clásico', requestedBarberName: 'Carlos', assignedBarberName: null,
     calledDeadlineAt: null, customerResponse: null, customerResponseAt: null,
-    inicioEn: null, peopleAhead: 0, waitMinutes: 0,
+    inicioEn: null, peopleAhead: 0, waitMinutes: 0, phone: null, whatsappConsent: false,
   },
   {
     ticketId: 't3', queueId: 'q2', queueName: 'Barba', visibleCode: 'B11', state: 'en_espera',
     serviceName: 'Perfilado de barba', requestedBarberName: null, assignedBarberName: null,
     calledDeadlineAt: null, customerResponse: null, customerResponseAt: null,
-    inicioEn: null, peopleAhead: 1, waitMinutes: 5,
+    inicioEn: null, peopleAhead: 1, waitMinutes: 5, phone: null, whatsappConsent: false,
   },
   {
     ticketId: 't4', queueId: 'q1', queueName: 'Cortes', visibleCode: 'A26', state: 'en_espera',
     serviceName: 'Afeitado clásico', requestedBarberName: null, assignedBarberName: null,
     calledDeadlineAt: null, customerResponse: null, customerResponseAt: null,
-    inicioEn: null, peopleAhead: 2, waitMinutes: 10,
+    inicioEn: null, peopleAhead: 2, waitMinutes: 10, phone: null, whatsappConsent: false,
   },
 ];
 

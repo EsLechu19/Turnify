@@ -27,12 +27,12 @@ describe('public guest flow contracts', () => {
     expect(() => normalizeGuestDetails({ name: '' })).toThrow();
   });
 
-  it('keeps normalized notification details in the guest flow contract without sending unsupported RPC fields', () => {
+  it('forwards normalized notification details only after consent', () => {
     const api = readFileSync('apps/mobile/src/features/queue/public-guest-ticket-api.ts', 'utf8');
     const session = readFileSync('apps/mobile/src/features/public/guest-flow-session.tsx', 'utf8');
     expect(session).toContain('ticketDetails');
-    expect(api).not.toContain('p_telefono');
-    expect(api).not.toContain('p_whatsapp');
+    expect(api).toContain('p_telefono: details.whatsappConsent ? details.phone : null');
+    expect(api).toContain('p_consentimiento_whatsapp: details.whatsappConsent === true');
   });
 
   it('does not expose a guest ticket from its visible code alone', () => {

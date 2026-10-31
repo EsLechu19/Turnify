@@ -19,6 +19,8 @@ export type WorkerTicket = {
   inicioEn: string | null;
   peopleAhead: number;
   waitMinutes: number;
+  phone: string | null;
+  whatsappConsent: boolean;
 };
 
 export type ReassignmentCandidate = {
@@ -56,6 +58,8 @@ type WorkerQueuePayload = {
     inicio_en: string | null;
     personas_delante: number;
     espera_min: number;
+    telefono_invitado: string | null;
+    consentimiento_whatsapp: boolean;
   }>;
 };
 
@@ -81,6 +85,8 @@ export async function getWorkerBarberQueue(): Promise<{ availability: WorkerAvai
       inicioEn: ticket.inicio_en,
       peopleAhead: ticket.personas_delante,
       waitMinutes: ticket.espera_min,
+      phone: ticket.telefono_invitado,
+      whatsappConsent: ticket.consentimiento_whatsapp,
     })),
   };
 }
