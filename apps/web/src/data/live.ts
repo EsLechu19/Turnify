@@ -106,7 +106,10 @@ export async function fetchBusiness(): Promise<BusinessProfile> {
     name,
     subtitle: 'Panel de barbería',
     branch: `Sucursal: ${name}`,
-    ticketUrl: `turnify.app/t/${code}`,
+    // Resolve QR links against the deployed web app instead of a hard-coded
+    // domain that may belong to another product. Same-origin also supports
+    // local development and future custom domains automatically.
+    ticketUrl: `${window.location.origin}/t/${code}`,
     accessCode: code,
     owner: ownerRow.nombre?.trim() || auth.user?.email?.split('@')[0] || 'Administrador',
     ownerEmail: auth.user?.email ?? '',

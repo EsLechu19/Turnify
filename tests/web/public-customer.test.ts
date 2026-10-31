@@ -41,4 +41,10 @@ describe('public customer API contract', () => {
     expect(page).toContain("TERMINAL_STATUSES.has(next.status)");
     expect(page).toContain("ticket.status === 'en_espera' || ticket.status === 'notificado'");
   });
+
+  it('builds QR links from the deployed web origin', () => {
+    const live = read('apps', 'web', 'src', 'data', 'live.ts');
+    expect(live).toContain('window.location.origin');
+    expect(live).not.toContain('turnify.app/t/');
+  });
 });
