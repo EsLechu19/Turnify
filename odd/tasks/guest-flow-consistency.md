@@ -22,7 +22,7 @@ Make the anonymous customer journey truthful, recoverable, and understandable ac
 ## Tasks
 
 - [x] G1: Document and test guest lifecycle/response/rating invariants, implement 24-hour server-enforced rating eligibility from `fin_en`, preserving existing guest projection fields.
-- [ ] G2: Web ticket restoration, request identity/order safety, accurate wait/position and effective called-deadline behavior; add behavior-driven regression checks.
+- [x] G2: Web ticket restoration, request identity/order safety, accurate wait/position and effective called-deadline behavior; add behavior-driven regression checks.
 - [ ] G3: Mobile guest refresh and persisted-session ordering, safe recovery of completed ticket for rating, and expiry handling; add behavior-driven regression checks.
 - [ ] G4: Recoverable finished-ticket rating across both clients with bounded capability retention, one vote and clear expired/completed states; verify server/client boundaries.
 - [ ] G5: Final UX/UI pass for the customer journey in both web and app: hierarchy, instructions, waiting/called/finished/error states, responsive touch targets and accessibility; validate against the same state contract.
@@ -49,4 +49,6 @@ Make the anonymous customer journey truthful, recoverable, and understandable ac
 - Branch: `feat/guest-flow-consistency` (from `main` at `0e384c7`).
 - Route: delegated direct for G1–G5: each crosses 2+ non-trivial files and source inspection is required; G6 can be delegated verification. Review candidate is each work-unit commit/PR slice, not this checklist.
 - G1: migration 0061 requires capability-matched finalized ticket, valid `fin_en`, and wall time strictly before completion +24h; status RPC adds `puede_puntuar` and `puntuacion_vencimiento_en`. Focused SQL contract tests: 7/7 passed; Supabase suite: 134 passed, 1 failed in unchanged `guest-whatsapp-consent.test.ts` due to a CRLF-sensitive string expectation on unchanged migration 0060. Database runtime execution not available; production migration remains unapplied. `git diff --check` passed. Rollback boundary: migration 0061 and its rating contract tests only; migration must not be rolled back if already applied externally.
+- G1 commit: `e4e53c5`; RDD assessed `medium`, `review_due=false` (`under_budget`), pending in current PR slice from `0e384c7`.
+- G2: controller tests cover async request ordering and web tests 95/95 passed; web typecheck/build and `git diff --check` passed. No browser or remote DB run. Rollback boundary: web guest-session controller, public page integration and their tests. Rating persistence remains G4.
 - Next: G2. Engram mirror write pending (session registration error).

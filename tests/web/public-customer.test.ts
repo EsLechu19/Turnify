@@ -38,12 +38,11 @@ describe('public customer API contract', () => {
     expect(api).toContain('rating < 1 || rating > 5');
   });
 
-  it('stores only narrowly scoped ticket access and clears terminal sessions', () => {
+  it('keeps browser access scoped to the business and delegates lifecycle to the controller', () => {
     const page = read('apps', 'web', 'src', 'features', 'public', 'CustomerPublicPage.tsx');
     expect(page).toContain("turnify.public-ticket-session.v1:");
     expect(page).toContain('sessionStorage');
-    expect(page).toContain("TERMINAL_STATUSES.has(next.status)");
-    expect(page).toContain("ticket.status === 'en_espera' || ticket.status === 'notificado'");
+    expect(page).toContain('GuestSessionController');
     expect(page).toContain("onRespond('presente')");
     expect(page).toContain("onRespond('llega_en_2_min')");
     expect(page).toContain('Puntuación enviada');
