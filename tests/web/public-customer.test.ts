@@ -32,6 +32,10 @@ describe('public customer API contract', () => {
     expect(api).toContain("rpc('crear_ticket_invitado'");
     expect(api).toContain("rpc('estado_ticket_invitado'");
     expect(api).toContain("rpc('cancelar_ticket_invitado'");
+    expect(api).toContain("rpc('responder_llamado_invitado'");
+    expect(api).toContain("rpc('puntuar_atencion_invitado'");
+    expect(api).toContain("response: 'presente' | 'llega_en_2_min'");
+    expect(api).toContain('rating < 1 || rating > 5');
   });
 
   it('stores only narrowly scoped ticket access and clears terminal sessions', () => {
@@ -40,6 +44,9 @@ describe('public customer API contract', () => {
     expect(page).toContain('sessionStorage');
     expect(page).toContain("TERMINAL_STATUSES.has(next.status)");
     expect(page).toContain("ticket.status === 'en_espera' || ticket.status === 'notificado'");
+    expect(page).toContain("onRespond('presente')");
+    expect(page).toContain("onRespond('llega_en_2_min')");
+    expect(page).toContain('Puntuación enviada');
   });
 
   it('builds QR links from the deployed web origin', () => {

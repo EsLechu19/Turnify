@@ -1353,6 +1353,10 @@ select {
 .public-ticket-stats .card { gap: 5px; }
 .public-ticket-stats strong { font: var(--text-title); }
 .public-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.public-called p, .public-rating p { color: var(--ink-muted); margin: 0; }
+.public-rating__choices { display: flex; gap: 8px; }
+.public-rating__star { background: transparent; border: 0; color: var(--border-strong); cursor: pointer; font-size: 2rem; line-height: 1; padding: 4px; }
+.public-rating__star--selected, .public-rating__star:hover { color: var(--gold); }
 @media (max-width: 560px) { .public-page { padding: 18px 14px 36px; } .public-page__header { margin-bottom: 28px; } .public-ticket-stats { grid-template-columns: 1fr; } .public-actions .btn { flex: 1 1 100%; } }
 
 /* ------------------------------------------------------------ new dashboard cards -- */

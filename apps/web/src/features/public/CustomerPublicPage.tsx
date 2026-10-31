@@ -9,6 +9,8 @@ import {
   getCommercialCatalog,
   getGuestTicketState,
   normalizeGuestDetails,
+  rateFinishedGuestTicket,
+  respondToCalledGuestTicket,
   validateBusinessCode,
   type CommercialCatalog,
   type GuestTicketAccess,
@@ -62,6 +64,7 @@ export function CustomerPublicPage() {
   const [ticket, setTicket] = useState<GuestTicketState | null>(null);
   const [ticketError, setTicketError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [ratingSelection, setRatingSelection] = useState<number | null>(null);
 
   const validCode = useMemo(() => {
     try { validateBusinessCode(businessCode); return true; } catch { return false; }
@@ -110,10 +113,30 @@ export function CustomerPublicPage() {
       const nextAccess = await createGuestTicket({ businessCode, serviceId: selectedService, requestedBarberId: selectedBarber || null, details });
       writeStoredAccess(businessCode, nextAccess);
       setAccess(nextAccess);
-      setTicket({ visibleCode: nextAccess.visibleCode, status: 'en_espera', peopleAhead: 0, waitMinutes: 0, serviceName: null, requestedBarberName: null, assignedBarberName: null });
+      setTicket({ visibleCode: nextAccess.visibleCode, status: 'en_espera', peopleAhead: 0, waitMinutes: 0, serviceName: null, requestedBarberName: null, assignedBarberName: null, calledDeadlineAt: null, customerResponse: null, customerResponseAt: null, rating: null });
     } catch (error) {
       setTicketError(error instanceof Error ? error.message : 'No pudimos crear tu turno. Intentá nuevamente.');
     } finally { setBusy(false); }
+  }
+
+  async function respond(response: 'presente' | 'llega_en_2_min') {
+    if (!access || !ticket || ticket.status !== 'llamado' || ticket.customerResponse || busy) return;
+    setBusy(true); setTicketError(null);
+    try {
+      await respondToCalledGuestTicket(access, response);
+      await refreshTicket();
+    } catch { setTicketError('No pudimos registrar tu respuesta. Intentá nuevamente.'); }
+    finally { setBusy(false); }
+  }
+
+  async function rate() {
+    if (!access || !ticket || ticket.status !== 'finalizado' || ticket.rating != null || ratingSelection == null || busy) return;
+    setBusy(true); setTicketError(null);
+    try {
+      await rateFinishedGuestTicket(access, ratingSelection);
+      setTicket({ ...ticket, rating: ratingSelection });
+    } catch { setTicketError('No pudimos guardar tu puntuación. Intentá nuevamente.'); }
+    finally { setBusy(false); }
   }
 
   async function cancel() {
@@ -132,7 +155,7 @@ export function CustomerPublicPage() {
     <main className="public-page">
       <header className="public-page__header"><span className="eyebrow">TURNIFY</span><span className="badge badge--brand">Sin instalar nada</span></header>
       {loadingCatalog ? <div className="public-state"><strong>Cargando el catálogo…</strong></div> : catalogError ? <div className="public-state public-state--error" role="alert"><strong>{catalogError}</strong><p>Podés volver a intentar cuando quieras.</p><Button onClick={loadCatalog} variant="secondary">Reintentar</Button></div> : catalog && access && ticket ? (
-        <TicketView ticket={ticket} error={ticketError} busy={busy} onRefresh={() => void refreshTicket()} onCancel={() => void cancel()} onRestart={() => { clearStoredAccess(businessCode); setAccess(null); setTicket(null); setTicketError(null); }} />
+        <TicketView ticket={ticket} error={ticketError} busy={busy} ratingSelection={ratingSelection} onRatingSelection={setRatingSelection} onRate={() => void rate()} onRespond={(response) => void respond(response)} onRefresh={() => void refreshTicket()} onCancel={() => void cancel()} onRestart={() => { clearStoredAccess(businessCode); setAccess(null); setTicket(null); setTicketError(null); setRatingSelection(null); }} />
       ) : catalog ? (
         <section className="public-page__content"><div className="page-title"><span className="eyebrow">{catalog.name}</span><h1>Sumate a la fila</h1><p>Elegí tu servicio y recibí un código para seguir tu turno desde este navegador.</p></div>{!catalog.open ? <div className="public-state public-state--gold"><strong>El negocio está cerrado.</strong><p>Ahora no se pueden tomar turnos. Volvé a intentarlo durante el horario de atención.</p></div> : catalog.services.length === 0 ? <div className="public-state"><strong>No hay servicios disponibles.</strong><p>El negocio todavía no publicó servicios para tomar turnos.</p></div> : <form className="public-form" onSubmit={submit}><div className="card"><h2>Elegí un servicio</h2><div className="public-options">{catalog.services.map((service) => <label className={`public-option ${selectedService === service.serviceId ? 'public-option--selected' : ''}`} key={service.serviceId}><input checked={selectedService === service.serviceId} name="service" onChange={() => { setSelectedService(service.serviceId); setSelectedBarber(''); }} required type="radio" value={service.serviceId} /><span><strong>{service.name}</strong><small>{service.description || `${Math.ceil(service.estimatedDurationSeconds / 60)} min estimados`}</small></span></label>)}</div></div><div className="card"><h2>Profesional (opcional)</h2><select disabled={!selectedService} onChange={(event) => setSelectedBarber(event.target.value)} value={selectedBarber}><option value="">Cualquier profesional disponible</option>{compatibleBarbers.map((barber) => <option disabled={barber.operationalState !== 'disponible'} key={barber.barberId} value={barber.barberId}>{barber.name}{barber.operationalState !== 'disponible' ? ' (no disponible)' : ''}</option>)}</select></div><div className="card"><h2>Tus datos</h2><label className="field"><span>Nombre *</span><input maxLength={80} onChange={(event) => setName(event.target.value)} required value={name} /></label><label className="field"><span>Teléfono (opcional)</span><input inputMode="tel" onChange={(event) => setPhone(event.target.value)} placeholder="+549…" value={phone} /></label><label className="consent"><input checked={whatsappConsent} onChange={(event) => setWhatsappConsent(event.target.checked)} type="checkbox" /><span>Acepto que el negocio pueda contactarme por WhatsApp. Esto no implica un envío automático.</span></label><Button disabled={busy || !selectedService} size="lg" type="submit">{busy ? 'Solicitando…' : 'Tomar mi turno'}</Button>{ticketError ? <p className="public-form__error" role="alert">{ticketError}</p> : null}</div></form>}</section>
       ) : null}
@@ -140,7 +163,8 @@ export function CustomerPublicPage() {
   );
 }
 
-function TicketView({ ticket, error, busy, onRefresh, onCancel, onRestart }: { ticket: GuestTicketState; error: string | null; busy: boolean; onRefresh: () => void; onCancel: () => void; onRestart: () => void }) {
+function TicketView({ ticket, error, busy, ratingSelection, onRatingSelection, onRate, onRespond, onRefresh, onCancel, onRestart }: { ticket: GuestTicketState; error: string | null; busy: boolean; ratingSelection: number | null; onRatingSelection: (rating: number) => void; onRate: () => void; onRespond: (response: 'presente' | 'llega_en_2_min') => void; onRefresh: () => void; onCancel: () => void; onRestart: () => void }) {
   const terminal = TERMINAL_STATUSES.has(ticket.status);
-  return <section className="public-page__content"><div className="page-title"><span className="eyebrow">TU TURNO</span><h1>{terminal ? statusLabel(ticket.status) : 'Tu turno está registrado'}</h1><p>{terminal ? 'Este turno ya no está activo.' : 'Guardá este código y seguí la fila desde tu teléfono.'}</p></div><div className="ticket-hero"><span>CÓDIGO DE TURNO</span><strong>{ticket.visibleCode}</strong><b>{statusLabel(ticket.status)}</b></div><div className="public-ticket-stats"><div className="card"><span>POSICIÓN</span><strong>{terminal ? '—' : ticket.peopleAhead + 1}</strong><small>personas delante: {terminal ? '—' : ticket.peopleAhead}</small></div><div className="card"><span>ESPERA ESTIMADA</span><strong>{terminal ? '—' : `${ticket.waitMinutes} min`}</strong><small>se actualiza automáticamente</small></div></div>{error ? <div className="public-state public-state--error" role="alert"><strong>{error}</strong></div> : null}<div className="public-actions"><Button disabled={busy} onClick={onRefresh} variant="secondary" icon="refresh">Actualizar</Button>{!terminal && (ticket.status === 'en_espera' || ticket.status === 'notificado') ? <Button disabled={busy} onClick={onCancel} variant="danger">Cancelar turno</Button> : null}{terminal ? <Button onClick={onRestart}>Tomar otro turno</Button> : null}</div></section>;
+  const canRespond = ticket.status === 'llamado' && !ticket.customerResponse;
+  return <section className="public-page__content"><div className="page-title"><span className="eyebrow">TU TURNO</span><h1>{ticket.status === 'llamado' ? 'Te están esperando' : terminal ? statusLabel(ticket.status) : 'Tu turno está registrado'}</h1><p>{ticket.status === 'llamado' ? 'Confirmá si ya estás presente o avisá que llegás en los próximos dos minutos.' : ticket.status === 'finalizado' ? 'Gracias por visitarnos. Podés dejar una puntuación sobre tu atención.' : terminal ? 'Este turno ya no está activo.' : 'Guardá este código y seguí la fila desde tu teléfono.'}</p></div><div className="ticket-hero"><span>CÓDIGO DE TURNO</span><strong>{ticket.visibleCode}</strong><b>{statusLabel(ticket.status)}</b></div><div className="public-ticket-stats"><div className="card"><span>POSICIÓN</span><strong>{terminal ? '—' : ticket.peopleAhead + 1}</strong><small>personas delante: {terminal ? '—' : ticket.peopleAhead}</small></div><div className="card"><span>ESPERA ESTIMADA</span><strong>{terminal ? '—' : `${ticket.waitMinutes} min`}</strong><small>se actualiza automáticamente</small></div></div>{canRespond ? <div className="card public-called"><h2>¿Llegaste?</h2><p>Elegí una sola respuesta para avisarle al negocio.</p><div className="public-actions"><Button disabled={busy} onClick={() => onRespond('presente')} variant="success">Estoy presente</Button><Button disabled={busy} onClick={() => onRespond('llega_en_2_min')} variant="secondary">Llego en 2 minutos</Button></div></div> : ticket.customerResponse ? <div className="public-state public-state--gold"><strong>Respuesta registrada</strong><p>{ticket.customerResponse === 'presente' ? 'Le avisaste al negocio que ya estás presente.' : 'Le avisaste al negocio que llegás en los próximos dos minutos.'}</p></div> : null}{ticket.status === 'finalizado' ? <div className="card public-rating"><h2>{ticket.rating != null ? 'Puntuación enviada' : '¿Cómo fue tu atención?'}</h2>{ticket.rating != null ? <p>Gracias por tu puntuación de {ticket.rating} de 5.</p> : <><div className="public-rating__choices" role="radiogroup" aria-label="Puntuación de la atención">{[1, 2, 3, 4, 5].map((value) => <button aria-label={`${value} de 5`} aria-checked={ratingSelection === value} className={ratingSelection === value ? 'public-rating__star public-rating__star--selected' : 'public-rating__star'} key={value} onClick={() => onRatingSelection(value)} role="radio" type="button">★</button>)}</div><Button disabled={busy || ratingSelection == null} onClick={onRate}>Enviar puntuación</Button></>}</div> : null}{error ? <div className="public-state public-state--error" role="alert"><strong>{error}</strong></div> : null}<div className="public-actions"><Button disabled={busy} onClick={onRefresh} variant="secondary" icon="refresh">Actualizar</Button>{!terminal && (ticket.status === 'en_espera' || ticket.status === 'notificado') ? <Button disabled={busy} onClick={onCancel} variant="danger">Cancelar turno</Button> : null}{terminal ? <Button onClick={onRestart}>Tomar otro turno</Button> : null}</div></section>;
 }

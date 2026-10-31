@@ -20,6 +20,9 @@ Let a customer scan a business QR code with the normal phone camera and join the
 - [x] Implement active ticket polling, refresh, cancellation and terminal states.
 - [x] Use honest copy when the business is closed, unavailable or the ticket request fails.
 - [x] Add route and public-flow tests.
+- [x] Add called-ticket customer actions: confirm presence or report arrival within two minutes.
+- [x] Add post-service rating for completed guest tickets.
+- [x] Add public-web tests covering called-ticket response and terminal rating states.
 
 ## Acceptance criteria
 
@@ -29,6 +32,8 @@ Let a customer scan a business QR code with the normal phone camera and join the
 - The customer sees position and estimated wait and can refresh/cancel when allowed.
 - Admin routes continue to require authentication and admin role.
 - No capability, service-role key or secret is exposed in the URL or UI.
+- A called customer can submit exactly one supported arrival response from the public web.
+- A completed customer ticket can submit a bounded rating without exposing privileged data.
 
 ## Route
 
@@ -47,3 +52,5 @@ Delegated direct writer; this is one coherent public customer work unit spanning
 - Production build: passed with the existing large JavaScript chunk warning.
 - Web tests: 21 files, 84 tests passed.
 - Manual browser validation against configured Supabase remains required before public deployment.
+- Parity extension authorized by user: called-ticket response and post-service rating.
+- Parity extension completed: web tests 86 passed; typecheck/build/diff checks passed.

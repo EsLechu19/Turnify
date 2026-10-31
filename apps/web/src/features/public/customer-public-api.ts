@@ -42,6 +42,10 @@ export type GuestTicketState = {
   serviceName: string | null;
   requestedBarberName: string | null;
   assignedBarberName: string | null;
+  calledDeadlineAt: string | null;
+  customerResponse: 'presente' | 'llega_en_2_min' | null;
+  customerResponseAt: string | null;
+  rating: number | null;
 };
 
 export const GUEST_PHONE_CONSENT_ERROR = 'Para aceptar WhatsApp, ingresá un teléfono válido con código internacional.';
@@ -125,7 +129,7 @@ export async function getGuestTicketState(access: Pick<GuestTicketAccess, 'ticke
     p_capacidad: access.capability,
   });
   if (error) throw new Error(error.message);
-  const ticket = data as { codigo_visible: string; estado: GuestTicketState['status']; personas_delante: number; espera_min: number; servicio_nombre: string | null; barbero_solicitado_nombre: string | null; barbero_asignado_nombre: string | null } | null;
+  const ticket = data as { codigo_visible: string; estado: GuestTicketState['status']; personas_delante: number; espera_min: number; servicio_nombre: string | null; barbero_solicitado_nombre: string | null; barbero_asignado_nombre: string | null; llamado_vencimiento_en: string | null; respuesta_cliente: GuestTicketState['customerResponse']; respuesta_cliente_en: string | null; puntuacion: number | null } | null;
   if (!ticket) throw new Error('No se pudo consultar el turno.');
   return {
     visibleCode: ticket.codigo_visible,
@@ -135,7 +139,36 @@ export async function getGuestTicketState(access: Pick<GuestTicketAccess, 'ticke
     serviceName: ticket.servicio_nombre,
     requestedBarberName: ticket.barbero_solicitado_nombre,
     assignedBarberName: ticket.barbero_asignado_nombre,
+    calledDeadlineAt: ticket.llamado_vencimiento_en,
+    customerResponse: ticket.respuesta_cliente,
+    customerResponseAt: ticket.respuesta_cliente_en,
+    rating: ticket.puntuacion,
   };
+}
+
+export async function respondToCalledGuestTicket(
+  access: Pick<GuestTicketAccess, 'ticketId' | 'capability'>,
+  response: 'presente' | 'llega_en_2_min',
+): Promise<void> {
+  const { error } = await getSupabase().rpc('responder_llamado_invitado', {
+    p_ticket_id: access.ticketId,
+    p_capacidad: access.capability,
+    p_respuesta: response,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function rateFinishedGuestTicket(
+  access: Pick<GuestTicketAccess, 'ticketId' | 'capability'>,
+  rating: number,
+): Promise<void> {
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) throw new Error('La puntuación debe estar entre 1 y 5.');
+  const { error } = await getSupabase().rpc('puntuar_atencion_invitado', {
+    p_ticket_id: access.ticketId,
+    p_capacidad: access.capability,
+    p_puntos: rating,
+  });
+  if (error) throw new Error(error.message);
 }
 
 export async function cancelGuestTicket(access: Pick<GuestTicketAccess, 'ticketId' | 'capability'>): Promise<void> {
