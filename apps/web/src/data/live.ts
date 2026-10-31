@@ -203,6 +203,19 @@ export async function createBusiness(name: string): Promise<{ id: string; name: 
   return { id: row.id, name: row.nombre ?? name.trim(), code: row.codigo };
 }
 
+/** Completes durable signup onboarding using the authenticated user's metadata. */
+export async function completeBusinessOnboarding(): Promise<{ id: string; name: string; code: string } | null> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.rpc('completar_onboarding_empresa');
+
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+
+  const row = data as { id?: string; nombre?: string; codigo?: string };
+  if (!row.id || !row.codigo) throw new Error('La barbería no devolvió identidad.');
+  return { id: row.id, name: row.nombre ?? 'Mi barbería', code: row.codigo };
+}
+
 export async function fetchQueues(): Promise<QueueSummary[]> {
   const supabase = getSupabase();
   const empresaId = await companyId();

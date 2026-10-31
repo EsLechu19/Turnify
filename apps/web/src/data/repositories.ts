@@ -75,7 +75,7 @@ export type SignUpResult =
 
 export interface AuthRepository {
   signIn(email: string, password: string): Promise<SignInResult>;
-  signUp(email: string, password: string, name: string): Promise<SignUpResult>;
+  signUp(email: string, password: string, name: string, businessName?: string): Promise<SignUpResult>;
   restore(): Promise<AuthSession | null>;
   signOut(): void;
 }
@@ -175,6 +175,7 @@ export const authRepository: AuthRepository = {
       return { ok: false, message: translateSupabaseAuthError(error?.message) };
     }
 
+    await live.completeBusinessOnboarding();
     const profile = await fetchOwnPanelProfile(data.session.user.id);
 
     if (!profile || (profile.rol !== 'admin' && profile.rol !== 'personal')) {
@@ -187,7 +188,7 @@ export const authRepository: AuthRepository = {
     return { ok: true, session };
   },
 
-  async signUp(email, password, name) {
+  async signUp(email, password, name, businessName) {
     if (!isSupabaseConfigured()) {
       return { ok: false, message: 'El panel no está disponible: falta configurar Supabase.' };
     }
@@ -196,7 +197,7 @@ export const authRepository: AuthRepository = {
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { data: { nombre: name.trim() } },
+      options: { data: { nombre: name.trim(), empresa_nombre: businessName?.trim() || null } },
     });
 
     if (error) {
@@ -207,6 +208,7 @@ export const authRepository: AuthRepository = {
       return { ok: true, session: null };
     }
 
+    await live.completeBusinessOnboarding();
     const profile = await fetchOwnPanelProfile(data.session.user.id);
 
     if (!profile) {

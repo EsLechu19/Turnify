@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '@/components/Icon';
 import { Button } from '@/components/common';
 import { isSupabaseConfigured } from '@/data/supabase';
-import { createBusiness } from '@/data/live';
+import { completeBusinessOnboarding } from '@/data/live';
 import { useAuth } from '@/state/AuthContext';
 
 type Phase = 'form' | 'confirm-email' | 'done';
@@ -36,7 +36,7 @@ export function RegisterPage() {
       return;
     }
 
-    const outcome = await signUp(email, password, name);
+    const outcome = await signUp(email, password, name, shopName);
 
     if (outcome === 'confirm-email') {
       setPhase('confirm-email');
@@ -51,7 +51,8 @@ export function RegisterPage() {
     setShopError(null);
 
     try {
-      const shop = await createBusiness(shopName);
+      const shop = await completeBusinessOnboarding();
+      if (!shop) throw new Error('No pudimos completar el registro.');
       setShopCode(shop.code);
       setPhase('done');
     } catch (reason) {

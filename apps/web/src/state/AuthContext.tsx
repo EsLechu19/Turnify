@@ -76,7 +76,7 @@ function reducer(state: AuthState, action: AuthAction): AuthState {
 
 interface AuthContextValue extends AuthState {
   signIn: (email: string, password: string) => Promise<boolean>;
-  signUp: (email: string, password: string, name: string) => Promise<'authenticated' | 'confirm-email' | string>;
+  signUp: (email: string, password: string, name: string, businessName?: string) => Promise<'authenticated' | 'confirm-email' | string>;
   refreshProfile: () => Promise<void>;
   signOut: () => void;
   clearError: () => void;
@@ -112,10 +112,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, name: string) => {
+  const signUp = useCallback(async (email: string, password: string, name: string, businessName?: string) => {
     dispatch({ type: 'submitting' });
 
-    const result = await authRepository.signUp(email, password, name);
+    const result = await authRepository.signUp(email, password, name, businessName);
 
     if (!result.ok) {
       dispatch({ type: 'failed', message: result.message });

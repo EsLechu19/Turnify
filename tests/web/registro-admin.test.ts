@@ -16,15 +16,17 @@ describe('admin and shop self-registration', () => {
     expect(login).toContain('to="/register"');
   });
 
-  it('creates the account and then its shop through the real RPCs', () => {
+  it('persists the business intent and completes onboarding through the durable RPC', () => {
     const page = read('apps', 'web', 'src', 'features', 'auth', 'RegisterPage.tsx');
     const live = read('apps', 'web', 'src', 'data', 'live.ts');
 
     expect(page).toContain('signUp(');
-    expect(page).toContain('createBusiness(');
-    expect(page.indexOf('signUp(')).toBeLessThan(page.indexOf('createBusiness('));
+    expect(page).toContain('completeBusinessOnboarding(');
+    expect(page).toContain('shopName');
     expect(page).toContain('confirm-email');
     expect(live).toContain("rpc('crear_empresa'");
+    expect(live).toContain("rpc('completar_onboarding_empresa'");
+    expect(read('apps', 'web', 'src', 'data', 'repositories.ts')).toContain('empresa_nombre');
   });
 
   it('shows the counter code once the shop exists', () => {
@@ -32,5 +34,12 @@ describe('admin and shop self-registration', () => {
 
     expect(page).toContain('shopCode');
     expect(page).toContain('Entrar al panel');
+  });
+
+  it('runs onboarding before panel profile authorization after login', () => {
+    const repositories = read('apps', 'web', 'src', 'data', 'repositories.ts');
+    expect(repositories.indexOf('completeBusinessOnboarding')).toBeLessThan(
+      repositories.indexOf('fetchOwnPanelProfile(data.session.user.id)'),
+    );
   });
 });
