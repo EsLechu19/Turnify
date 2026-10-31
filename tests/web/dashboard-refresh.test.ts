@@ -26,10 +26,21 @@ describe('dashboard operational refresh', () => {
     expect(queue).toContain('refreshVersion');
   });
 
-  it('refreshes dashboard aggregates whenever the shared operational snapshot changes', () => {
+  it('refreshes dashboard reports on their own interval instead of queue updates', () => {
     const dashboard = read('apps', 'web', 'src', 'features', 'dashboard', 'DashboardPage.tsx');
+    const overview = read('apps', 'web', 'src', 'features', 'dashboard', 'components', 'DashboardOverview.tsx');
 
-    expect(dashboard).toContain('refreshVersion');
-    expect(dashboard).toContain('}, [refreshVersion]);');
+    expect(dashboard).toContain('const REPORT_REFRESH_MS = 60_000;');
+    expect(dashboard).toContain('const intervalId = window.setInterval(refreshCompare, REPORT_REFRESH_MS);');
+    expect(dashboard).toContain('window.clearInterval(intervalId);');
+    expect(dashboard).not.toContain('refreshVersion');
+    expect(dashboard).toContain('}, []);');
+
+    expect(overview).toContain('const REPORT_REFRESH_MS = 60_000;');
+    expect(overview).toContain('const intervalId = window.setInterval(refreshReports, REPORT_REFRESH_MS);');
+    expect(overview).toContain('window.clearInterval(intervalId);');
+    expect(overview).not.toContain('refreshVersion');
+    expect(overview).toContain('loading: current.data === null');
+    expect(overview).toContain('{ ...current, error: errorMessage(summaryResult.reason), loading: false }');
   });
 });

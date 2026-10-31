@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { Card, CardHead, StatCard } from '@/components/common';
+import { Card, CardHead } from '@/components/common';
 import { serviceRepository } from '@/data/repositories';
 import { formatPrice } from '@/utils/format';
 import { useQueue } from '@/state/QueueContext';
@@ -38,19 +38,17 @@ export function RevenueCard() {
   return (
     <Card>
       <CardHead detail="Precios de referencia, no cobro verificado" title="Ingresos estimados hoy" />
-      <div className="grid grid--stats">
-        <StatCard
-          foot={<span className="muted">{finished.length} turnos finalizados</span>}
-          icon="ticket"
-          label="Estimado"
-          value={cents == null ? '…' : formatPrice(cents)}
-        />
-        <StatCard
-          foot={<span className="muted">{matched == null ? 'Cruzando catálogo…' : `${matched.length} con precio`}</span>}
-          icon="chart"
-          label="Con precio"
-          value={matched == null ? '…' : String(matched.length)}
-        />
+      <div className="revenue-card__metrics">
+        <div className="revenue-card__metric">
+          <span className="revenue-card__label">Estimado</span>
+          <strong className="revenue-card__value">{cents == null ? '…' : formatPrice(cents)}</strong>
+          <span className="revenue-card__foot muted">{finished.length} turnos finalizados</span>
+        </div>
+        <div className="revenue-card__metric">
+          <span className="revenue-card__label">Con precio</span>
+          <strong className="revenue-card__value">{matched == null ? '…' : String(matched.length)}</strong>
+          <span className="revenue-card__foot muted">{matched == null ? 'Cruzando catálogo…' : `${matched.length} con precio`}</span>
+        </div>
       </div>
     </Card>
   );

@@ -8,6 +8,7 @@ const read = (...parts: string[]) => readFileSync(join(root, ...parts), 'utf8');
 
 const dashboardPath = ['apps', 'web', 'src', 'features', 'dashboard', 'DashboardPage.tsx'];
 const verdictPath = ['apps', 'web', 'src', 'features', 'dashboard', 'components', 'OperatingVerdict.tsx'];
+const dashboardStylesPath = ['apps', 'web', 'src', 'styles', 'app.css'];
 
 describe('dashboard administrator scanability', () => {
   it('leads with a Tier 1 operating verdict before any live block', () => {
@@ -59,11 +60,28 @@ describe('dashboard administrator scanability', () => {
   it('preserves the live refresh contract and truthful Spanish states', () => {
     const dashboard = read(...dashboardPath);
 
-    expect(dashboard).toContain('refreshVersion');
-    expect(dashboard).toContain('}, [refreshVersion]);');
+    expect(dashboard).toContain('const REPORT_REFRESH_MS = 60_000;');
+    expect(dashboard).toContain('const intervalId = window.setInterval(refreshCompare, REPORT_REFRESH_MS);');
+    expect(dashboard).toContain('window.clearInterval(intervalId);');
+    expect(dashboard).not.toContain('refreshVersion');
     expect(dashboard).toContain('Actualizando la operación…');
     expect(dashboard).toContain('role="alert"');
     expect(dashboard).not.toContain('fixture');
     expect(dashboard).not.toContain('mock');
+  });
+
+  it('bounds operational lists without hiding their content', () => {
+    const styles = read(...dashboardStylesPath);
+    const liveQueue = read('apps', 'web', 'src', 'features', 'dashboard', 'components', 'LiveQueueCard.tsx');
+
+    expect(styles).toContain('.alerts-card__list');
+    expect(styles).toContain('.live-queue__list');
+    expect(styles).toContain('max-height: 18rem;');
+    expect(styles).toContain('overflow-y: auto;');
+    expect(styles).toContain('overflow-x: hidden;');
+    expect(liveQueue).toContain('live.map((ticket)');
+    expect(liveQueue).toContain('Ver equipo');
+    expect(liveQueue).not.toContain('MAX_ROWS');
+    expect(liveQueue).not.toContain('+{hidden} turnos más en la cola.');
   });
 });

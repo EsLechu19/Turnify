@@ -5,8 +5,6 @@ import { nextActionableTicket } from '@/data/selectors';
 import type { QueueTicket } from '@/data/types';
 import { useQueue } from '@/state/QueueContext';
 
-const MAX_ROWS = 8;
-
 function rowLabel(ticket: QueueTicket): string {
   if (ticket.status === 'llamado') return 'Llamado';
   if (ticket.status === 'atencion') return 'En atención';
@@ -24,8 +22,6 @@ export function LiveQueueCard() {
     (ticket) => ticket.status === 'espera' || ticket.status === 'llamado' || ticket.status === 'atencion',
   );
   const next = nextActionableTicket(tickets);
-  const visible = live.slice(0, MAX_ROWS);
-  const hidden = live.length - visible.length;
 
   return (
     <Card>
@@ -39,26 +35,21 @@ export function LiveQueueCard() {
         }
       />
       {live.length === 0 ? (
-        <p className="muted" style={{ font: 'var(--text-body)', margin: 0 }}>
+        <p className="live-queue__empty muted">
           Cola vacía: ningún turno en espera, llamado ni en atención.
         </p>
       ) : (
-        <div style={{ display: 'grid', gap: 8 }}>
-          {visible.map((ticket) => (
-            <div key={ticket.id} style={{ alignItems: 'center', display: 'flex', gap: 10 }}>
-              <strong style={{ font: 'var(--text-body-strong)', minWidth: 64 }}>{ticket.code}</strong>
-              <span className="muted" style={{ flex: 1, font: 'var(--text-body)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div className="live-queue__list">
+          {live.map((ticket) => (
+            <div key={ticket.id} className="live-queue__item">
+              <strong className="live-queue__code">{ticket.code}</strong>
+              <span className="live-queue__service muted">
                 {ticket.service}{ticket.barber ? ` · ${ticket.barber}` : ''}
               </span>
-              <span style={{ font: 'var(--text-label)' }}>{rowLabel(ticket)}</span>
-              {next?.id === ticket.id ? <span style={{ font: 'var(--text-label)' }}>· siguiente</span> : null}
+              <span className={`live-queue__status live-queue__status--${ticket.status}`}>{rowLabel(ticket)}</span>
+              {next?.id === ticket.id ? <span className="live-queue__next">· siguiente</span> : null}
             </div>
           ))}
-          {hidden > 0 ? (
-            <p className="muted" style={{ font: 'var(--text-body)', margin: 0 }}>
-              +{hidden} turnos más en la cola.
-            </p>
-          ) : null}
         </div>
       )}
     </Card>
