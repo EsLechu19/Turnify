@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 
@@ -8,7 +8,7 @@ import { BrandBar, Button, Card, Icon, IconButton, Screen, StickyBar, StepTracke
 import { CustomerPage, CustomerState } from '@/components/customer/customer-ui';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import { bookingExpectation, formatReferencePrice, selectedBarber } from '@/features/queue/commercial-booking';
-import { GUEST_AGE_RANGES, GUEST_GENDERS, normalizeGuestDetails, type GuestAgeRange, type GuestGender } from '@/features/queue/guest-ticket-details';
+import { GUEST_AGE_RANGES, GUEST_GENDERS, GUEST_PHONE_CONSENT_ERROR, normalizeGuestDetails, type GuestAgeRange, type GuestGender } from '@/features/queue/guest-ticket-details';
 import { createGuestTicket } from '@/features/queue/public-guest-ticket-api';
 import { registerGuestDeviceForTicket } from '@/features/notifications/guest-device-api';
 import { useGuestFlow } from '@/features/public/guest-flow-session';
@@ -34,6 +34,8 @@ export default function DetailsScreen() {
   const [name, setName] = useState(draft?.details.name ?? '');
   const [ageRange, setAgeRange] = useState<GuestAgeRange | null>(draft?.details.ageRange ?? null);
   const [gender, setGender] = useState<GuestGender | null>(draft?.details.gender ?? null);
+  const [phone, setPhone] = useState(draft?.details.phone ?? '');
+  const [whatsappConsent, setWhatsappConsent] = useState(draft?.details.whatsappConsent === true);
   const [showOptional, setShowOptional] = useState(Boolean(draft?.details.ageRange || draft?.details.gender));
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -75,7 +77,7 @@ export default function DetailsScreen() {
 
   async function confirm() {
     try {
-      const details = normalizeGuestDetails({ name, ageRange, gender });
+      const details = normalizeGuestDetails({ name, ageRange, gender, phone, whatsappConsent });
       setDetails(details);
       setIsCreating(true);
       setError(null);
@@ -112,8 +114,10 @@ export default function DetailsScreen() {
       router.replace('/(public)/ticket');
     } catch (reason) {
       setError(
-        reason instanceof Error && reason.message.includes('Guest name')
-          ? 'Ingresa tu nombre para continuar.'
+          reason instanceof Error && reason.message.includes('Guest name')
+            ? 'Ingresa tu nombre para continuar.'
+            : reason instanceof Error && reason.message === GUEST_PHONE_CONSENT_ERROR
+              ? 'Ingresa un teléfono internacional válido para aceptar las notificaciones por WhatsApp.'
           : translateQueueError(reason instanceof Error ? reason.message : ''),
       );
     } finally {
@@ -209,12 +213,47 @@ export default function DetailsScreen() {
           />
         </Card>
 
+        <Card padding="md">
+          <View style={styles.fieldHeading}>
+            <View style={styles.fieldIcon}>
+              <Icon color={Palette.brand} name="user" size={19} />
+            </View>
+            <View style={styles.fieldCopy}>
+              <Text style={[TypeScale.bodyStrong, { color: Palette.ink }]}>Teléfono para WhatsApp (opcional)</Text>
+              <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>Incluye el código de país, por ejemplo +51987654321.</Text>
+            </View>
+          </View>
+          <TextField
+            autoCapitalize="none"
+            editable={!isCreating}
+            keyboardType="phone-pad"
+            maxLength={24}
+            onChangeText={setPhone}
+            placeholder="+51987654321"
+            size="md"
+            value={phone}
+          />
+          <Pressable
+            accessibilityLabel="Aceptar notificaciones por WhatsApp"
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: whatsappConsent, disabled: isCreating || phone.trim().length === 0 }}
+            disabled={isCreating || phone.trim().length === 0}
+            onPress={() => setWhatsappConsent((selected) => !selected)}
+            style={({ pressed }) => [styles.consentRow, pressed ? styles.consentPressed : null]}
+          >
+            <View style={[styles.checkbox, whatsappConsent ? styles.checkboxSelected : null]}>
+              {whatsappConsent ? <Icon color="#FFFFFF" name="check" size={14} /> : null}
+            </View>
+            <Text style={[TypeScale.caption, { color: Palette.inkMuted, flex: 1 }]}>Acepto que el barbero pueda abrir WhatsApp y enviarme manualmente un aviso cuando mi turno sea llamado. No se enviará automáticamente.</Text>
+          </Pressable>
+        </Card>
+
         <Card padding="md" tone="brand">
           <View style={styles.noticeIcon}>
             <Icon color={Palette.brand} name="shield" size={18} />
           </View>
           <Text style={[TypeScale.caption, { color: Palette.inkMuted, flex: 1 }]}>
-            No necesitas crear una cuenta ni dejar tu teléfono. Recibirás un código de turno y te llamarán en pantalla o en el local.
+            No necesitas crear una cuenta. Recibirás un código de turno y te llamarán en pantalla o en el local.
           </Text>
         </Card>
 
@@ -355,4 +394,8 @@ const styles = StyleSheet.create({
   choiceLabel: { color: Palette.inkFaint, letterSpacing: 0.7 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
   genderChoices: { gap: space(2) },
+  consentRow: { alignItems: 'flex-start', flexDirection: 'row', gap: space(2), paddingVertical: space(1) },
+  consentPressed: { opacity: 0.7 },
+  checkbox: { alignItems: 'center', borderColor: Palette.brand, borderRadius: Radius.small, borderWidth: 2, height: 22, justifyContent: 'center', marginTop: 1, width: 22 },
+  checkboxSelected: { backgroundColor: Palette.brand },
 });

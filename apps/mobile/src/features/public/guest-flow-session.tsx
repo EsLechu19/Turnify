@@ -40,6 +40,7 @@ export const DEFAULT_DEMO_TICKET: DemoGuestTicket = {
 
 type GuestFlowContextValue = {
   draft: GuestBookingDraft | null;
+  ticketDetails: GuestDetails | null;
   ticketAccess: GuestTicketAccess | null;
   demoTicket: DemoGuestTicket | null;
   beginDiscovery(companyCode: string, catalog: CommercialCatalog): boolean;
@@ -56,11 +57,13 @@ const GuestFlowContext = createContext<GuestFlowContextValue | undefined>(undefi
 
 export function GuestFlowProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState<GuestBookingDraft | null>(null);
+  const [ticketDetails, setTicketDetails] = useState<GuestDetails | null>(null);
   const [ticketAccess, setTicketAccess] = useState<GuestTicketAccess | null>(null);
   const [demoTicket, setDemoTicket] = useState<DemoGuestTicket | null>(null);
 
   const beginDiscovery = useCallback((companyCode: string, catalog: CommercialCatalog) => {
     if (ticketAccess) return false;
+    setTicketDetails(null);
     setDraft({ companyCode, catalog, serviceId: '', requestedBarberId: null, details: { name: '' } });
     return true;
   }, [ticketAccess]);
@@ -71,6 +74,7 @@ export function GuestFlowProvider({ children }: { children: ReactNode }) {
     setDraft((current) => current ? { ...current, requestedBarberId } : current);
   }, []);
   const setDetails = useCallback((details: GuestDetails) => {
+    setTicketDetails(details);
     setDraft((current) => current ? { ...current, details } : current);
   }, []);
   const setTicketAccessForFlow = useCallback((access: GuestTicketAccess) => {
@@ -80,6 +84,7 @@ export function GuestFlowProvider({ children }: { children: ReactNode }) {
   }, []);
   const endGuestTicketSession = useCallback(() => {
     setDraft(null);
+    setTicketDetails(null);
     setTicketAccess(null);
     setDemoTicket(null);
     void clearStoredGuestTicketAccess().catch(() => undefined);
@@ -108,6 +113,7 @@ export function GuestFlowProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<GuestFlowContextValue>(() => ({
     draft,
+    ticketDetails,
     ticketAccess,
     demoTicket,
     beginDiscovery,
@@ -118,7 +124,7 @@ export function GuestFlowProvider({ children }: { children: ReactNode }) {
     setDemoTicket,
     hasActiveTicketAccess: ticketAccess !== null,
     endGuestTicketSession,
-  }), [beginDiscovery, chooseBarber, chooseService, demoTicket, draft, endGuestTicketSession, setDetails, setTicketAccessForFlow, ticketAccess]);
+  }), [beginDiscovery, chooseBarber, chooseService, demoTicket, draft, endGuestTicketSession, setDetails, setTicketAccessForFlow, ticketAccess, ticketDetails]);
 
   return <GuestFlowContext.Provider value={value}>{children}</GuestFlowContext.Provider>;
 }

@@ -23,8 +23,16 @@ describe('public guest flow contracts', () => {
 
   it('requires a guest name and only preserves approved optional details', () => {
     expect(normalizeGuestDetails({ name: ' Ada ', ageRange: '25_34', gender: 'female' }))
-      .toEqual({ name: 'Ada', ageRange: '25_34', gender: 'female' });
+      .toEqual({ name: 'Ada', ageRange: '25_34', gender: 'female', phone: null, whatsappConsent: false });
     expect(() => normalizeGuestDetails({ name: '' })).toThrow();
+  });
+
+  it('keeps normalized notification details in the guest flow contract without sending unsupported RPC fields', () => {
+    const api = readFileSync('apps/mobile/src/features/queue/public-guest-ticket-api.ts', 'utf8');
+    const session = readFileSync('apps/mobile/src/features/public/guest-flow-session.tsx', 'utf8');
+    expect(session).toContain('ticketDetails');
+    expect(api).not.toContain('p_telefono');
+    expect(api).not.toContain('p_whatsapp');
   });
 
   it('does not expose a guest ticket from its visible code alone', () => {

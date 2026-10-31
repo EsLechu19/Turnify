@@ -47,6 +47,9 @@ export async function createGuestTicket(input: {
   details: GuestDetails;
 }): Promise<GuestTicketAccess> {
   const details = normalizeGuestDetails(input.details);
+  // The current crear_ticket_invitado RPC accepts demographics only. Keep the
+  // normalized notification details in guest flow state until the RPC/schema
+  // can persist them; never send unsupported parameters from this client.
   const { data, error } = await getSupabase().rpc('crear_ticket_invitado', {
     p_codigo: input.companyCode,
     p_servicio_id: input.serviceId,
