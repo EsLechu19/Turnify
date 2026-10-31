@@ -1325,6 +1325,36 @@ select {
   font: var(--text-headline);
 }
 
+/* ---------------------------------------------------------- public customer -- */
+.public-page { min-height: 100%; padding: 24px 20px 48px; }
+.public-page__header { align-items: center; display: flex; justify-content: space-between; margin: 0 auto 42px; max-width: 760px; }
+.public-page__content { display: grid; gap: 20px; margin: 0 auto; max-width: 760px; }
+.public-form { display: grid; gap: 16px; }
+.public-form h2 { font: var(--text-headline); margin: 0; }
+.public-options { display: grid; gap: 10px; }
+.public-option { align-items: flex-start; border: 1px solid var(--border); border-radius: var(--radius-md); cursor: pointer; display: flex; gap: 12px; padding: 14px; }
+.public-option--selected { background: var(--brand-soft); border-color: var(--brand); }
+.public-option input { accent-color: var(--brand); margin-top: 4px; }
+.public-option span { display: grid; gap: 3px; }
+.public-option small, .public-ticket-stats small { color: var(--ink-muted); }
+.public-form select { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); min-height: 44px; padding: 0 12px; }
+.consent { align-items: flex-start; display: flex; gap: 10px; font: var(--text-caption); }
+.consent input { accent-color: var(--brand); margin-top: 2px; }
+.public-form__error { color: var(--danger-ink); margin: 0; }
+.public-state { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); display: grid; gap: 8px; padding: 28px; text-align: center; }
+.public-state p { color: var(--ink-muted); margin: 0; }
+.public-state--error { background: var(--danger-soft); border-color: var(--danger-border); color: var(--danger-ink); }
+.public-state--gold { background: var(--gold-soft); border-color: var(--gold-border); }
+.ticket-hero { background: linear-gradient(120deg, var(--brand-deep), var(--brand)); border-radius: var(--radius-xl); color: #fff; display: grid; gap: 8px; padding: 28px; }
+.ticket-hero span, .public-ticket-stats span { font: var(--text-eyebrow); letter-spacing: .08em; }
+.ticket-hero strong { font: var(--text-metric); font-family: var(--font-mono); letter-spacing: .05em; }
+.ticket-hero b { font: var(--text-body-strong); }
+.public-ticket-stats { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.public-ticket-stats .card { gap: 5px; }
+.public-ticket-stats strong { font: var(--text-title); }
+.public-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+@media (max-width: 560px) { .public-page { padding: 18px 14px 36px; } .public-page__header { margin-bottom: 28px; } .public-ticket-stats { grid-template-columns: 1fr; } .public-actions .btn { flex: 1 1 100%; } }
+
 /* ------------------------------------------------------------ new dashboard cards -- */
 
 .active-queue {

@@ -10,11 +10,13 @@ import { RegisterPage } from '@/features/auth/RegisterPage';
 import { ServicesPage } from '@/features/services/ServicesPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { TeamPage } from '@/features/team/TeamPage';
+import { CustomerPublicPage } from '@/features/public/CustomerPublicPage';
 
 /** `/login` is public; every panel section sits behind the session gate. */
 export function AppRoutes() {
   return (
     <Routes>
+      <Route element={<CustomerPublicPage />} path="/t/:businessCode" />
       <Route element={<RedirectIfAuthenticated />}>
         <Route element={<LoginPage />} path="/login" />
         <Route element={<RegisterPage />} path="/register" />
