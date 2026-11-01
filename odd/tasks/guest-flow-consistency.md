@@ -68,4 +68,4 @@ Make the anonymous customer journey truthful, recoverable, and understandable ac
 3. On a physical phone with the matching mobile build, repeat the same journey, app restart before/after finish, offline/online recovery, deadline expiry, rating once and accessibility/touch-target checks. Worker app performs call and finish; no automated WhatsApp send is part of this feature.
 4. Do not merge or claim production readiness until the manual checks and the known baseline test failures are triaged under ordinary repository policy. No PR or push was performed in this work.
 - Delivery slices: first reviewed slice `e4e53c5..12e81fc` against `0e384c7`; next slice begins after `12e81fc` and includes `0e099c7` onward. No PR created or pushed.
-- Next: G6. Engram mirror write pending (session registration error).
+- Next: arrange separate authorization for staged database migration, preview deployment and physical-device validation; then decide on PR/push under ordinary repository policy. Engram mirror write pending (session registration error).
