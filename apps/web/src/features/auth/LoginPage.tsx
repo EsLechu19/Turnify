@@ -134,6 +134,7 @@ export function LoginPage() {
             />
             <span>Recordarme</span>
           </label>
+          <Link className="login-page__recovery-link" to="/forgot-password">¿Olvidaste tu contraseña?</Link>
 
           <div aria-atomic="true" aria-live="polite" className="login-page__alerts">
             {error ? (

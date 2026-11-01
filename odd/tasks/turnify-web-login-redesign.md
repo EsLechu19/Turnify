@@ -37,6 +37,7 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
 - `apps/web/src/styles/app.css`
 - `apps/web/src/styles/tokens.css` only if existing tokens are insufficient
 - T3 storage wiring in `apps/web/src/data/authStorage.ts`, `apps/web/src/data/supabase.ts`, `apps/web/src/data/repositories.ts`, `apps/web/src/state/AuthContext.tsx`, and `tests/web/auth-storage.test.ts`
+- T4 recovery flow in auth pages, routes, repository/context, and `tests/web/password-recovery.test.ts`
 - `apps/web/public/` for the original barber-shop visual asset
 - `tests/web/login-redesign.test.ts`
 - Sites hosting metadata and workflow files required for publication
@@ -77,10 +78,16 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - Checked by default selects `localStorage` for Supabase and panel session; unchecked selects `sessionStorage`. Mode changes migrate and remove the alternate copy; restore uses the selected store with safe legacy fallback; sign-out clears session keys in both stores.
   - RED: requested Vitest command failed 6 tests (5 storage behaviors + login checkbox contract) before implementation.
   - GREEN: 18 tests passed; web typecheck passed; web build passed with the existing >500 kB JS chunk advisory. No interactive checkbox test was added without a UI test harness; defer it to T6.
-  - Functional commit: `4a6f28d4ae1177f055c3f42b768e0060d013e986` (`feat(auth): implementa la sesión recordada`), 395 authored changed lines; local boundary `codex/turnify-web-login-remember`, stacked after T2. Rollback removes the adapter/wiring, checkbox, and T3 tests; T2 remains intact.
+  - Functional commit: `4a6f28d4ae1177f055c3f42b768e0060d013e986` (`feat(auth): implementa la sesión recordada`), 395 authored changed lines; local boundary `codex/turnify-web-login-remember`, stacked after T2. Reviewed/acknowledged: `review-ca4a0dc9168df75c`. Rollback removes the adapter/wiring, checkbox, and T3 tests; T2 remains intact.
 
-- [ ] **T4 — Implement password recovery**
-  - Route: delegated direct. Add only a functional recovery and return flow. Evidence: pending.
+- [ ] **T4 — Implement password recovery** — in progress, split into two dependent request/reset slices to keep each review unit cohesive.
+  - Operational prerequisite: allow the deployed `/reset-password` URL in Supabase Auth Redirect URLs; do not mutate Supabase remotely.
+  - [x] **T4a — Request reset email.** Added a public request form, login link, generic non-enumerating confirmation, and a same-origin fixed callback with no open redirect.
+    - RED: `npx vitest run tests/web/password-recovery.test.ts tests/web/login-redesign.test.ts` — 3 recovery-request tests failed / 12 login tests passed before implementation.
+    - GREEN: same command — 15 tests passed; `npm --workspace turnify-web run typecheck` passed; `npm --workspace turnify-web run build` passed with the existing >500 kB JS chunk advisory.
+    - Commit/boundary: pending. Rollback removes only request-email UI, link, redirect helper, and request contract; reset-update slice remains dependent on these shared pieces.
+  - [ ] **T4b — Validate recovery session and update password.** Add password/confirmation validation, gated `updateUser`, expired-link and success states. Depends on T4a; evidence pending.
+  - Acceptance: both slice contracts, web typecheck, and build pass. No remote Supabase change.
 
 - [ ] **T5 — Implement Google OAuth and callback handling**
   - Route: delegated direct. Wire the provider, callback, role handling, and failure states. Evidence: pending.
@@ -125,7 +132,7 @@ main (7d886839)
 
 ## Progress
 
-- Current task: T4.
+- Current task: T4 (in progress).
 - Completed: T1 and T2a/T2b. T1 prior boundary `e2b97c7`; review A acknowledged under lineage `review-9fecb982b07fbb26`.
 - T2 is being reconstructed from the clean T1 baseline after authorized restoration; no equality claim against the lost draft.
 - Delivery: `stacked-to-main`, no remote push or PR authorization.

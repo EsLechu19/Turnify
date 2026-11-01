@@ -3057,6 +3057,15 @@ select {
 }
 .login-page__remember:focus-within { color: var(--login-action); }
 
+.login-page__recovery-link {
+  color: var(--login-action);
+  font-size: 0.82rem;
+  font-weight: 600;
+  justify-self: start;
+  text-decoration: none;
+}
+.login-page__recovery-link:hover { color: var(--login-navy); text-decoration: underline; }
+
 .login-page__message {
   align-items: center;
   background: rgba(37, 99, 235, 0.08);

@@ -19,6 +19,7 @@ import type {
 import { authStorage, PANEL_SESSION_KEY } from './authStorage';
 import { getSupabase, getSupabaseStorageKey, isSupabaseConfigured } from './supabase';
 import * as live from './live';
+import { buildPasswordResetRedirectUrl, translateRecoveryError } from '../features/auth/passwordRecovery';
 
 export interface BranchLocation {
   name: string;
@@ -79,7 +80,10 @@ export interface AuthRepository {
   signUp(email: string, password: string, name: string, businessName?: string): Promise<SignUpResult>;
   restore(): Promise<AuthSession | null>;
   signOut(): void;
+  requestPasswordReset(email: string): Promise<PasswordRecoveryResult>;
 }
+
+export type PasswordRecoveryResult = { ok: true } | { ok: false; message: string };
 
 export const panelRepository: PanelRepository = {
   business: live.fetchBusiness,
@@ -151,6 +155,22 @@ function toPanelSession(email: string, profile: PanelProfile): AuthSession {
  * `cliente` has no panel.
  */
 export const authRepository: AuthRepository = {
+  async requestPasswordReset(email) {
+    if (!isSupabaseConfigured()) {
+      return { ok: false, message: 'El panel no está disponible: falta configurar Supabase.' };
+    }
+    const redirectTo = buildPasswordResetRedirectUrl(window.location.origin);
+    if (!redirectTo) return { ok: false, message: 'No pudimos preparar el enlace de recuperación.' };
+
+    try {
+      const { error } = await getSupabase().auth.resetPasswordForEmail(email.trim(), { redirectTo: redirectTo });
+      if (error) return { ok: false, message: translateRecoveryError(error.message) };
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: translateRecoveryError(error instanceof Error ? error.message : undefined) };
+    }
+  },
+
   async signIn(email, password, rememberMe = true) {
     if (!isSupabaseConfigured()) {
       return { ok: false, message: 'El panel no está disponible: falta configurar Supabase.' };

@@ -6,6 +6,7 @@ import { AccountPage } from '@/features/account/AccountPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { HistoryPage } from '@/features/history/HistoryPage';
 import { LoginPage } from '@/features/auth/LoginPage';
+import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage';
 import { RegisterPage } from '@/features/auth/RegisterPage';
 import { ServicesPage } from '@/features/services/ServicesPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
@@ -17,6 +18,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route element={<CustomerPublicPage />} path="/t/:businessCode" />
+      <Route element={<ForgotPasswordPage />} path="/forgot-password" />
       <Route element={<RedirectIfAuthenticated />}>
         <Route element={<LoginPage />} path="/login" />
         <Route element={<RegisterPage />} path="/register" />

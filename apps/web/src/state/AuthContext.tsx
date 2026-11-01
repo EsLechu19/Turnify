@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 
-import { authRepository } from '@/data/repositories';
+import { authRepository, type PasswordRecoveryResult } from '@/data/repositories';
 import type { AuthSession } from '@/data/types';
 
 /**
@@ -80,6 +80,7 @@ interface AuthContextValue extends AuthState {
   refreshProfile: () => Promise<void>;
   signOut: () => void;
   clearError: () => void;
+  requestPasswordReset: (email: string) => Promise<PasswordRecoveryResult>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -149,10 +150,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const clearError = useCallback(() => dispatch({ type: 'error-cleared' }), []);
+  const requestPasswordReset = useCallback((email: string) => authRepository.requestPasswordReset(email), []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ ...state, signIn, signUp, refreshProfile, signOut, clearError }),
-    [state, signIn, signUp, refreshProfile, signOut, clearError],
+    () => ({ ...state, signIn, signUp, refreshProfile, signOut, clearError, requestPasswordReset }),
+    [state, signIn, signUp, refreshProfile, signOut, clearError, requestPasswordReset],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
