@@ -111,10 +111,12 @@ describe('branded web login', () => {
 
   it('toggles password visibility with an accessible, stateful control', () => {
     expect(login).toContain('showPassword');
-    expect(login).toContain("showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'");
-    expect(login).toContain('aria-pressed={showPassword}');
-    expect(login).toContain("type={showPassword ? 'text' : 'password'}");
-    expect(login).toContain("name={showPassword ? 'eye-slash' : 'eye'}");
+    expect(login).toContain('getPasswordToggleProps(showPassword)');
+    expect(login).toContain('aria-label={passwordToggle.label}');
+    expect(login).toContain('aria-pressed={passwordToggle.pressed}');
+    expect(login).toContain('type={passwordToggle.inputType}');
+    expect(login).toContain('setShowPassword(togglePasswordVisibility)');
+    expect(login).toContain('name={passwordToggle.iconName}');
   });
 
   it('keeps an alert slot and marks invalid credentials on the related fields', () => {

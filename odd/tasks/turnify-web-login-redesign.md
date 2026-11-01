@@ -105,8 +105,15 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - Runtime harness: N/A — live OAuth requires external Google/Supabase credentials and redirect allowlists, which this task is explicitly not authorized to change.
   - Commit/boundary: `52a62633853f58c618c3b4780297ed703325837d` (`feat(auth): habilita el acceso con Google`), 197 authored changed lines before this task-doc follow-up; local boundary `codex/turnify-web-login-google-oauth`, target `main` after T4b. Rollback removes the Google button, repository/context method, callback route/page, helper, and OAuth contract without reverting email/password or recovery.
 
-- [ ] **T6 — Verify accessibility and responsive behavior**
-  - Route: delegated direct verification/refinement. Verify semantics, keyboard/focus order, reduced motion, and representative mobile/tablet/desktop layouts. Evidence: pending.
+- [x] **T6 — Verify accessibility and responsive behavior** — completed; no reproduced product defect required a fix.
+  - T5 parent verification: confirmed 23/23 focused OAuth/login/recovery tests on `dcaba86`.
+  - Browser QA (parent-observed in local IAB, no screenshots retained): desktop showed the 60/40 shell and barber panel; 390×844 mobile showed the single-column layout while retaining the brand, benefits, and form hierarchy; Spanish copy and accessible labels/links/checkboxes were present.
+  - Interactions observed: password visibility changed input type and dynamic accessible label in both directions; Remember me changed to unchecked; `/forgot-password` exposed an accessible email form with submit disabled while empty; `/reset-password` without recovery showed an invalid/expired-link state; `/auth/callback` without a session showed an error and return link. No OAuth was started and no form was submitted.
+  - Keyboard traversal, an authenticated error alert, and live pending/loading state were not exercised interactively to avoid submitting credentials or triggering external auth. Existing login contracts cover focus-visible, reserved alert slot, busy/spinner and disabled conditions. No screenshots were captured.
+  - Added an observable password-toggle state regression (not source-string-only): RED was observed because the new `passwordVisibility` module did not yet exist; after extracting the state transition and rendered input/ARIA/icon props, the test passed. A first integration-harness attempt also exposed that root Vitest aliases `@` to the mobile app; the final focused regression avoids changing global test alias behavior.
+  - GREEN: `npx vitest run tests/web/login-password-toggle.test.ts tests/web/login-redesign.test.ts tests/web/google-oauth.test.ts tests/web/password-recovery.test.ts` — 4 files / 24 tests passed; `npm --workspace turnify-web run typecheck` passed; `npm --workspace turnify-web run build` passed with the existing >500 kB JS chunk advisory.
+  - Runtime boundary: local browser QA only; no credentials, form submissions, OAuth, or external-service changes. Rollback removes the extracted password-visibility helper and focused regression and restores inline toggle props; no auth flow behavior changes.
+  - Commit/boundary: pending on local branch `codex/turnify-web-login-qa`; no push/PR. Demo remains deferred.
 
 - [ ] **T7 — Package and publish with Sites**
   - Route: delegated direct preparation plus parent-owned Sites calls.
@@ -148,11 +155,11 @@ main (7d886839)
 
 ## Progress
 
-- Current task: T6 (pending).
+- Current task: T7 (next).
 - Completed: T1, T2a/T2b, T3, T4a/T4b, and T5. Parent spot-check confirmed T4 recovery contract at 19/19. T1 prior boundary `e2b97c7`; review A acknowledged under lineage `review-9fecb982b07fbb26`.
 - T2 is being reconstructed from the clean T1 baseline after authorized restoration; no equality claim against the lost draft.
 - Delivery: `stacked-to-main`, no remote push or PR authorization. T4a and T4b are local commits only; no Supabase remote configuration was changed.
 
 ## Next step
 
-Continue with T6 accessibility/responsive QA. Keep demo deferred and do not publish until the authorized Sites slice (T7).
+Proceed to T7 Sites packaging/publication only with its existing authorization. Keep demo deferred.

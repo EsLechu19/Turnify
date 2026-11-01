@@ -12,6 +12,7 @@ import { Button } from '@/components/common';
 import { authStorage } from '@/data/authStorage';
 import { isSupabaseConfigured } from '@/data/supabase';
 import { useAuth } from '@/state/AuthContext';
+import { getPasswordToggleProps, togglePasswordVisibility } from './passwordVisibility';
 
 export function LoginPage() {
   const { signIn, signInWithGoogle, error, pending, clearError } = useAuth();
@@ -21,6 +22,7 @@ export function LoginPage() {
   const [googlePending, setGooglePending] = useState(false);
   const [rememberMe, setRememberMe] = useState(() => authStorage.getPersistenceMode() === 'persistent');
   const [persistenceWarning, setPersistenceWarning] = useState<string | null>(null);
+  const passwordToggle = getPasswordToggleProps(showPassword);
   const bounceMessage = (useLocation().state as { message?: string } | null)?.message;
   const credentialsInvalid = error === 'Correo o contraseña incorrectos.';
 
@@ -108,18 +110,18 @@ export function LoginPage() {
                   setPassword(event.target.value);
                 }}
                 placeholder="Ingresa tu contraseña"
-                type={showPassword ? 'text' : 'password'}
+                type={passwordToggle.inputType}
                 value={password}
               />
               <button
-                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                aria-pressed={showPassword}
+                aria-label={passwordToggle.label}
+                aria-pressed={passwordToggle.pressed}
                 className="login-page__password-toggle"
                 disabled={pending}
-                onClick={() => setShowPassword((visible) => !visible)}
+                onClick={() => setShowPassword(togglePasswordVisibility)}
                 type="button"
               >
-                <Icon name={showPassword ? 'eye-slash' : 'eye'} size={16} />
+                <Icon name={passwordToggle.iconName} size={16} />
               </button>
             </span>
           </label>
