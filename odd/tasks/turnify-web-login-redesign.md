@@ -91,7 +91,7 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
     - RED: focused recovery/login test run — 3 reset-flow tests failed / 15 request/login tests passed before implementation.
     - GREEN: `npx vitest run tests/web/password-recovery.test.ts tests/web/login-redesign.test.ts` — 18 passed; `npm --workspace turnify-web run typecheck` passed; `npm --workspace turnify-web run build` passed with the existing >500 kB JS chunk advisory.
     - TDD follow-up RED: 2 new accessibility/recovery-restore contract failures / 16 passed; GREEN after change: 19 passed. Added field-error associations, handling for provider rate-limit codes, and prevented panel-role restore from discarding a valid recovery session. Latest focused test/typecheck/build all pass with the same chunk advisory.
-    - Functional commit: `fcfd51d` (`feat(auth): habilita el restablecimiento de contraseña`), 220 authored changed lines; T4b follow-up commit and final branch-boundary documentation pending. Target `main` after T4a. Rollback removes the update page, password-update/session gate, and reset contract; T4a request flow remains available.
+    - Commits: `fcfd51d` (`feat(auth): habilita el restablecimiento de contraseña`) + `525df1c` (`fix(auth): refuerza la sesión de recuperación`), 261 authored changed lines total; local final boundary `codex/turnify-web-login-recovery` will point to the documented final commit. Target `main` after T4a. Rollback removes the update page, password-update/session gate, and reset contract; T4a request flow remains available.
   - Acceptance: both slice contracts, web typecheck, and build pass. No remote Supabase change.
 
 - [ ] **T5 — Implement Google OAuth and callback handling**
@@ -118,7 +118,7 @@ main (7d886839)
         └── PR 3: T2a shell (`0347a64`, 269 authored lines; branch `codex/turnify-web-login-parity-shell`) ── merge after PR 2
               └── PR 4: T2b accessible form states (`62d4e1f` + task-doc follow-up; 213+ authored lines; local branch `codex/turnify-web-login-parity`) ── merge after T2a
             └── PR 5: T4a reset request (`0a8d0cc`, 216 authored lines; local branch `codex/turnify-web-login-recovery-request`) ── merge after T2b and T3
-                  └── PR 6: T4b password update (`fcfd51d`, 220 authored lines; local branch `codex/turnify-web-login-recovery`) ── merge after T4a
+                  └── PR 6: T4b password update (`fcfd51d` + `525df1c` + slice documentation, 261+ authored lines; local branch `codex/turnify-web-login-recovery`) ── merge after T4a
 ```
 
 1. **PR 1 — Initial branded login, A**
