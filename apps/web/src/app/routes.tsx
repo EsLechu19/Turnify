@@ -7,6 +7,7 @@ import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { HistoryPage } from '@/features/history/HistoryPage';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage';
+import { GoogleOAuthCallbackPage } from '@/features/auth/GoogleOAuthCallbackPage';
 import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage';
 import { RegisterPage } from '@/features/auth/RegisterPage';
 import { ServicesPage } from '@/features/services/ServicesPage';
@@ -19,6 +20,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route element={<CustomerPublicPage />} path="/t/:businessCode" />
+      <Route element={<GoogleOAuthCallbackPage />} path="/auth/callback" />
       <Route element={<ForgotPasswordPage />} path="/forgot-password" />
       <Route element={<ResetPasswordPage />} path="/reset-password" />
       <Route element={<RedirectIfAuthenticated />}>

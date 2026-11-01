@@ -14,10 +14,11 @@ import { isSupabaseConfigured } from '@/data/supabase';
 import { useAuth } from '@/state/AuthContext';
 
 export function LoginPage() {
-  const { signIn, error, pending, clearError } = useAuth();
+  const { signIn, signInWithGoogle, error, pending, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [googlePending, setGooglePending] = useState(false);
   const [rememberMe, setRememberMe] = useState(() => authStorage.getPersistenceMode() === 'persistent');
   const [persistenceWarning, setPersistenceWarning] = useState<string | null>(null);
   const bounceMessage = (useLocation().state as { message?: string } | null)?.message;
@@ -33,6 +34,13 @@ export function LoginPage() {
     }
 
     await signIn(email, password, rememberMe);
+  }
+
+  async function handleGoogleSignIn() {
+    if (pending || !isSupabaseConfigured()) return;
+    setGooglePending(true);
+    const started = await signInWithGoogle(rememberMe);
+    if (!started) setGooglePending(false);
   }
 
   return (
@@ -156,7 +164,10 @@ export function LoginPage() {
           </div>
 
           <Button disabled={!canSubmit} icon={pending ? undefined : 'arrow-right'} size="lg" type="submit">
-            {pending ? <><span aria-hidden="true" className="login-page__spinner" />Iniciando sesión…</> : 'Iniciar sesión'}
+            {pending && !googlePending ? <><span aria-hidden="true" className="login-page__spinner" />Iniciando sesión…</> : 'Iniciar sesión'}
+          </Button>
+          <Button className="login-page__google-button" disabled={pending || !isSupabaseConfigured()} onClick={handleGoogleSignIn} size="lg" type="button" variant="secondary">
+            {googlePending ? <><span aria-hidden="true" className="login-page__spinner login-page__spinner--dark" />Conectando con Google…</> : 'Continuar con Google'}
           </Button>
         </form>
 

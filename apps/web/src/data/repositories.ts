@@ -20,6 +20,7 @@ import { authStorage, PANEL_SESSION_KEY } from './authStorage';
 import { getSupabase, getSupabaseStorageKey, isSupabaseConfigured } from './supabase';
 import * as live from './live';
 import { buildPasswordResetRedirectUrl, translateRecoveryError } from '../features/auth/passwordRecovery';
+import { buildGoogleOAuthRedirectUrl } from '../features/auth/googleOAuth';
 
 export interface BranchLocation {
   name: string;
@@ -80,6 +81,7 @@ export interface AuthRepository {
   signUp(email: string, password: string, name: string, businessName?: string): Promise<SignUpResult>;
   restore(): Promise<AuthSession | null>;
   signOut(): void;
+  startGoogleOAuth(rememberMe: boolean): Promise<PasswordRecoveryResult>;
   requestPasswordReset(email: string): Promise<PasswordRecoveryResult>;
   updatePassword(password: string): Promise<PasswordRecoveryResult>;
   subscribeToPasswordRecovery(listener: (active: boolean) => void): () => void;
@@ -175,6 +177,28 @@ function watchPasswordRecovery(): void {
  * `cliente` has no panel.
  */
 export const authRepository: AuthRepository = {
+  async startGoogleOAuth(rememberMe) {
+    if (!isSupabaseConfigured()) {
+      return { ok: false, message: 'El panel no está disponible: falta configurar Supabase.' };
+    }
+    const redirectTo = buildGoogleOAuthRedirectUrl(window.location.origin);
+    if (!redirectTo) return { ok: false, message: 'No pudimos preparar el acceso con Google.' };
+
+    const storageKey = getSupabaseStorageKey();
+    authStorage.setManagedKeys([...(storageKey ? [storageKey] : []), PANEL_SESSION_KEY]);
+    if (!authStorage.setPersistenceMode(rememberMe ? 'persistent' : 'session')) {
+      return { ok: false, message: 'No pudimos cambiar la duración de la sesión en este navegador.' };
+    }
+
+    try {
+      const { error } = await getSupabase().auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
+      if (error) return { ok: false, message: translateSupabaseAuthError(error.message) };
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: translateSupabaseAuthError(error instanceof Error ? error.message : undefined) };
+    }
+  },
+
   async requestPasswordReset(email) {
     if (!isSupabaseConfigured()) {
       return { ok: false, message: 'El panel no está disponible: falta configurar Supabase.' };

@@ -32,7 +32,7 @@ describe('branded web login', () => {
     expect(login).toContain('bounceMessage');
     expect(login).toContain('isSupabaseConfigured()');
     expect(login).toContain('to="/register"');
-    expect(login).not.toMatch(/Google|OAuth|forgot password|reset password/i);
+    expect(login).not.toMatch(/forgot password|reset password/i);
   });
 
   it('uses the exact Turnify palette through login-only aliases', () => {

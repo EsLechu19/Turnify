@@ -3065,6 +3065,30 @@ select {
   text-decoration: none;
 }
 .login-page__recovery-link:hover { color: var(--login-navy); text-decoration: underline; }
+.login-page__form button.login-page__google-button {
+  background: #FFFFFF;
+  border-color: var(--login-border);
+  color: var(--login-navy);
+}
+.login-page__form button.login-page__google-button:hover:not(:disabled) {
+  background: var(--login-background);
+  border-color: var(--login-action);
+}
+.login-page__spinner--dark { border-color: rgba(13, 27, 76, 0.22); border-top-color: var(--login-action); }
+
+.google-callback {
+  align-items: center;
+  background: var(--login-background);
+  color: var(--login-navy);
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+.google-callback__panel { background: #FFFFFF; border: 1px solid var(--login-border); border-radius: 16px; max-width: 440px; padding: 32px; }
+.google-callback__panel h1 { font-family: var(--login-font-display); font-size: 1.8rem; margin: 0 0 12px; }
+.google-callback__panel p { color: rgba(13, 27, 76, 0.72); }
+.google-callback__panel a { color: var(--login-action); font-weight: 600; }
 
 .login-page__message {
   align-items: center;

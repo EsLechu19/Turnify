@@ -85,6 +85,7 @@ interface AuthContextValue extends AuthState {
   passwordRecoveryStatus: 'checking' | 'ready' | 'invalid';
   requestPasswordReset: (email: string) => Promise<PasswordRecoveryResult>;
   updatePassword: (password: string) => Promise<PasswordRecoveryResult>;
+  signInWithGoogle: (rememberMe: boolean) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -175,6 +176,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearError = useCallback(() => dispatch({ type: 'error-cleared' }), []);
   const requestPasswordReset = useCallback((email: string) => authRepository.requestPasswordReset(email), []);
   const updatePassword = useCallback((password: string) => authRepository.updatePassword(password), []);
+  const signInWithGoogle = useCallback(async (rememberMe: boolean) => {
+    dispatch({ type: 'submitting' });
+    const result = await authRepository.startGoogleOAuth(rememberMe);
+    if (!result.ok) {
+      dispatch({ type: 'failed', message: result.message });
+      return false;
+    }
+    return true;
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -188,8 +198,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       passwordRecoveryStatus,
       requestPasswordReset,
       updatePassword,
+      signInWithGoogle,
     }),
-    [state, signIn, signUp, refreshProfile, signOut, clearError, recoverySessionActive, passwordRecoveryStatus, requestPasswordReset, updatePassword],
+    [state, signIn, signUp, refreshProfile, signOut, clearError, recoverySessionActive, passwordRecoveryStatus, requestPasswordReset, updatePassword, signInWithGoogle],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
