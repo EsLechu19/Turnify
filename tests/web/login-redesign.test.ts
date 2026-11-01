@@ -26,7 +26,7 @@ describe('branded web login', () => {
   });
 
   it('preserves password sign-in, return and configuration states, and registration', () => {
-    expect(login).toContain('signIn(email, password)');
+    expect(login).toContain('signIn(email, password, rememberMe)');
     expect(login).toContain('pending');
     expect(login).toContain('role="alert"');
     expect(login).toContain('bounceMessage');
@@ -133,5 +133,14 @@ describe('branded web login', () => {
     expect(loginStyles).toContain('.login-page__spinner');
     expect(loginStyles).toContain(':focus-visible');
     expect(loginStyles).toContain('prefers-reduced-motion');
+  });
+
+  it('offers Remember me by default and submits the selected persistence mode', () => {
+    expect(login).toContain('Recordarme');
+    expect(login).toContain('type="checkbox"');
+    expect(login).toContain('checked={rememberMe}');
+    expect(login).toContain('setRememberMe');
+    expect(login).toContain('signIn(email, password, rememberMe)');
+    expect(loginStyles).toContain('.login-page__remember');
   });
 });

@@ -36,6 +36,7 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
 - `apps/web/src/features/auth/LoginPage.tsx`
 - `apps/web/src/styles/app.css`
 - `apps/web/src/styles/tokens.css` only if existing tokens are insufficient
+- T3 storage wiring in `apps/web/src/data/authStorage.ts`, `apps/web/src/data/supabase.ts`, `apps/web/src/data/repositories.ts`, `apps/web/src/state/AuthContext.tsx`, and `tests/web/auth-storage.test.ts`
 - `apps/web/public/` for the original barber-shop visual asset
 - `tests/web/login-redesign.test.ts`
 - Sites hosting metadata and workflow files required for publication
@@ -60,19 +61,23 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - [x] **T2a — Build the editorial responsive shell.** Desktop 60/40 layout, brand/value panel with three benefits, compact mobile brand header, project palette aliases, and locally bundled Manrope/Inter typography.
     - RED: `npx vitest run tests/web/login-redesign.test.ts` — 3 failed / 5 passed on the shell contract.
     - GREEN: focused test 8 passed; web typecheck passed; web build passed (Vite >500 kB JS chunk advisory).
-    - Commit/boundary: `0347a64` (`codex/turnify-web-login-parity-shell`), 269 authored changed lines; stacked after T1, target `main` after the prior slice. No remote push or PR.
+    - Commit/boundary: `0347a64` (`codex/turnify-web-login-parity-shell`), 269 authored changed lines; stacked after T1, target `main` after the prior slice. Reviewed/acknowledged: `review-b22667178057dd66`. No remote push or PR.
     - Rollback removes only T2a brand shell, aliases/fonts, and its contract. `npm audit` reported two high-severity advisories; no audit fixes were applied.
   - [x] **T2b — Add accessible form states.** Password visibility, accessible field icons and credential errors, reserved alert slot, loading spinner/disabled state/`aria-busy`, and visible keyboard focus.
     - RED: `npx vitest run tests/web/login-redesign.test.ts` — 3 failed / 8 passed on the form-state contract.
     - GREEN: focused test 11 passed; web typecheck passed; web build passed (same Vite chunk-size advisory).
-    - Functional commit: `62d4e1f752f2f998b2f68f4f0e4696b560bcad8f`; 213 authored changed lines (168 additions + 45 deletions). Local T2b boundary: `codex/turnify-web-login-parity`; documentation follow-up remains in this slice.
+    - Functional commit: `62d4e1f752f2f998b2f68f4f0e4696b560bcad8f`; 213 authored changed lines (168 additions + 45 deletions). Local T2b boundary: `codex/turnify-web-login-parity`; reviewed/acknowledged: `review-5a6eaae0deee82f1`; documentation follow-up remains in this slice.
+    - Advisory: the show/hide password toggle lacks an interactive behavior test; track it for T6.
     - Rollback removes the accessible form-state behavior and its tests; T2a remains independently usable.
   - Exclusions: Google OAuth, recovery, persistent Remember me, success delay, and demo. Demo remains deferred and must not be rendered.
   - Acceptance: each slice's focused contract, web typecheck, and build pass independently; preserve auth behavior and shared registration styling.
   - Evidence: reconstruction from the clean T1 baseline; the previous uncommitted draft was lost during its authorized restoration and is not used as equality evidence.
 
-- [ ] **T3 — Implement persistent Remember me**
-  - Route: delegated direct. Use a real supported session persistence behavior, not a decorative checkbox. Evidence: pending.
+- [x] **T3 — Implement persistent Remember me**
+  - Checked by default selects `localStorage` for Supabase and panel session; unchecked selects `sessionStorage`. Mode changes migrate and remove the alternate copy; restore uses the selected store with safe legacy fallback; sign-out clears session keys in both stores.
+  - RED: requested Vitest command failed 6 tests (5 storage behaviors + login checkbox contract) before implementation.
+  - GREEN: 18 tests passed; web typecheck passed; web build passed with the existing >500 kB JS chunk advisory. No interactive checkbox test was added without a UI test harness; defer it to T6.
+  - Boundary: commit and line count will be recorded after commit; target local boundary `codex/turnify-web-login-remember`, stacked after T2. Rollback removes the adapter/wiring, checkbox, and T3 tests; T2 remains intact.
 
 - [ ] **T4 — Implement password recovery**
   - Route: delegated direct. Add only a functional recovery and return flow. Evidence: pending.
@@ -120,11 +125,11 @@ main (7d886839)
 
 ## Progress
 
-- Current task: T3.
+- Current task: T4.
 - Completed: T1 and T2a/T2b. T1 prior boundary `e2b97c7`; review A acknowledged under lineage `review-9fecb982b07fbb26`.
 - T2 is being reconstructed from the clean T1 baseline after authorized restoration; no equality claim against the lost draft.
 - Delivery: `stacked-to-main`, no remote push or PR authorization.
 
 ## Next step
 
-Implement persistent Remember me behavior (T3).
+Implement password recovery (T4), only once the backend flow is functional.

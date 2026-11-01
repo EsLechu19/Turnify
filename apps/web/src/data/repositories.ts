@@ -16,7 +16,8 @@ import type {
   StaffRecord,
   TeamMember,
 } from './types';
-import { getSupabase, isSupabaseConfigured } from './supabase';
+import { authStorage, PANEL_SESSION_KEY } from './authStorage';
+import { getSupabase, getSupabaseStorageKey, isSupabaseConfigured } from './supabase';
 import * as live from './live';
 
 export interface BranchLocation {
@@ -74,7 +75,7 @@ export type SignUpResult =
   | { ok: false; message: string };
 
 export interface AuthRepository {
-  signIn(email: string, password: string): Promise<SignInResult>;
+  signIn(email: string, password: string, rememberMe?: boolean): Promise<SignInResult>;
   signUp(email: string, password: string, name: string, businessName?: string): Promise<SignUpResult>;
   restore(): Promise<AuthSession | null>;
   signOut(): void;
@@ -105,22 +106,12 @@ export const historyRepository: HistoryRepository = {
   list: live.fetchHistory,
 };
 
-const SESSION_KEY = 'turnify.panel.session';
-
 function persist(session: AuthSession): void {
-  try {
-    window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  } catch {
-    /* session stays in memory only */
-  }
+  authStorage.storageAdapter.setItem(PANEL_SESSION_KEY, JSON.stringify(session));
 }
 
 function forget(): void {
-  try {
-    window.localStorage.removeItem(SESSION_KEY);
-  } catch {
-    /* storage unavailable (private mode); the in-memory session still drops */
-  }
+  authStorage.storageAdapter.removeItem(PANEL_SESSION_KEY);
 }
 
 type PanelProfile = { nombre: string | null; rol: 'cliente' | 'admin' | 'personal' };
@@ -160,9 +151,18 @@ function toPanelSession(email: string, profile: PanelProfile): AuthSession {
  * `cliente` has no panel.
  */
 export const authRepository: AuthRepository = {
-  async signIn(email, password) {
+  async signIn(email, password, rememberMe = true) {
     if (!isSupabaseConfigured()) {
       return { ok: false, message: 'El panel no está disponible: falta configurar Supabase.' };
+    }
+
+    const storageKey = getSupabaseStorageKey();
+    authStorage.setManagedKeys([...(storageKey ? [storageKey] : []), PANEL_SESSION_KEY]);
+    if (!authStorage.setPersistenceMode(rememberMe ? 'persistent' : 'session')) {
+      return {
+        ok: false,
+        message: 'No pudimos cambiar la duración de la sesión en este navegador. Revisa su configuración de almacenamiento.',
+      };
     }
 
     const supabase = getSupabase();
@@ -249,6 +249,12 @@ export const authRepository: AuthRepository = {
 
   signOut() {
     forget();
-    if (isSupabaseConfigured()) void getSupabase().auth.signOut();
+    if (isSupabaseConfigured()) {
+      void getSupabase().auth.signOut().catch(() => undefined).finally(() => {
+        authStorage.clearManagedSessions();
+      });
+    } else {
+      authStorage.clearManagedSessions();
+    }
   },
 };

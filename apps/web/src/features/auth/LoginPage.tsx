@@ -9,6 +9,7 @@ import '@fontsource/manrope/700.css';
 
 import { Icon } from '@/components/Icon';
 import { Button } from '@/components/common';
+import { authStorage } from '@/data/authStorage';
 import { isSupabaseConfigured } from '@/data/supabase';
 import { useAuth } from '@/state/AuthContext';
 
@@ -17,6 +18,8 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => authStorage.getPersistenceMode() === 'persistent');
+  const [persistenceWarning, setPersistenceWarning] = useState<string | null>(null);
   const bounceMessage = (useLocation().state as { message?: string } | null)?.message;
   const credentialsInvalid = error === 'Correo o contraseña incorrectos.';
 
@@ -29,7 +32,7 @@ export function LoginPage() {
       return;
     }
 
-    await signIn(email, password);
+    await signIn(email, password, rememberMe);
   }
 
   return (
@@ -113,11 +116,35 @@ export function LoginPage() {
             </span>
           </label>
 
+          <label className="login-page__remember">
+            <input
+              checked={rememberMe}
+              onChange={(event) => {
+                const nextValue = event.target.checked;
+                const nextMode = nextValue ? 'persistent' : 'session';
+                if (authStorage.setPersistenceMode(nextMode)) {
+                  setRememberMe(nextValue);
+                  setPersistenceWarning(null);
+                } else {
+                  setRememberMe(authStorage.getPersistenceMode() === 'persistent');
+                  setPersistenceWarning('No pudimos cambiar la duración de la sesión en este navegador.');
+                }
+              }}
+              type="checkbox"
+            />
+            <span>Recordarme</span>
+          </label>
+
           <div aria-atomic="true" aria-live="polite" className="login-page__alerts">
             {error ? (
               <p className="login-page__message login-page__message--error" id={credentialsInvalid ? 'login-credentials-error' : undefined} role="alert">
                 <Icon name="info" size={15} />
                 <span>{error}</span>
+              </p>
+            ) : persistenceWarning ? (
+              <p className="login-page__message login-page__message--error" role="alert">
+                <Icon name="info" size={15} />
+                <span>{persistenceWarning}</span>
               </p>
             ) : bounceMessage ? (
               <p className="login-page__message login-page__message--success" role="status">

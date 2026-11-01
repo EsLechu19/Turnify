@@ -15,7 +15,7 @@ import type { AuthSession } from '@/data/types';
  * Panel session.
  *
  * `authRepository` decides who is who; this provider only holds the result and
- * mirrors it to `localStorage`, so a reload keeps the user signed in. Swapping
+ * mirrors it to the selected browser storage, so a reload keeps the user signed in. Swapping
  * the mock for Supabase means changing the repository body, not this file.
  */
 
@@ -75,7 +75,7 @@ function reducer(state: AuthState, action: AuthAction): AuthState {
 }
 
 interface AuthContextValue extends AuthState {
-  signIn: (email: string, password: string) => Promise<boolean>;
+  signIn: (email: string, password: string, rememberMe: boolean) => Promise<boolean>;
   signUp: (email: string, password: string, name: string, businessName?: string) => Promise<'authenticated' | 'confirm-email' | string>;
   refreshProfile: () => Promise<void>;
   signOut: () => void;
@@ -98,10 +98,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string, rememberMe: boolean) => {
     dispatch({ type: 'submitting' });
 
-    const result = await authRepository.signIn(email, password);
+    const result = await authRepository.signIn(email, password, rememberMe);
 
     if (result.ok) {
       dispatch({ type: 'succeeded', session: result.session });

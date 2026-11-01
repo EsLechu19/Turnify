@@ -1,5 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
+import { authStorage, PANEL_SESSION_KEY } from './authStorage';
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
@@ -32,8 +34,19 @@ export function getSupabase(): SupabaseClient {
   }
 
   if (!client) {
-    client = createClient(supabaseUrl!.trim(), supabaseAnonKey!.trim());
+    const projectRef = new URL(supabaseUrl!.trim()).hostname.split('.')[0];
+    const storageKey = `sb-${projectRef}-auth-token`;
+    authStorage.setManagedKeys([storageKey, PANEL_SESSION_KEY]);
+    client = createClient(supabaseUrl!.trim(), supabaseAnonKey!.trim(), {
+      auth: { storage: authStorage.storageAdapter, storageKey },
+    });
   }
 
   return client;
+}
+
+export function getSupabaseStorageKey(): string | null {
+  if (!isSupabaseConfigured()) return null;
+  const projectRef = new URL(supabaseUrl!.trim()).hostname.split('.')[0];
+  return `sb-${projectRef}-auth-token`;
 }
