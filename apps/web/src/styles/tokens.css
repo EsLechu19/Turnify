@@ -51,6 +51,16 @@
   --font-sans: "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
   --font-mono: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
 
+  --login-navy: #0D1B4C;
+  --login-action: #2563EB;
+  --login-background: #F7F9FC;
+  --login-border: #D7DEEA;
+  --login-success: #16A34A;
+  --login-error: #DC2626;
+  --login-accent: #E8B14C;
+  --login-font-display: "Manrope", var(--font-sans);
+  --login-font-interface: "Inter", var(--font-sans);
+
   --sidebar-width: 264px;
   --topbar-height: 72px;
 

@@ -55,14 +55,30 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - Slice B/C evidence: 5 focused tests passed; typecheck passed; build passed with the same advisory. User-requested palette and Spanish form-copy corrections are included.
   - Commits: A `95e021277713e0b3763c2701b56ea8b84455add4`; B `d3267c0629d557115a676f867a132fa7691eec4a`.
 
-- [ ] **T2 — Validate responsive presentation and accessibility**
-  - Route: delegated direct verification/refinement.
-  - Trigger evidence: browser-facing QA and build execution are delegated actions under project rules.
-  - Verify form labels, focus visibility, pending/disabled state, alert semantics, and responsive behavior.
-  - Acceptance: focused test, typecheck, build, and visual inspection pass; any limitation is recorded.
-  - Evidence: pending.
+- [ ] **T2 — Match the reference and add local form states**
+  - Route: delegated direct, split into two stacked-to-main work units after one honest slice plan.
+  - [x] **T2a — Build the editorial responsive shell.** Desktop 60/40 layout, brand/value panel with three benefits, compact mobile brand header, project palette aliases, and locally bundled Manrope/Inter typography.
+    - RED: `npx vitest run tests/web/login-redesign.test.ts` — 3 failed / 5 passed on the shell contract.
+    - GREEN: focused test 8 passed; web typecheck passed; web build passed (Vite >500 kB JS chunk advisory).
+    - Boundary: local branch `codex/turnify-web-login-parity-shell`, target `main` after T1; no remote push or PR. Rollback removes only T2a brand shell, aliases/fonts, and its contract.
+  - [ ] **T2b — Add accessible form states.** Password visibility, accessible field icons and credential errors, reserved alert slot, loading spinner/disabled state/`aria-busy`, and visible keyboard focus. No shell changes unless needed for the form state behavior.
+  - Exclusions: Google OAuth, recovery, persistent Remember me, success delay, and demo. Demo remains deferred and must not be rendered.
+  - Acceptance: each slice's focused contract, web typecheck, and build pass independently; preserve auth behavior and shared registration styling.
+  - Evidence: reconstruction from the clean T1 baseline; the previous uncommitted draft was lost during its authorized restoration and is not used as equality evidence.
 
-- [ ] **T3 — Package and publish with Sites**
+- [ ] **T3 — Implement persistent Remember me**
+  - Route: delegated direct. Use a real supported session persistence behavior, not a decorative checkbox. Evidence: pending.
+
+- [ ] **T4 — Implement password recovery**
+  - Route: delegated direct. Add only a functional recovery and return flow. Evidence: pending.
+
+- [ ] **T5 — Implement Google OAuth and callback handling**
+  - Route: delegated direct. Wire the provider, callback, role handling, and failure states. Evidence: pending.
+
+- [ ] **T6 — Verify accessibility and responsive behavior**
+  - Route: delegated direct verification/refinement. Verify semantics, keyboard/focus order, reduced motion, and representative mobile/tablet/desktop layouts. Evidence: pending.
+
+- [ ] **T7 — Package and publish with Sites**
   - Route: delegated direct preparation plus parent-owned Sites calls.
   - Trigger evidence: Sites source preparation/build/package spans hosting metadata and generated output.
   - Create a new private Turnify Site, synchronize source, save a version, and deploy it.
@@ -76,7 +92,9 @@ No push or PR has been created. Each PR targets `main`; PR 2 follows PR 1 after 
 ```text
 main (7d886839)
   └── PR 1: Slice A (95e0212, 371 authored changed lines) ── merge first
-        └── PR 2: Slices B + C (265 authored changed lines) ── merge second
+  └── PR 2: T1 slices B + C (265 authored changed lines) ── merge second
+        └── PR 3: T2a shell (local boundary `codex/turnify-web-login-parity-shell`, SHA pending) ── merge after PR 2
+              └── PR 4: T2b accessible form states (pending ≤400 lines) ── merge after T2a
 ```
 
 1. **PR 1 — Initial branded login, A**
@@ -98,9 +116,10 @@ main (7d886839)
 ## Progress
 
 - Current task: T2.
-- Completed: T1, including the user-requested palette and Spanish-copy correction.
-- Verification: both slices pass focused tests, web typecheck, and web build; visual/browser verification remains for T2.
+- Completed: T1, including the user-requested palette and Spanish-copy correction; prior through `e2b97c7`, review A acknowledged under lineage `review-9fecb982b07fbb26`.
+- T2 is being reconstructed from the clean T1 baseline after authorized restoration; no equality claim against the lost draft.
+- Delivery: `stacked-to-main`, no remote push or PR authorization.
 
 ## Next step
 
-Validate the responsive layout and accessibility behavior (T2).
+Implement and independently verify T2b; follow with T3.

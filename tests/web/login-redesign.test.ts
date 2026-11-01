@@ -8,6 +8,7 @@ const read = (...parts: string[]) => readFileSync(join(root, ...parts), 'utf8');
 
 const login = read('apps', 'web', 'src', 'features', 'auth', 'LoginPage.tsx');
 const styles = read('apps', 'web', 'src', 'styles', 'app.css');
+const tokens = read('apps', 'web', 'src', 'styles', 'tokens.css');
 const loginStyles = styles.slice(
   styles.indexOf('/* ---------- Branded login ---------- */'),
   styles.indexOf('/* ---------- End branded login ---------- */'),
@@ -34,21 +35,16 @@ describe('branded web login', () => {
     expect(login).not.toMatch(/Google|OAuth|forgot password|reset password/i);
   });
 
-  it('uses the exact Turnify reference palette in login-only styles', () => {
-    const palette = [
-      '#0D1B4C',
-      '#2563EB',
-      '#F7F9FC',
-      '#D7DEEA',
-      '#16A34A',
-      '#DC2626',
-      '#E8B14C',
-    ];
-    palette.forEach((color) => expect(loginStyles).toContain(color));
-
+  it('uses the exact Turnify palette through login-only aliases', () => {
+    const colors = ['#0D1B4C', '#2563EB', '#F7F9FC', '#D7DEEA', '#16A34A', '#DC2626', '#E8B14C'];
+    const names = ['navy', 'action', 'background', 'border', 'success', 'error', 'accent'];
+    colors.forEach((color) => expect(tokens).toContain(color));
+    names.forEach((name) => {
+      expect(tokens).toContain(`--login-${name}`);
+      expect(loginStyles).toContain(`var(--login-${name})`);
+    });
     const hexColors = loginStyles.match(/#[\da-f]{3,8}\b/gi) ?? [];
-    const allowedColors = [...palette, '#FFFFFF'];
-    hexColors.forEach((color) => expect(allowedColors).toContain(color.toUpperCase()));
+    hexColors.forEach((color) => expect(['#FFF', '#FFFFFF']).toContain(color.toUpperCase()));
   });
 
   it('shows professional Spanish copy throughout the form panel', () => {
@@ -77,5 +73,39 @@ describe('branded web login', () => {
     expect(styles).toMatch(/\.login-page(?:__[-\w]+)?\s*\{/);
     expect(styles).toContain('.auth {');
     expect(styles).toContain('.auth__panel {');
+  });
+
+  it('renders the editorial brand panel and three barber-focused benefits', () => {
+    expect(login).toContain('login-page__brand-panel');
+    expect(login).toContain('login-page__brand-title');
+    expect(login).toContain('login-page__benefits');
+    expect(login).toContain('Control de turnos');
+    expect(login).toContain('Mejor experiencia');
+    expect(login).toContain('Crecimiento de tu barbería');
+    expect(login).toContain('name="clock"');
+    expect(login).toContain('name="star"');
+    expect(login).toContain('name="chart"');
+  });
+
+  it('uses a 60/40 desktop split and keeps compact brand content on mobile', () => {
+    expect(loginStyles).toMatch(/grid-template-columns:\s*minmax\(0,\s*3fr\)\s+minmax\(0,\s*2fr\)/);
+    expect(loginStyles).toMatch(/@media\s*\(max-width:\s*760px\)[\s\S]*?\.login-page__brand-panel/);
+    expect(loginStyles).not.toMatch(/@media\s*\(max-width:\s*760px\)[\s\S]*?\.login-page__brand-panel\s*\{[^}]*display:\s*none/);
+  });
+
+  it('uses shared palette aliases and locally installed Manrope and Inter fonts', () => {
+    const palette = ['#0D1B4C', '#2563EB', '#F7F9FC', '#D7DEEA', '#16A34A', '#DC2626', '#E8B14C'];
+    const names = ['navy', 'action', 'background', 'border', 'success', 'error', 'accent'];
+    palette.forEach((color) => expect(tokens).toContain(color));
+    names.forEach((name) => expect(tokens).toContain(`--login-${name}`));
+    expect(loginStyles).toContain('var(--login-navy)');
+    expect(loginStyles).toContain('var(--login-action)');
+    expect(loginStyles).toContain('var(--login-background)');
+    expect(loginStyles).toContain('var(--login-border)');
+    expect(loginStyles).toContain('var(--login-success)');
+    expect(loginStyles).toContain('var(--login-error)');
+    expect(loginStyles).toContain('var(--login-accent)');
+    expect(login).toContain("@fontsource/manrope");
+    expect(login).toContain("@fontsource/inter");
   });
 });

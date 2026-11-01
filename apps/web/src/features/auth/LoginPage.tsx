@@ -1,6 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/manrope/600.css';
+import '@fontsource/manrope/700.css';
+
 import { Icon } from '@/components/Icon';
 import { Button } from '@/components/common';
 import { isSupabaseConfigured } from '@/data/supabase';
@@ -26,13 +32,18 @@ export function LoginPage() {
 
   return (
     <main className="login-page">
-      <section aria-label="Turnify for barbershops" className="login-page__visual">
+      <section aria-label="Propuesta de valor de Turnify" className="login-page__visual login-page__brand-panel">
         <img alt="" className="login-page__image" src="/barbershop-login-hero.png" />
         <div className="login-page__visual-content">
           <img alt="" className="login-page__logo" src="/turnify-logo.png" />
           <p className="login-page__brand">TURNIFY <span>FOR BARBERS</span></p>
-          <p className="login-page__statement">Your craft.<br />Your shop.<br /><em>In rhythm.</em></p>
-          <p className="login-page__caption">A better day behind the chair starts here.</p>
+          <h2 className="login-page__brand-title">Tu barbería,<br />en su mejor ritmo.</h2>
+          <p className="login-page__brand-subtitle">Organiza el día con claridad y ofrece una experiencia que invita a volver.</p>
+          <ul className="login-page__benefits">
+            <li><Icon name="clock" size={16} /><span>Control de turnos</span></li>
+            <li><Icon name="star" size={16} /><span>Mejor experiencia</span></li>
+            <li><Icon name="chart" size={16} /><span>Crecimiento de tu barbería</span></li>
+          </ul>
         </div>
         <span aria-hidden="true" className="login-page__visual-index">01 / 03</span>
       </section>
