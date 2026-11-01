@@ -115,14 +115,15 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - Runtime boundary: local browser QA only; no credentials, form submissions, OAuth, or external-service changes. Rollback removes the extracted password-visibility helper and focused regression and restores inline toggle props; no auth flow behavior changes.
   - Commit/boundary: `eb25d74673fcf24498cb2b69adecaf58f5474a27` (`test(auth): cubre el toggle accesible de contraseña`), 78 authored changed lines; branch `codex/turnify-web-login-qa` at this local T6 boundary; no push/PR. Demo remains deferred.
 
-- [ ] **T7 — Package and publish with Sites** — in progress; local preparation only.
+- [x] **T7 — Package and publish with Sites** — completed as an owner-private Site.
   - Route: delegated direct preparation; all Sites registration, source synchronization, versioning, and deployment remain parent-owned.
   - Strategy: buildless static Site containing only a copy of the verified `apps/web/dist` output; do not upload the full repository or include source maps, `.env`, credentials, or source files.
   - Build: `npm --workspace turnify-web run build` passed; Vite emitted its existing advisory for the 1.3 MB minified JS chunk.
   - Prepared isolated source: `C:\Users\esa\.codex\visualizations\2026\11\01\01a19829-9292-7952-9742-d1f6e4908455\turnify-web-login-site` — 68 dist files (64 in `dist/assets`), 4,160,055 bytes total. SHA-256 checks matched every copied dist file to the build output; `dist/index.html` is present.
-  - Configuration: `.openai/hosting.json` contains only `{"static":{"directory":"dist"}}`; no `project_id` was invented. The Site package has no source maps, `.env*` files, or nested Git directory; its only configuration file is the hosting manifest, and its configuration contains no secret-like keys. Public client configuration embedded by Vite was not printed.
-  - Boundary: local branch `codex/turnify-web-login-sites`; no Git remote, Sites tool, `create_site`, credential, source sync, deployment, or PR was used. Waiting for parent-owned Site registration/project ID and publication.
-  - Acceptance remains pending until Sites confirms deployment and returns a live URL.
+  - Configuration: `.openai/hosting.json` was updated atomically with the opaque Sites project ID after registration. The Site package has no source maps, `.env*` files, or copy of the Turnify source repository. Public client configuration embedded by Vite was not printed.
+  - Publication evidence: Sites project `appgprj_6ae7a0a8ae048191a571b8eecffe2943`; pushed source commit `8694317426b77b3c51184512c1c6d60597faf2e4`; saved version `appgprj_6ae7a0a8ae048191a571b8eecffe2943~appgver_df359019ed408191bdedd1accc9ca781`; deployment `appgdep_6ae7a35060bc8191aa6802b0ce34a200` succeeded.
+  - Live URL: `https://turnify-barber-login.esaulechuga1.chatgpt.site`. The Site remains owner-private and opening it shows the expected ChatGPT sign-in gate.
+  - Acceptance passed: Sites confirmed a successful production deployment and returned the live URL.
 
 ## Delivery slices — stacked-to-main
 
@@ -157,11 +158,11 @@ main (7d886839)
 
 ## Progress
 
-- Current task: T7 (next).
-- Completed: T1, T2a/T2b, T3, T4a/T4b, T5, and T6. Parent spot-check confirmed T4 recovery contract at 19/19. T1 prior boundary `e2b97c7`; review A acknowledged under lineage `review-9fecb982b07fbb26`.
+- Current task: feature complete; external Supabase/Google allowlist configuration remains an operational follow-up.
+- Completed: T1, T2a/T2b, T3, T4a/T4b, T5, T6, and T7. Parent spot-check confirmed the final focused suite at 24/24. T1 prior boundary `e2b97c7`; review A acknowledged under lineage `review-9fecb982b07fbb26`.
 - T2 is being reconstructed from the clean T1 baseline after authorized restoration; no equality claim against the lost draft.
 - Delivery: `stacked-to-main`, no remote push or PR authorization. T4a and T4b are local commits only; no Supabase remote configuration was changed.
 
 ## Next step
 
-T7 package is prepared locally. Await parent-owned Sites registration/project ID and publication; keep demo deferred.
+Configure the deployed `/reset-password` and `/auth/callback` URLs in Supabase, enable the Google provider, and add Google's authorized origin/callback before production authentication testing. Demo remains deferred.
