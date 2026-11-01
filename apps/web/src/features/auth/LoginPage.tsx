@@ -25,27 +25,32 @@ export function LoginPage() {
   }
 
   return (
-    <div className="auth">
-      <div className="auth__panel">
-        <header className="auth__head">
-          <img alt="" className="auth__logo" src="/turnify-logo.png" />
-          <div className="auth__names">
-            <strong className="auth__name">Turnify · Barbería</strong>
-            <span className="auth__tagline">Gestión de turnos y barbería</span>
-          </div>
+    <main className="login-page">
+      <section aria-label="Turnify for barbershops" className="login-page__visual">
+        <img alt="" className="login-page__image" src="/barbershop-login-hero.png" />
+        <div className="login-page__visual-content">
+          <img alt="" className="login-page__logo" src="/turnify-logo.png" />
+          <p className="login-page__brand">TURNIFY <span>FOR BARBERS</span></p>
+          <p className="login-page__statement">Your craft.<br />Your shop.<br /><em>In rhythm.</em></p>
+          <p className="login-page__caption">A better day behind the chair starts here.</p>
+        </div>
+        <span aria-hidden="true" className="login-page__visual-index">01 / 03</span>
+      </section>
+
+      <section aria-labelledby="login-title" className="login-page__form-panel">
+        <header className="login-page__header">
+          <Link aria-label="Turnify home" className="login-page__mobile-brand" to="/login">
+            <img alt="" src="/turnify-logo.png" />
+            <span>TURNIFY</span>
+          </Link>
+          <span className="login-page__kicker">BARBERSHOP MANAGEMENT</span>
+          <h1 id="login-title">Sign in to your shop</h1>
+          <p>Welcome back. Let’s get your day moving.</p>
         </header>
 
-        <div className="auth__intro">
-          <span className="eyebrow">Administradores</span>
-          <h1 className="auth__title">Iniciar sesión</h1>
-          <p className="auth__lead muted">
-            Solo administradores. ¿Eres barbero? Opera desde la app móvil.
-          </p>
-        </div>
-
-        <form className="auth__form" onSubmit={handleSubmit}>
-          <label className="field">
-            <span>Correo</span>
+        <form className="login-page__form" onSubmit={handleSubmit}>
+          <label className="login-page__field">
+            <span>Email address</span>
             <input
               autoComplete="email"
               autoFocus
@@ -54,14 +59,14 @@ export function LoginPage() {
                 clearError();
                 setEmail(event.target.value);
               }}
-              placeholder="tu@correo.com"
+              placeholder="you@yourshop.com"
               type="email"
               value={email}
             />
           </label>
 
-          <label className="field">
-            <span>Contraseña</span>
+          <label className="login-page__field">
+            <span>Password</span>
             <input
               autoComplete="current-password"
               disabled={pending}
@@ -69,39 +74,40 @@ export function LoginPage() {
                 clearError();
                 setPassword(event.target.value);
               }}
-              placeholder="Tu contraseña"
+              placeholder="Enter your password"
               type="password"
               value={password}
             />
           </label>
 
           {error ? (
-            <p className="auth__error" role="alert">
+            <p className="login-page__message login-page__message--error" role="alert">
               <Icon name="info" size={15} />
               <span>{error}</span>
             </p>
           ) : bounceMessage ? (
-            <p className="auth__hint muted" role="status">
+            <p className="login-page__message" role="status">
               <Icon name="info" size={15} />
               <span>{bounceMessage}</span>
             </p>
           ) : null}
 
           <Button disabled={!canSubmit} icon="arrow-right" size="lg" type="submit">
-            {pending ? 'Verificando…' : 'Entrar al panel'}
+            {pending ? 'Signing you in…' : 'Sign in'}
           </Button>
         </form>
 
-        <p className="auth__hint muted">
-          ¿Sin barbería? <Link to="/register">Regístrala aquí</Link>
-        </p>
-
         {!isSupabaseConfigured() ? (
-          <p className="auth__hint muted">
-            Sin conexión al servidor: configura Supabase para entrar con una cuenta real.
+          <p className="login-page__configuration" role="status">
+            Server connection is unavailable. Configure Supabase to sign in with an account.
           </p>
         ) : null}
-      </div>
-    </div>
+
+        <footer className="login-page__footer">
+          <span>New to Turnify?</span> <Link to="/register">Register your barbershop</Link>
+        </footer>
+        <p className="login-page__access-note">For shop administrators. Barbers can manage their day in the mobile app.</p>
+      </section>
+    </main>
   );
 }
