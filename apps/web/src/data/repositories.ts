@@ -81,6 +81,9 @@ export interface AuthRepository {
   restore(): Promise<AuthSession | null>;
   signOut(): void;
   requestPasswordReset(email: string): Promise<PasswordRecoveryResult>;
+  updatePassword(password: string): Promise<PasswordRecoveryResult>;
+  subscribeToPasswordRecovery(listener: (active: boolean) => void): () => void;
+  isPasswordRecoverySessionActive(): boolean;
 }
 
 export type PasswordRecoveryResult = { ok: true } | { ok: false; message: string };
@@ -150,6 +153,23 @@ function toPanelSession(email: string, profile: PanelProfile): AuthSession {
   };
 }
 
+let recoverySessionActive = false;
+const recoveryListeners = new Set<(active: boolean) => void>();
+let recoverySubscription: { unsubscribe: () => void } | null = null;
+
+function publishRecoveryState(active: boolean): void {
+  recoverySessionActive = active;
+  recoveryListeners.forEach((listener) => listener(active));
+}
+
+function watchPasswordRecovery(): void {
+  if (recoverySubscription || !isSupabaseConfigured()) return;
+  recoverySubscription = getSupabase().auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') publishRecoveryState(true);
+    if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') publishRecoveryState(false);
+  }).data.subscription;
+}
+
 /**
  * Panel auth uses Supabase. Only `admin` and `personal` profiles enter;
  * `cliente` has no panel.
@@ -159,8 +179,11 @@ export const authRepository: AuthRepository = {
     if (!isSupabaseConfigured()) {
       return { ok: false, message: 'El panel no está disponible: falta configurar Supabase.' };
     }
+
     const redirectTo = buildPasswordResetRedirectUrl(window.location.origin);
-    if (!redirectTo) return { ok: false, message: 'No pudimos preparar el enlace de recuperación.' };
+    if (!redirectTo) {
+      return { ok: false, message: 'No pudimos preparar el enlace de recuperación.' };
+    }
 
     try {
       const { error } = await getSupabase().auth.resetPasswordForEmail(email.trim(), { redirectTo: redirectTo });
@@ -169,6 +192,41 @@ export const authRepository: AuthRepository = {
     } catch (error) {
       return { ok: false, message: translateRecoveryError(error instanceof Error ? error.message : undefined) };
     }
+  },
+
+  async updatePassword(password) {
+    if (!isSupabaseConfigured()) {
+      return { ok: false, message: 'El panel no está disponible: falta configurar Supabase.' };
+    }
+    if (!recoverySessionActive) {
+      return { ok: false, message: 'El enlace de recuperación no es válido o venció.' };
+    }
+
+    try {
+      const { error } = await getSupabase().auth.updateUser({ password });
+      if (error) {
+        const message = translateRecoveryError(error.message);
+        if (message === 'El enlace de recuperación no es válido o venció.') publishRecoveryState(false);
+        return { ok: false, message };
+      }
+      publishRecoveryState(false);
+      return { ok: true };
+    } catch (error) {
+      const message = translateRecoveryError(error instanceof Error ? error.message : undefined);
+      if (message === 'El enlace de recuperación no es válido o venció.') publishRecoveryState(false);
+      return { ok: false, message };
+    }
+  },
+
+  subscribeToPasswordRecovery(listener) {
+    recoveryListeners.add(listener);
+    listener(recoverySessionActive);
+    watchPasswordRecovery();
+    return () => recoveryListeners.delete(listener);
+  },
+
+  isPasswordRecoverySessionActive() {
+    return recoverySessionActive;
   },
 
   async signIn(email, password, rememberMe = true) {

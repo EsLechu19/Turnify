@@ -13,6 +13,8 @@ const repository = source('apps', 'web', 'src', 'data', 'repositories.ts');
 const routes = source('apps', 'web', 'src', 'app', 'routes.tsx');
 const login = source('apps', 'web', 'src', 'features', 'auth', 'LoginPage.tsx');
 const requestPage = source('apps', 'web', 'src', 'features', 'auth', 'ForgotPasswordPage.tsx');
+const resetPage = source('apps', 'web', 'src', 'features', 'auth', 'ResetPasswordPage.tsx');
+const authContext = source('apps', 'web', 'src', 'state', 'AuthContext.tsx');
 
 describe('password recovery request', () => {
   it('builds a fixed same-origin callback without open redirects', async () => {
@@ -35,5 +37,28 @@ describe('password recovery request', () => {
     expect(routes).toContain('path="/forgot-password"');
     expect(requestPage).toContain('Si existe una cuenta asociada');
     expect(requestPage).toContain('aria-busy');
+  });
+
+  it('validates password length and confirmation', async () => {
+    const recovery = await import('../../apps/web/src/features/auth/passwordRecovery');
+    expect(recovery.validateNewPassword('short', 'short')).toBe('La contraseña debe tener al menos 8 caracteres.');
+    expect(recovery.validateNewPassword('long-enough', 'different-value')).toBe('Las contraseñas no coinciden.');
+    expect(recovery.validateNewPassword('long-enough', 'long-enough')).toBeNull();
+  });
+
+  it('only allows updateUser after a Supabase recovery event', () => {
+    expect(repository).toContain("event === 'PASSWORD_RECOVERY'");
+    expect(repository).toContain("event === 'SIGNED_IN' || event === 'SIGNED_OUT'");
+    expect(repository).toContain('recoverySessionActive');
+    expect(repository).toContain('updateUser({ password })');
+    expect(authContext).toContain('subscribeToPasswordRecovery');
+  });
+
+  it('exposes a public reset route and keeps success visible', () => {
+    expect(routes).toContain('path="/reset-password"');
+    expect(resetPage).toContain('El enlace de recuperación no es válido o venció.');
+    expect(resetPage).toContain('Contraseña actualizada');
+    expect(resetPage).toContain('to="/login"');
+    expect(resetPage).toContain('aria-busy');
   });
 });

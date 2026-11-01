@@ -85,8 +85,12 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - [x] **T4a — Request reset email.** Added a public request form, login link, generic non-enumerating confirmation, and a same-origin fixed callback with no open redirect.
     - RED: `npx vitest run tests/web/password-recovery.test.ts tests/web/login-redesign.test.ts` — 3 recovery-request tests failed / 12 login tests passed before implementation.
     - GREEN: same command — 15 tests passed; `npm --workspace turnify-web run typecheck` passed; `npm --workspace turnify-web run build` passed with the existing >500 kB JS chunk advisory.
-    - Commit/boundary: pending. Rollback removes only request-email UI, link, redirect helper, and request contract; reset-update slice remains dependent on these shared pieces.
-  - [ ] **T4b — Validate recovery session and update password.** Add password/confirmation validation, gated `updateUser`, expired-link and success states. Depends on T4a; evidence pending.
+    - Commit/boundary: `0a8d0cc` (`feat(auth): agrega solicitud de recuperación de contraseña`), 216 authored changed lines; T4b depends on this request boundary. No remote push or PR.
+    - Rollback removes only request-email UI, login link, redirect helper, and request contract; the reset-update slice depends on these shared pieces.
+  - [ ] **T4b — Validate recovery session and update password** — implementation and checks complete; commit recording pending. Added a recovery-event gate for `updateUser`, password/confirmation validation, and persistent in-page success/expired-link states. A new `SIGNED_IN` or `SIGNED_OUT` event clears recovery authority.
+    - RED: focused recovery/login test run — 3 reset-flow tests failed / 15 request/login tests passed before implementation.
+    - GREEN: `npx vitest run tests/web/password-recovery.test.ts tests/web/login-redesign.test.ts` — 18 passed; `npm --workspace turnify-web run typecheck` passed; `npm --workspace turnify-web run build` passed with the existing >500 kB JS chunk advisory.
+    - Commit/boundary: pending. Rollback removes the update page, password-update/session gate, and reset contract; T4a request flow remains available.
   - Acceptance: both slice contracts, web typecheck, and build pass. No remote Supabase change.
 
 - [ ] **T5 — Implement Google OAuth and callback handling**

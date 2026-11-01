@@ -5,6 +5,7 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useState,
   type ReactNode,
 } from 'react';
 
@@ -80,23 +81,45 @@ interface AuthContextValue extends AuthState {
   refreshProfile: () => Promise<void>;
   signOut: () => void;
   clearError: () => void;
+  recoverySessionActive: boolean;
+  passwordRecoveryStatus: 'checking' | 'ready' | 'invalid';
   requestPasswordReset: (email: string) => Promise<PasswordRecoveryResult>;
+  updatePassword: (password: string) => Promise<PasswordRecoveryResult>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [recoverySessionActive, setRecoverySessionActive] = useState(false);
+  const [passwordRecoveryStatus, setPasswordRecoveryStatus] = useState<'checking' | 'ready' | 'invalid'>('checking');
 
   useEffect(() => {
+    let restored = false;
+    const unsubscribe = authRepository.subscribeToPasswordRecovery((active) => {
+      setRecoverySessionActive(active);
+      if (active) setPasswordRecoveryStatus('ready');
+      else if (restored) setPasswordRecoveryStatus('invalid');
+    });
+
     void authRepository.restore()
-      .then((session) => dispatch({ type: 'restored', session }))
+      .then((session) => {
+        dispatch({ type: 'restored', session });
+        restored = true;
+        const active = authRepository.isPasswordRecoverySessionActive();
+        setRecoverySessionActive(active);
+        setPasswordRecoveryStatus(active ? 'ready' : 'invalid');
+      })
       .catch((error: unknown) => {
+        restored = true;
+        setPasswordRecoveryStatus('invalid');
         dispatch({
           type: 'restore-failed',
           message: error instanceof Error ? error.message : 'No pudimos restaurar la sesión.',
         });
       });
+
+    return unsubscribe;
   }, []);
 
   const signIn = useCallback(async (email: string, password: string, rememberMe: boolean) => {
@@ -151,10 +174,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearError = useCallback(() => dispatch({ type: 'error-cleared' }), []);
   const requestPasswordReset = useCallback((email: string) => authRepository.requestPasswordReset(email), []);
+  const updatePassword = useCallback((password: string) => authRepository.updatePassword(password), []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ ...state, signIn, signUp, refreshProfile, signOut, clearError, requestPasswordReset }),
-    [state, signIn, signUp, refreshProfile, signOut, clearError, requestPasswordReset],
+    () => ({
+      ...state,
+      signIn,
+      signUp,
+      refreshProfile,
+      signOut,
+      clearError,
+      recoverySessionActive,
+      passwordRecoveryStatus,
+      requestPasswordReset,
+      updatePassword,
+    }),
+    [state, signIn, signUp, refreshProfile, signOut, clearError, recoverySessionActive, passwordRecoveryStatus, requestPasswordReset, updatePassword],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
