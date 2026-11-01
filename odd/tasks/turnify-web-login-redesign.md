@@ -95,7 +95,7 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
     - Commits: `fcfd51d` (`feat(auth): habilita el restablecimiento de contraseña`) + `525df1c` (`fix(auth): refuerza la sesión de recuperación`), 261 authored changed lines total; local final boundary `codex/turnify-web-login-recovery` will point to the documented final commit. Target `main` after T4a. Rollback removes the update page, password-update/session gate, and reset contract; T4a request flow remains available.
   - Acceptance: both slice contracts, web typecheck, and build pass. No remote Supabase change.
 
-- [ ] **T5 — Implement Google OAuth and callback handling** — implementation and checks complete; commit recording pending.
+- [x] **T5 — Implement Google OAuth and callback handling.**
   - Wired `signInWithOAuth({ provider: 'google' })` to a fixed same-origin callback, reused the existing session restore/profile/role policy, and preserved the Remember me persistence choice.
   - Callback and post-login paths are fixed/local; arbitrary redirect parameters are not accepted. The accessible Spanish button and callback provide loading/error states; no demo was added.
   - Operational prerequisite: enable Google as a Supabase Auth provider and add the deployed app callback (for example, `https://<deployed-host>/auth/callback`) to Supabase Auth Redirect URLs. In Google OAuth, authorize the deployed app origin and the Supabase project's `/auth/v1/callback` URI shown in its provider settings. Do not mutate either external project from this task.
@@ -103,7 +103,7 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - GREEN: same command — 23 passed; `npm --workspace turnify-web run typecheck` passed; `npm --workspace turnify-web run build` passed with the existing >500 kB JS chunk advisory.
   - Follow-up TDD: a contract for the provider-specific pending state failed 1 test / 22 passed; final GREEN returned 23 passed. This prevents a password login from displaying a false Google spinner.
   - Runtime harness: N/A — live OAuth requires external Google/Supabase credentials and redirect allowlists, which this task is explicitly not authorized to change.
-  - Slice dependency/boundary: stacked after T4b; authored count remains under 400. Rollback removes the Google button, repository/context method, callback route/page, helper, and OAuth contract without reverting email/password or recovery.
+  - Commit/boundary: `52a62633853f58c618c3b4780297ed703325837d` (`feat(auth): habilita el acceso con Google`), 197 authored changed lines before this task-doc follow-up; local boundary `codex/turnify-web-login-google-oauth`, target `main` after T4b. Rollback removes the Google button, repository/context method, callback route/page, helper, and OAuth contract without reverting email/password or recovery.
 
 - [ ] **T6 — Verify accessibility and responsive behavior**
   - Route: delegated direct verification/refinement. Verify semantics, keyboard/focus order, reduced motion, and representative mobile/tablet/desktop layouts. Evidence: pending.
@@ -127,6 +127,7 @@ main (7d886839)
               └── PR 4: T2b accessible form states (`62d4e1f` + task-doc follow-up; 213+ authored lines; local branch `codex/turnify-web-login-parity`) ── merge after T2a
             └── PR 5: T4a reset request (`0a8d0cc`, 216 authored lines; local branch `codex/turnify-web-login-recovery-request`) ── merge after T2b and T3
                   └── PR 6: T4b password update (`fcfd51d` + `525df1c` + slice documentation, 261+ authored lines; local branch `codex/turnify-web-login-recovery`) ── merge after T4a
+                        └── PR 7: T5 Google OAuth (`52a6263` + task-doc follow-up, 197+ authored lines; local branch `codex/turnify-web-login-google-oauth`) ── merge after T4b
 ```
 
 1. **PR 1 — Initial branded login, A**
@@ -147,11 +148,11 @@ main (7d886839)
 
 ## Progress
 
-- Current task: T5 (pending).
-- Completed: T1, T2a/T2b, T3, and T4a/T4b. Parent spot-check confirmed T4 recovery contract at 19/19. T1 prior boundary `e2b97c7`; review A acknowledged under lineage `review-9fecb982b07fbb26`.
+- Current task: T6 (pending).
+- Completed: T1, T2a/T2b, T3, T4a/T4b, and T5. Parent spot-check confirmed T4 recovery contract at 19/19. T1 prior boundary `e2b97c7`; review A acknowledged under lineage `review-9fecb982b07fbb26`.
 - T2 is being reconstructed from the clean T1 baseline after authorized restoration; no equality claim against the lost draft.
 - Delivery: `stacked-to-main`, no remote push or PR authorization. T4a and T4b are local commits only; no Supabase remote configuration was changed.
 
 ## Next step
 
-Complete T5's local work-unit commit and branch boundary; then continue with T6 accessibility/responsive QA. Keep demo deferred and do not publish until the authorized Sites slice (T7).
+Continue with T6 accessibility/responsive QA. Keep demo deferred and do not publish until the authorized Sites slice (T7).
