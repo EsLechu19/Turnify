@@ -10,6 +10,7 @@ import { normalizeBusinessCode } from '@/features/queue/queue-api';
 import { canCancelTicket } from '@/features/queue/ticket-presentation';
 import { useGuestFlow } from '@/features/public/guest-flow-session';
 import { GuestTicketRequests } from '@/features/public/guest-ticket-requests';
+import { guestRatingState } from '@/features/public/guest-rating';
 import { queueMetrics } from '@/features/public/guest-ticket-display';
 import { activeGuestTicketRoute, isActiveGuestTicketStatus, publicShopRoute, workerSignInRoute } from '@/features/public/public-route-policy';
 import { useRemainingTolerance } from '@/features/worker/use-remaining-tolerance';
@@ -24,7 +25,7 @@ export default function PublicWelcomeScreen() {
   const [lastCode, setLastCode] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { ticketAccess, hasActiveTicketAccess, endGuestTicketSession } = useGuestFlow();
+  const { ticketAccess, hasActiveTicketAccess, settleGuestTicket } = useGuestFlow();
   const [activeTicket, setActiveTicket] = useState<GuestTicketState | null>(null);
   const [isTicketLoading, setIsTicketLoading] = useState(false);
   const [ticketError, setTicketError] = useState<string | null>(null);
@@ -37,19 +38,20 @@ export default function PublicWelcomeScreen() {
     setIsTicketLoading(true);
     setTicketError(null);
     await requests.refresh(ticketAccess, getGuestTicketState, (ticket) => {
-      if (isActiveGuestTicketStatus(ticket.status)) {
+      if (isActiveGuestTicketStatus(ticket.status) || (ticket.status === 'finalizado' && guestRatingState(ticket) === 'pending')) {
         setActiveTicket(ticket);
+        settleGuestTicket(ticketAccess, ticket);
       } else {
         setActiveTicket(null);
         requests.setIdentity(null);
-        endGuestTicketSession();
+        settleGuestTicket(ticketAccess, ticket);
       }
     }, () => {
       setTicketError('No pudimos recuperar tu turno. Revisa tu conexión.');
     }, () => {
       setIsTicketLoading(false);
     });
-  }, [endGuestTicketSession, requests, ticketAccess]);
+  }, [requests, settleGuestTicket, ticketAccess]);
 
   useEffect(() => {
     if (!ticketAccess) {
@@ -78,6 +80,17 @@ export default function PublicWelcomeScreen() {
     };
   }, [refreshActiveTicket, requests, ticketAccess]);
 
+  useEffect(() => {
+    if (!activeTicket || activeTicket.status !== 'finalizado' || !ticketAccess) return;
+    const deadline = Date.parse(activeTicket.ratingDeadlineAt ?? '');
+    if (!Number.isFinite(deadline)) return;
+    const timer = setTimeout(() => {
+      setActiveTicket(null);
+      settleGuestTicket(ticketAccess, activeTicket);
+    }, Math.max(0, deadline - Date.now()));
+    return () => clearTimeout(timer);
+  }, [activeTicket, settleGuestTicket, ticketAccess]);
+
   function continueWithCode(raw?: string) {
     const normalized = normalizeBusinessCode(raw ?? code);
     if (!normalized) {
@@ -96,7 +109,9 @@ export default function PublicWelcomeScreen() {
 
   if (hasActiveTicketAccess) {
     const barberName = activeTicket?.assignedBarberName ?? activeTicket?.requestedBarberName;
-    const statusPill = activeTicket?.status === 'llamado'
+    const statusPill = activeTicket?.status === 'finalizado'
+      ? { label: 'FINALIZADO · PENDIENTE DE PUNTUAR', tone: 'success' as const }
+      : activeTicket?.status === 'llamado'
       ? { label: 'LLAMADO · TE TOCA', tone: 'gold' as const }
       : activeTicket?.status === 'notificado'
         ? { label: 'NOTIFICADO', tone: 'brand' as const }
@@ -106,7 +121,7 @@ export default function PublicWelcomeScreen() {
     return (
       <View style={styles.centered}>
         <BrandMark size={44} />
-        <Text style={[TypeScale.eyebrow, styles.eyebrow]}>TU TURNO SIGUE ACTIVO</Text>
+        <Text style={[TypeScale.eyebrow, styles.eyebrow]}>{activeTicket?.status === 'finalizado' ? 'TU TURNO TERMINÓ' : 'TU TURNO SIGUE ACTIVO'}</Text>
         {isTicketLoading && !activeTicket ? (
           <View style={styles.loadingRow}>
             <ActivityIndicator color={Palette.brand} />
@@ -125,13 +140,13 @@ export default function PublicWelcomeScreen() {
             <Pill label={statusPill.label} tone={statusPill.tone} />
             <Card tone={activeTicket.status === 'llamado' ? 'gold' : 'brand'} padding="lg" style={styles.activeMetrics}>
               <Text style={[TypeScale.body, { color: Palette.inkMuted }]}>
-                {activeTicket.status === 'llamado'
+                {activeTicket.status === 'finalizado' ? 'Todavía podés puntuar tu atención desde este dispositivo.' : activeTicket.status === 'llamado'
                   ? 'Te están llamando ahora: acércate al personal'
                   : activeTicket.status === 'en_atencion'
                     ? 'Permanece en tu lugar hasta que termine.'
                     : 'Tu lugar en la fila está reservado'}
               </Text>
-              {activeTicket.status === 'llamado' ? (
+              {activeTicket.status === 'finalizado' ? null : activeTicket.status === 'llamado' ? (
                 <Text style={[TypeScale.title, { color: Palette.brandDeep }]}>
                   {calledRemaining ? `Te quedan ${calledRemaining}` : 'Acércate ya al personal'}
                 </Text>
@@ -153,7 +168,7 @@ export default function PublicWelcomeScreen() {
             <Button
               fullWidth
               iconRight="arrow-right"
-              label="Ver mi turno"
+              label={activeTicket.status === 'finalizado' ? 'Puntuar atención' : 'Ver mi turno'}
               onPress={() => router.push(activeGuestTicketRoute(activeTicket.status))}
               size="lg"
             />
@@ -167,7 +182,7 @@ export default function PublicWelcomeScreen() {
           </>
         ) : null}
         <Text style={[TypeScale.caption, styles.mutedCenter]}>
-          Te avisamos aquí mismo al llamarte. Cuando el barbero finalice, esta pantalla se libera sola para otro turno.
+          {activeTicket?.status === 'finalizado' ? 'Podés volver a puntuar antes de que venza el plazo de 24 horas.' : 'Te avisamos aquí mismo al llamarte. Cuando el barbero finalice, podrás puntuar tu atención.'}
         </Text>
       </View>
     );

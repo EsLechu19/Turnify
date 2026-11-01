@@ -6,22 +6,12 @@ import { Button } from '@/components/common/Button';
 import {
   cancelGuestTicket, createGuestTicket, getCommercialCatalog, getGuestTicketState,
   normalizeGuestDetails, rateFinishedGuestTicket, respondToCalledGuestTicket,
-  validateBusinessCode, type CommercialCatalog, type GuestTicketAccess, type GuestTicketState,
+  validateBusinessCode, type CommercialCatalog, type GuestTicketState,
 } from './customer-public-api';
-import { calledSecondsRemaining, canRespondToCall, GuestSessionController } from './guest-session';
+import { calledSecondsRemaining, canRespondToCall, GuestSessionController, ratingState } from './guest-session';
+import { clearGuestAccess, readGuestAccess, writeGuestAccess } from './guest-access-storage';
 
 const terminal = new Set<GuestTicketState['status']>(['finalizado', 'cancelado', 'ausente']);
-
-function storageKey(code: string): string {
-  return `turnify.public-ticket-session.v1:${code}`;
-}
-
-function readAccess(code: string): GuestTicketAccess | null {
-  try {
-    const value = JSON.parse(sessionStorage.getItem(storageKey(code)) ?? 'null') as Partial<GuestTicketAccess> | null;
-    return value?.ticketId && value.visibleCode && value.capability ? value as GuestTicketAccess : null;
-  } catch { return null; }
-}
 
 function statusLabel(status: GuestTicketState['status']): string {
   return { en_espera: 'En espera', notificado: 'Notificado', llamado: 'Llamado', en_atencion: 'En atención', finalizado: 'Finalizado', cancelado: 'Cancelado', ausente: 'Ausente' }[status];
@@ -34,9 +24,9 @@ export function CustomerPublicPage() {
 
 function CustomerBusinessPage({ businessCode }: { businessCode: string }) {
   const controller = useMemo(() => new GuestSessionController(businessCode, {
-    read: () => readAccess(businessCode),
-    write: (access) => sessionStorage.setItem(storageKey(businessCode), JSON.stringify(access)),
-    clear: () => sessionStorage.removeItem(storageKey(businessCode)),
+    read: () => readGuestAccess(businessCode),
+    write: (access, deadline) => writeGuestAccess(businessCode, access, deadline),
+    clear: () => clearGuestAccess(businessCode),
     create: createGuestTicket,
     refresh: getGuestTicketState,
     respond: respondToCalledGuestTicket,
@@ -174,12 +164,13 @@ function TicketView({ ticket, error, storageWarning, busy, needsRefresh, ratingS
   const waiting = ticket.status === 'en_espera' || ticket.status === 'notificado';
   const remaining = calledSecondsRemaining(ticket, now);
   const canRespond = !needsRefresh && canRespondToCall(ticket, now);
+  const rating = ticket.status === 'finalizado' ? ratingState(ticket, now) : null;
 
   return <section className="public-page__content">
     <div className="page-title"><span className="eyebrow">TU TURNO</span>
       <h1>{ticket.status === 'llamado' ? 'Te están esperando' : finished ? statusLabel(ticket.status) : 'Tu turno está registrado'}</h1>
       <p>{ticket.status === 'llamado' ? 'Avisá si ya estás presente o si llegás en los próximos dos minutos.'
-        : ticket.status === 'finalizado' ? 'Gracias por visitarnos. Podés dejar una puntuación sobre tu atención.'
+        : ticket.status === 'finalizado' ? 'Gracias por visitarnos. La puntuación está disponible durante 24 horas desde que terminó la atención.'
         : finished ? 'Este turno ya no está activo.' : 'Guardá este código y seguí tu turno desde este navegador.'}</p>
     </div>
     <div className="ticket-hero"><span>CÓDIGO DE TURNO</span><strong>{ticket.visibleCode}</strong><b>{statusLabel(ticket.status)}</b></div>
@@ -198,8 +189,10 @@ function TicketView({ ticket, error, storageWarning, busy, needsRefresh, ratingS
       <strong>Respuesta registrada</strong><p>{ticket.customerResponse === 'presente' ? 'Le avisaste al negocio que ya estás presente.' : 'Le avisaste al negocio que llegás en los próximos dos minutos.'}</p>
     </div> : null}
     {ticket.status === 'finalizado' ? <div className="card public-rating">
-      <h2>{ticket.rating != null ? 'Puntuación enviada' : '¿Cómo fue tu atención?'}</h2>
-      {ticket.rating != null ? <p>Gracias por tu puntuación de {ticket.rating} de 5.</p> : <>
+      <h2>{rating === 'rated' ? 'Puntuación enviada' : rating === 'pending' ? '¿Cómo fue tu atención?' : 'Puntuación no disponible'}</h2>
+      {rating === 'rated' ? <p>Gracias por tu puntuación de {ticket.rating} de 5.</p>
+        : rating === 'expired' ? <p>El plazo de 24 horas para puntuar terminó.</p>
+        : rating === 'unavailable' ? <p>No hay una fecha de finalización válida. No podemos habilitar la puntuación.</p> : <>
         <div className="public-rating__choices" role="radiogroup" aria-label="Puntuación de la atención">{[1, 2, 3, 4, 5].map((value) => (
           <button aria-label={`${value} de 5`} aria-checked={ratingSelection === value} className={ratingSelection === value ? 'public-rating__star public-rating__star--selected' : 'public-rating__star'} key={value} onClick={() => onRatingSelection(value)} role="radio" type="button">★</button>
         ))}</div><Button disabled={busy || needsRefresh || ratingSelection == null} onClick={onRate}>Enviar puntuación</Button>

@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { GuestSessionController, calledSecondsRemaining, canRespondToCall } from '../../apps/web/src/features/public/guest-session';
+import { GuestSessionController, calledSecondsRemaining, canRespondToCall, ratingState } from '../../apps/web/src/features/public/guest-session';
 import type { GuestTicketAccess, GuestTicketState } from '../../apps/web/src/features/public/customer-public-api';
 
 const access = (ticketId: string): GuestTicketAccess => ({ ticketId, visibleCode: ticketId, capability: `secret-${ticketId}` });
 const state = (status: GuestTicketState['status'], extras: Partial<GuestTicketState> = {}): GuestTicketState => ({
   visibleCode: 'A', status, peopleAhead: 2, waitMinutes: 8, serviceName: null,
   requestedBarberName: null, assignedBarberName: null, calledDeadlineAt: null,
-  customerResponse: null, customerResponseAt: null, rating: null, ...extras,
+  customerResponse: null, customerResponseAt: null, rating: null, canRate: false, ratingDeadlineAt: null, ...extras,
 });
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -105,12 +105,58 @@ describe('guest session lifecycle', () => {
     deps.refresh.mockRejectedValueOnce(new Error('offline'));
     await controller.respond('presente');
     expect(controller.getSnapshot()).toMatchObject({ ticket: { customerResponse: 'presente' }, error: expect.stringContaining('registró') });
-    deps.refresh.mockResolvedValueOnce(state('finalizado'));
+    deps.refresh.mockResolvedValueOnce(state('finalizado', { canRate: true, ratingDeadlineAt: new Date(Date.now() + 60_000).toISOString() }));
     await controller.refresh();
     deps.rate.mockResolvedValue(undefined);
     deps.refresh.mockRejectedValueOnce(new Error('offline'));
     await controller.rate(4);
     expect(controller.getSnapshot()).toMatchObject({ ticket: { rating: 4 }, error: expect.stringContaining('registró') });
+  });
+
+  it('keeps only eligible finished access, including across a new controller, then clears after voting', async () => {
+    const { controller, deps, stored } = setup(access('old'));
+    deps.refresh.mockResolvedValueOnce(state('finalizado', { canRate: true, ratingDeadlineAt: new Date(Date.now() + 60_000).toISOString() }));
+    await controller.refresh();
+    expect(stored()).toEqual(access('old'));
+    expect(deps.write).toHaveBeenCalled();
+    const reopened = new GuestSessionController('business', deps);
+    expect(reopened.getSnapshot().access).toEqual(access('old'));
+    deps.refresh.mockResolvedValueOnce(state('finalizado', { rating: 5 }));
+    await reopened.refresh();
+    expect(stored()).toBeNull();
+  });
+
+  it('rejects rating at the exact deadline and missing or invalid timestamps', async () => {
+    const { controller, deps } = setup(access('old'));
+    const deadline = '2026-10-31T12:00:00Z';
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(deadline));
+      deps.refresh.mockResolvedValueOnce(state('finalizado', { canRate: true, ratingDeadlineAt: deadline }));
+      await controller.refresh();
+      await controller.rate(4);
+      expect(deps.rate).not.toHaveBeenCalled();
+      expect(deps.clear).toHaveBeenCalled();
+      deps.refresh.mockResolvedValueOnce(state('finalizado', { canRate: true, ratingDeadlineAt: 'invalid' }));
+      await controller.refresh();
+      await controller.rate(4);
+      expect(deps.rate).not.toHaveBeenCalled();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('recovers from Strict Mode effect cleanup and setup without accepting stale results', async () => {
+    const { controller, deps } = setup(access('old'));
+    const old = deferred<GuestTicketState>();
+    deps.refresh.mockReturnValueOnce(old.promise).mockResolvedValueOnce(state('en_espera'));
+    const unsubscribe = controller.subscribe(() => undefined);
+    const pending = controller.refresh();
+    unsubscribe();
+    controller.dispose();
+    controller.subscribe(() => undefined);
+    await controller.refresh();
+    old.resolve(state('finalizado'));
+    await pending;
+    expect(controller.getSnapshot().ticket?.status).toBe('en_espera');
   });
 
   it('does not publish or persist late results after disposal', async () => {
@@ -152,5 +198,17 @@ describe('effective called deadline', () => {
     expect(canRespondToCall(called, now + 2000)).toBe(false);
     expect(canRespondToCall(state('llamado'), now)).toBe(false);
     expect(calledSecondsRemaining(state('en_atencion', { calledDeadlineAt: called.calledDeadlineAt }), now)).toBeNull();
+  });
+});
+
+describe('rating projection', () => {
+  it('treats server eligibility as authoritative and refuses missing timestamps', () => {
+    const deadline = Date.parse('2026-11-01T00:00:00Z');
+    const eligible = state('finalizado', { canRate: true, ratingDeadlineAt: new Date(deadline).toISOString() });
+    expect(ratingState(eligible, deadline - 1)).toBe('pending');
+    expect(ratingState(eligible, deadline)).toBe('expired');
+    expect(ratingState({ ...eligible, canRate: false }, deadline - 1)).toBe('expired');
+    expect(ratingState({ ...eligible, rating: 5 }, deadline - 1)).toBe('rated');
+    expect(ratingState({ ...eligible, ratingDeadlineAt: null }, deadline - 1)).toBe('unavailable');
   });
 });

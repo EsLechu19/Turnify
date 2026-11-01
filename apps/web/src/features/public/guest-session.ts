@@ -23,7 +23,7 @@ export type GuestSession = {
 
 export type GuestSessionDependencies = {
   read: () => GuestTicketAccess | null;
-  write: (access: GuestTicketAccess) => void;
+  write: (access: GuestTicketAccess, deadline?: string | null) => void;
   clear: () => void;
   create: typeof createGuestTicket;
   refresh: typeof getGuestTicketState;
@@ -43,6 +43,14 @@ export function canRespondToCall(ticket: GuestTicketState, now: number): boolean
   return remaining !== null && remaining > 0 && !ticket.customerResponse;
 }
 
+export function ratingState(ticket: GuestTicketState, now: number): 'pending' | 'rated' | 'expired' | 'unavailable' {
+  if (ticket.rating != null) return 'rated';
+  const deadline = ticket.ratingDeadlineAt ? Date.parse(ticket.ratingDeadlineAt) : NaN;
+  if (!Number.isFinite(deadline)) return 'unavailable';
+  if (now >= deadline) return 'expired';
+  return ticket.canRate ? 'pending' : 'expired';
+}
+
 export class GuestSessionController {
   private current: GuestSession;
   private listeners = new Set<() => void>();
@@ -56,6 +64,8 @@ export class GuestSessionController {
   getSnapshot = (): GuestSession => this.current;
 
   subscribe = (listener: () => void): (() => void) => {
+    // React Strict Mode replays effect cleanup/setup on the same controller.
+    this.alive = true;
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   };
@@ -86,7 +96,10 @@ export class GuestSessionController {
       if (!this.matches(revision, access)) return;
       this.update({ ticket, needsRefresh: false });
       if (terminal.has(ticket.status)) {
-        try { this.deps.clear(); } catch { /* Access remains in memory. */ }
+        try {
+          if (ticket.status === 'finalizado' && ratingState(ticket, Date.now()) === 'pending') this.deps.write(access, ticket.ratingDeadlineAt);
+          else this.deps.clear();
+        } catch { this.update({ storageWarning: 'No se pudo guardar el acceso para volver a puntuar. No cierres esta página.' }); }
       }
     } catch {
       if (this.matches(revision, access)) {
@@ -130,13 +143,14 @@ export class GuestSessionController {
 
   async rate(rating: number): Promise<void> {
     const { access, ticket, busy, needsRefresh } = this.current;
-    if (!access || !ticket || busy || needsRefresh || ticket.status !== 'finalizado' || ticket.rating != null) return;
+    if (!access || !ticket || busy || needsRefresh || ticket.status !== 'finalizado' || ratingState(ticket, Date.now()) !== 'pending') return;
     const revision = ++this.revision;
     this.update({ busy: true, error: null });
     try {
       await this.deps.rate(access, rating);
       if (!this.matches(revision, access)) return;
       this.update({ ticket: { ...ticket, rating }, busy: false });
+      try { this.deps.clear(); } catch { /* The server rejects a second vote. */ }
       await this.refresh('rate');
     } catch {
       if (this.matches(revision, access)) this.update({ error: 'No pudimos confirmar tu puntuación. Actualizá el turno antes de reintentar.', busy: false, needsRefresh: true });

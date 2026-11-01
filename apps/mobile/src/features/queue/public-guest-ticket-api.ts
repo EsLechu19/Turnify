@@ -20,6 +20,8 @@ export type GuestTicketState = {
   customerResponse: 'presente' | 'llega_en_2_min' | null;
   customerResponseAt: string | null;
   puntuacion: number | null;
+  canRate: boolean;
+  ratingDeadlineAt: string | null;
   graciaMin: number | null;
 };
 
@@ -36,10 +38,12 @@ type GuestTicketStatePayload = {
   respuesta_cliente: GuestTicketState['customerResponse'];
   respuesta_cliente_en: string | null;
   puntuacion: number | null;
+  puede_puntuar: boolean;
+  puntuacion_vencimiento_en: string | null;
   gracia_min: number | null;
 };
 
-/** The capability is an in-memory handoff only; callers must not persist it. */
+/** The capability is stored only on this device and passed to ticket RPCs. */
 export async function createGuestTicket(input: {
   companyCode: string;
   serviceId: string;
@@ -80,6 +84,8 @@ export async function getGuestTicketState(access: Pick<GuestTicketAccess, 'ticke
     customerResponse: ticket.respuesta_cliente,
     customerResponseAt: ticket.respuesta_cliente_en,
     puntuacion: ticket.puntuacion,
+    canRate: ticket.puede_puntuar === true,
+    ratingDeadlineAt: ticket.puntuacion_vencimiento_en,
     graciaMin: ticket.gracia_min,
   };
 }

@@ -46,6 +46,8 @@ export type GuestTicketState = {
   customerResponse: 'presente' | 'llega_en_2_min' | null;
   customerResponseAt: string | null;
   rating: number | null;
+  canRate: boolean;
+  ratingDeadlineAt: string | null;
 };
 
 export const GUEST_PHONE_CONSENT_ERROR = 'Para aceptar WhatsApp, ingresá un teléfono válido con código internacional.';
@@ -129,7 +131,7 @@ export async function getGuestTicketState(access: Pick<GuestTicketAccess, 'ticke
     p_capacidad: access.capability,
   });
   if (error) throw new Error(error.message);
-  const ticket = data as { codigo_visible: string; estado: GuestTicketState['status']; personas_delante: number; espera_min: number; servicio_nombre: string | null; barbero_solicitado_nombre: string | null; barbero_asignado_nombre: string | null; llamado_vencimiento_en: string | null; respuesta_cliente: GuestTicketState['customerResponse']; respuesta_cliente_en: string | null; puntuacion: number | null } | null;
+  const ticket = data as { codigo_visible: string; estado: GuestTicketState['status']; personas_delante: number; espera_min: number; servicio_nombre: string | null; barbero_solicitado_nombre: string | null; barbero_asignado_nombre: string | null; llamado_vencimiento_en: string | null; respuesta_cliente: GuestTicketState['customerResponse']; respuesta_cliente_en: string | null; puntuacion: number | null; puede_puntuar: boolean; puntuacion_vencimiento_en: string | null } | null;
   if (!ticket) throw new Error('No se pudo consultar el turno.');
   return {
     visibleCode: ticket.codigo_visible,
@@ -143,6 +145,8 @@ export async function getGuestTicketState(access: Pick<GuestTicketAccess, 'ticke
     customerResponse: ticket.respuesta_cliente,
     customerResponseAt: ticket.respuesta_cliente_en,
     rating: ticket.puntuacion,
+    canRate: ticket.puede_puntuar === true,
+    ratingDeadlineAt: ticket.puntuacion_vencimiento_en,
   };
 }
 

@@ -11,14 +11,14 @@ import { CustomerPage, CustomerState, StatusBadge } from '@/components/customer/
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import { DEFAULT_DEMO_TICKET, useGuestFlow } from '@/features/public/guest-flow-session';
 import { GuestTicketRequests } from '@/features/public/guest-ticket-requests';
+import { guestRatingState } from '@/features/public/guest-rating';
 import { canRespondToGuestCall, queueMetrics } from '@/features/public/guest-ticket-display';
-import { canUseGuestTicket, isTerminalGuestTicketStatus } from '@/features/public/public-route-policy';
+import { canUseGuestTicket } from '@/features/public/public-route-policy';
 import {
   cancelGuestTicket,
   getGuestTicketState,
   rateFinishedGuestTicket,
   respondToCalledGuestTicket,
-  type GuestTicketAccess,
   type GuestTicketState,
 } from '@/features/queue/public-guest-ticket-api';
 import { translateQueueError } from '@/features/queue/queue-api';
@@ -99,7 +99,7 @@ function QueueTimeline({ peopleAhead, status }: { peopleAhead: number | null; st
 }
 
 export default function GuestTicketScreen() {
-  const { ticketAccess, endGuestTicketSession, demoTicket, draft } = useGuestFlow();
+  const { ticketAccess, endGuestTicketSession, settleGuestTicket, demoTicket, draft } = useGuestFlow();
   const [ticket, setTicket] = useState<GuestTicketState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -109,13 +109,11 @@ export default function GuestTicketScreen() {
   const [isResponding, setIsResponding] = useState(false);
   const [isRating, setIsRating] = useState(false);
   const [voted, setVoted] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
   const [isConfirmingCancel, setIsConfirmingCancel] = useState(false);
   const requests = useRef(new GuestTicketRequests()).current;
   const actionPending = useRef(false);
   requests.setIdentity(ticketAccess);
-  // The guest session ends when the ticket reaches a terminal state, but the
-  // thanks screen still needs the capability to record the vote afterwards.
-  const rateAccess = useRef<GuestTicketAccess | null>(null);
   const metrics = ticket ? queueMetrics(ticket) : null;
 
   const returnHome = useCallback(() => {
@@ -129,8 +127,14 @@ export default function GuestTicketScreen() {
   }, [endGuestTicketSession, requests]);
 
   useEffect(() => {
-    if (ticketAccess) rateAccess.current = ticketAccess;
-  }, [ticketAccess]);
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    if (ticket && ticketAccess && ticket.status === 'finalizado' && guestRatingState(ticket, now) !== 'pending') {
+      settleGuestTicket(ticketAccess, ticket);
+    }
+  }, [now, settleGuestTicket, ticket, ticketAccess]);
 
   const prevStatus = useRef<GuestTicketState['status'] | null>(null);
   useEffect(() => {
@@ -156,6 +160,8 @@ export default function GuestTicketScreen() {
         customerResponse: null,
         customerResponseAt: null,
         puntuacion: null,
+        canRate: false,
+        ratingDeadlineAt: null,
         graciaMin: null,
       });
       setError(null);
@@ -168,17 +174,14 @@ export default function GuestTicketScreen() {
     return requests.refresh(ticketAccess, getGuestTicketState, (nextTicket) => {
       setTicket(nextTicket);
       setUpdatedAt(new Date());
-      if (isTerminalGuestTicketStatus(nextTicket.status)) {
-        requests.setIdentity(null);
-        endGuestTicketSession();
-      }
+      settleGuestTicket(ticketAccess, nextTicket);
       setError(null);
     }, (reason) => {
       setError(translateQueueError(reason instanceof Error ? reason.message : ''));
     }, () => {
       setIsLoading(false);
     });
-  }, [demoTicket, endGuestTicketSession, requests, ticketAccess]);
+  }, [demoTicket, requests, settleGuestTicket, ticketAccess]);
 
   useFocusEffect(
     useCallback(() => {
@@ -264,15 +267,20 @@ export default function GuestTicketScreen() {
   }
 
   async function rate(puntos: number) {
-    const access = rateAccess.current;
-    if (!access || isRating) return;
+    const access = ticketAccess;
+    if (!access || !ticket || ticket.status !== 'finalizado' || guestRatingState(ticket) !== 'pending' || isRating || actionPending.current) return;
+    actionPending.current = true;
+    requests.invalidate();
     setIsRating(true);
     try {
       await rateFinishedGuestTicket(access, puntos);
+      if (!requests.matches(access)) return;
       setVoted(puntos);
+      settleGuestTicket(access, { ...ticket, puntuacion: puntos, canRate: false });
     } catch {
-      setError('No pudimos guardar tu puntuacion. Intenta de nuevo.');
+      setError('No pudimos confirmar tu puntuación. Actualiza el turno antes de reintentar.');
     } finally {
+      actionPending.current = false;
       setIsRating(false);
     }
   }
@@ -302,10 +310,11 @@ export default function GuestTicketScreen() {
             error={error}
             onNewTicket={startNewTicket}
             onRetry={() => void refresh()}
-            onReturn={startNewTicket}
+            onReturn={returnHome}
             ticket={ticket}
             puntuacion={voted ?? ticket.puntuacion}
             isRating={isRating}
+            ratingState={voted != null ? 'rated' : guestRatingState(ticket, now)}
             onRate={(puntos) => void rate(puntos)}
           />
         </CustomerPage>

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { loadStoredGuestTicketAccess } from '../../apps/mobile/src/features/public/guest-ticket-storage';
+import { clearStoredGuestTicketAccess, loadStoredGuestTicketAccess, storeGuestTicketAccess } from '../../apps/mobile/src/features/public/guest-ticket-storage';
 import { getGuestTicketState } from '../../apps/mobile/src/features/queue/public-guest-ticket-api';
 
 vi.mock('../../apps/mobile/src/features/public/guest-ticket-storage', () => ({
@@ -49,6 +49,8 @@ describe('GuestFlowProvider discovery actions', () => {
     cursor = 0;
     vi.mocked(loadStoredGuestTicketAccess).mockReset().mockResolvedValue(null);
     vi.mocked(getGuestTicketState).mockReset();
+    vi.mocked(storeGuestTicketAccess).mockClear();
+    vi.mocked(clearStoredGuestTicketAccess).mockClear();
   });
 
   it('keeps discovery settled after a successful catalog lookup', async () => {
@@ -117,5 +119,38 @@ describe('GuestFlowProvider discovery actions', () => {
     finish({ status: 'en_espera' });
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(render().ticketAccess).toEqual(newer);
+  });
+
+  it('restores finished unrated access, but not rated, cancelled or absent tickets', async () => {
+    const saved = { ticketId: 'finished', visibleCode: 'A', capability: 'private' };
+    const { GuestFlowProvider } = await import('../../apps/mobile/src/features/public/guest-flow-session');
+    for (const status of ['finalizado', 'cancelado', 'ausente'] as const) {
+      slots.length = 0;
+      vi.mocked(loadStoredGuestTicketAccess).mockResolvedValue(saved);
+      vi.mocked(getGuestTicketState).mockResolvedValue({ status, puntuacion: null, canRate: true, ratingDeadlineAt: new Date(Date.now() + 60_000).toISOString() } as Awaited<ReturnType<typeof getGuestTicketState>>);
+      const render = () => { cursor = 0; return (GuestFlowProvider({ children: null }) as unknown as { props: { value: { ticketAccess: typeof saved | null } } }).props.value; };
+      render();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(render().ticketAccess).toEqual(status === 'finalizado' ? saved : null);
+    }
+    slots.length = 0;
+    vi.mocked(getGuestTicketState).mockResolvedValue({ status: 'finalizado', puntuacion: 4, canRate: false, ratingDeadlineAt: new Date(Date.now() + 60_000).toISOString() } as Awaited<ReturnType<typeof getGuestTicketState>>);
+    cursor = 0;
+    GuestFlowProvider({ children: null });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    cursor = 0;
+    expect((GuestFlowProvider({ children: null }) as unknown as { props: { value: { ticketAccess: unknown } } }).props.value.ticketAccess).toBeNull();
+  });
+
+  it('retains stored access when the restore RPC fails so discovery cannot create a second ticket', async () => {
+    const saved = { ticketId: 'old', visibleCode: 'A', capability: 'private' };
+    vi.mocked(loadStoredGuestTicketAccess).mockResolvedValue(saved);
+    vi.mocked(getGuestTicketState).mockRejectedValue(new Error('offline'));
+    const { GuestFlowProvider } = await import('../../apps/mobile/src/features/public/guest-flow-session');
+    const render = () => { cursor = 0; return (GuestFlowProvider({ children: null }) as unknown as { props: { value: { ticketAccess: typeof saved | null; beginDiscovery: (code: string, catalog: never) => boolean } } }).props.value; };
+    render();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(render().ticketAccess).toEqual(saved);
+    expect(render().beginDiscovery('shop', {} as never)).toBe(false);
   });
 });

@@ -40,8 +40,11 @@ describe('public customer API contract', () => {
 
   it('keeps browser access scoped to the business and delegates lifecycle to the controller', () => {
     const page = read('apps', 'web', 'src', 'features', 'public', 'CustomerPublicPage.tsx');
-    expect(page).toContain("turnify.public-ticket-session.v1:");
-    expect(page).toContain('sessionStorage');
+    const storage = read('apps', 'web', 'src', 'features', 'public', 'guest-access-storage.ts');
+    expect(storage).toContain('turnify.public-ticket-session.v1:');
+    expect(storage).toContain('sessionStorage');
+    expect(storage).toContain('localStorage');
+    expect(page).toContain('readGuestAccess(businessCode)');
     expect(page).toContain('GuestSessionController');
     expect(page).toContain("onRespond('presente')");
     expect(page).toContain("onRespond('llega_en_2_min')");

@@ -31,12 +31,19 @@ function isGuestTicketAccess(value: unknown): value is GuestTicketAccess {
 export async function storeGuestTicketAccess(
   store: GuestTicketStore = secureStorage,
   access: GuestTicketAccess,
+  deadline?: string | null,
 ): Promise<void> {
-  await ordered(store, () => store.setItem(STORAGE_KEY, JSON.stringify({
-    ticketId: access.ticketId,
-    visibleCode: access.visibleCode,
-    capability: access.capability,
-  })));
+  await ordered(store, async () => {
+    let savedAt: number | null = deadline ? Date.now() : null;
+    if (deadline) {
+      try {
+        const previous = JSON.parse(await store.getItem(STORAGE_KEY) ?? 'null') as { ticketId?: string; deadline?: string; savedAt?: number } | null;
+        if (previous?.ticketId === access.ticketId && previous.deadline && Number.isFinite(previous.savedAt)
+          && previous.savedAt! <= savedAt!) savedAt = previous.savedAt!;
+      } catch { /* Replace malformed records. */ }
+    }
+    await store.setItem(STORAGE_KEY, JSON.stringify({ ...access, deadline: deadline ?? null, savedAt }));
+  });
 }
 
 /** Reads back a well-formed stored access, or null when absent or invalid. */
@@ -56,7 +63,16 @@ async function readAccess(store: GuestTicketStore): Promise<GuestTicketAccess | 
   if (!raw) return null;
   try {
     const parsed: unknown = JSON.parse(raw);
-    return isGuestTicketAccess(parsed) ? parsed : null;
+    if (!isGuestTicketAccess(parsed)) return null;
+    const deadline = (parsed as GuestTicketAccess & { deadline?: unknown }).deadline;
+    const savedAt = (parsed as GuestTicketAccess & { savedAt?: unknown }).savedAt;
+    if (deadline != null && (typeof deadline !== 'string' || !Number.isFinite(Date.parse(deadline))
+      || typeof savedAt !== 'number' || !Number.isFinite(savedAt) || Date.now() >= savedAt + 86_400_000
+      || Date.now() >= Date.parse(deadline))) {
+      await store.removeItem(STORAGE_KEY);
+      return null;
+    }
+    return { ticketId: parsed.ticketId, visibleCode: parsed.visibleCode, capability: parsed.capability };
   } catch {
     return null;
   }

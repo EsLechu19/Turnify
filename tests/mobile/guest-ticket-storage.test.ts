@@ -77,4 +77,27 @@ describe('guest ticket storage', () => {
     await write;
     await expect(read).resolves.toEqual(ACCESS);
   });
+
+  it('retains a finished access strictly before deadline, then deletes it at the boundary', async () => {
+    const store = memoryStore();
+    const deadline = Date.now() + 1000;
+    await storeGuestTicketAccess(store, ACCESS, new Date(deadline).toISOString());
+    await expect(loadStoredGuestTicketAccess(store)).resolves.toEqual(ACCESS);
+    const original = Date.now;
+    Date.now = () => deadline;
+    try {
+      await expect(loadStoredGuestTicketAccess(store)).resolves.toBeNull();
+      expect(store.raw()).toBeNull();
+    } finally { Date.now = original; }
+  });
+
+  it('orders a finished write before a clear without deleting a newer ticket', async () => {
+    const store = memoryStore();
+    const finished = storeGuestTicketAccess(store, ACCESS, new Date(Date.now() + 1000).toISOString());
+    const clear = clearStoredGuestTicketAccess(store, ACCESS);
+    const next = { ...ACCESS, ticketId: 'new', capability: 'new-secret' };
+    const replacement = storeGuestTicketAccess(store, next);
+    await Promise.all([finished, clear, replacement]);
+    await expect(loadStoredGuestTicketAccess(store)).resolves.toEqual(next);
+  });
 });

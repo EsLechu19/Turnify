@@ -17,14 +17,14 @@ Make the anonymous customer journey truthful, recoverable, and understandable ac
 - Preserve existing migrated SQL history; add a new forward-only migration after 0060.
 - Standard functional testing; no project-wide TDD setting was established (the existing strict TDD note is scoped to another feature). Runner: Vitest via `npx vitest run`.
 - Use delegated direct writers for multi-file work and a work-unit Conventional Commit per completed task on this feature branch. ~400 authored changed lines per task is advisory only.
-- Delivery strategy: ask-on-risk; do not create or push PRs without user approval. Initial forecast: 500–900 authored changed lines overall, subject to actual diff.
+- Delivery strategy: ask-on-risk; user chose `stacked-to-main` (PRs merge to main in order). Do not create or push PRs without user approval. Initial forecast: 500–900 authored changed lines overall, subject to actual diff.
 
 ## Tasks
 
 - [x] G1: Document and test guest lifecycle/response/rating invariants, implement 24-hour server-enforced rating eligibility from `fin_en`, preserving existing guest projection fields.
 - [x] G2: Web ticket restoration, request identity/order safety, accurate wait/position and effective called-deadline behavior; add behavior-driven regression checks.
 - [x] G3: Mobile guest refresh and persisted active-session ordering, accurate call/queue display, and async-ordering regression checks. Finished-ticket recovery and rating expiry remain G4.
-- [ ] G4: Recoverable finished-ticket rating across both clients with bounded capability retention, one vote and clear expired/completed states; verify server/client boundaries.
+- [x] G4: Recoverable finished-ticket rating across both clients with bounded capability retention, one vote and clear expired/completed states; verify server/client boundaries.
 - [ ] G5: Final UX/UI pass for the customer journey in both web and app: hierarchy, instructions, waiting/called/finished/error states, responsive touch targets and accessibility; validate against the same state contract.
 - [ ] G6: Full local verification, documented manual browser/device and database acceptance steps, plus honest report of any unavailable external checks.
 
@@ -53,4 +53,7 @@ Make the anonymous customer journey truthful, recoverable, and understandable ac
 - G2: controller tests cover async request ordering and web tests 95/95 passed; web typecheck/build and `git diff --check` passed. No browser or remote DB run. Rollback boundary: web guest-session controller, public page integration and their tests. Rating persistence remains G4.
 - G2 commit: `12e81fc`; accumulated committed-only RDD review against `0e384c7` was approved and acknowledged (lineage `review-089a664f33d7e9f9`). Non-blocking reliability follow-ups: React Strict Mode effect replay can dispose the web controller in development (address in G4 integration); finished-ticket capability is still cleared (address in G4). Reviewed boundary is `12e81fc`.
 - G3: mobile guest request and storage ordering implemented, focused 12/12 tests passed and mobile typecheck passed. Full mobile suite: 141 passed, 8 failed in 4 unchanged legacy test files (stale source-copy assertions, absent historical admin route, ticket-presentation expectation); `git diff --check` passed. Native-device runtime remains untested. Finished-ticket persistence is deferred to G4. Rollback boundary: mobile guest request/storage/display modules, guest routes and their tests.
-- Next: G4. Engram mirror write pending (session registration error).
+- G3 commit: `0e099c7`; RDD assessed `medium`, `review_due=false` (`under_budget`) from reviewed boundary `12e81fc`.
+- G4: web and mobile now retain same-device capability only while server-derived rating remains eligible, discard rated/expired/cancelled/absent access, and present clear expiry; web controller survives Strict Mode effect replay. Focused worker tests: 27 files/116 tests passed; parent spot check: 5 files/28 tests passed and mobile typecheck passed. Web/mobile typechecks, web build and `git diff --check` passed in worker. Runtime DB, physical device and browser remain unverified. Rollback boundary: guest rating/session storage helpers, web/mobile public flow integration and paired tests.
+- Delivery slices: first reviewed slice `e4e53c5..12e81fc` against `0e384c7`; next slice begins after `12e81fc` and includes `0e099c7` onward. No PR created or pushed.
+- Next: G5. Engram mirror write pending (session registration error).

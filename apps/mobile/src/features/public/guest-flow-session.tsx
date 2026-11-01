@@ -4,6 +4,7 @@ import type { CommercialCatalog } from '@/features/queue/commercial-queue-api';
 import type { GuestDetails } from '@/features/queue/guest-ticket-details';
 import { getGuestTicketState, type GuestTicketAccess } from '@/features/queue/public-guest-ticket-api';
 import { isActiveGuestTicketStatus } from '@/features/public/public-route-policy';
+import { guestRatingState } from '@/features/public/guest-rating';
 import { clearStoredGuestTicketAccess, loadStoredGuestTicketAccess, storeGuestTicketAccess } from '@/features/public/guest-ticket-storage';
 
 export type GuestBookingDraft = {
@@ -51,6 +52,7 @@ type GuestFlowContextValue = {
   setDemoTicket(ticket: DemoGuestTicket | null): void;
   hasActiveTicketAccess: boolean;
   endGuestTicketSession(): void;
+  settleGuestTicket(access: GuestTicketAccess, state: Awaited<ReturnType<typeof getGuestTicketState>>): void;
 };
 
 const GuestFlowContext = createContext<GuestFlowContextValue | undefined>(undefined);
@@ -98,21 +100,32 @@ export function GuestFlowProvider({ children }: { children: ReactNode }) {
     if (oldAccess) void clearStoredGuestTicketAccess(undefined, oldAccess).catch(() => undefined);
   }, []);
 
-  // Restores the previous guest ticket without blocking the launch: stored
-  // access is revalidated and only active tickets come back.
+  const settleGuestTicket = useCallback((access: GuestTicketAccess, state: Awaited<ReturnType<typeof getGuestTicketState>>) => {
+    if (currentAccess.current?.ticketId !== access.ticketId || currentAccess.current.capability !== access.capability) return;
+    if (state.status === 'finalizado' && guestRatingState(state) === 'pending') {
+      void storeGuestTicketAccess(undefined, access, state.ratingDeadlineAt).catch(() => undefined);
+    } else if (!isActiveGuestTicketStatus(state.status)) {
+      void clearStoredGuestTicketAccess(undefined, access).catch(() => undefined);
+      currentAccess.current = null;
+      setTicketAccess(null);
+    }
+  }, []);
+
+  // A network failure does not make a saved ticket safe to replace.
   useEffect(() => {
     let active = true;
     const revision = sessionRevision.current;
     void loadStoredGuestTicketAccess()
-      .then((stored) => (stored ? getGuestTicketState(stored).then((state) => ({ stored, state })).catch(() => null) : null))
+      .then((stored) => (stored ? getGuestTicketState(stored).then((state) => ({ stored, state })).catch(() => ({ stored, state: null })) : null))
       .then((restored) => {
         if (!active || revision !== sessionRevision.current) return;
         setRestoring(false);
         if (!restored) return;
-        if (isActiveGuestTicketStatus(restored.state.status)) {
+        if (!restored.state || isActiveGuestTicketStatus(restored.state.status) || (restored.state.status === 'finalizado' && guestRatingState(restored.state) === 'pending')) {
           currentAccess.current = restored.stored;
           setDraft(null);
           setTicketAccess(restored.stored);
+          if (restored.state?.status === 'finalizado') void storeGuestTicketAccess(undefined, restored.stored, restored.state.ratingDeadlineAt).catch(() => undefined);
         } else {
           void clearStoredGuestTicketAccess(undefined, restored.stored).catch(() => undefined);
         }
@@ -136,7 +149,8 @@ export function GuestFlowProvider({ children }: { children: ReactNode }) {
     setDemoTicket,
     hasActiveTicketAccess: ticketAccess !== null || restoring,
     endGuestTicketSession,
-  }), [beginDiscovery, chooseBarber, chooseService, demoTicket, draft, endGuestTicketSession, restoring, setDetails, setTicketAccessForFlow, ticketAccess, ticketDetails]);
+    settleGuestTicket,
+  }), [beginDiscovery, chooseBarber, chooseService, demoTicket, draft, endGuestTicketSession, restoring, setDetails, setTicketAccessForFlow, settleGuestTicket, ticketAccess, ticketDetails]);
 
   return <GuestFlowContext.Provider value={value}>{children}</GuestFlowContext.Provider>;
 }

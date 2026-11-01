@@ -15,6 +15,7 @@ export function CompletedGuestTicket({
   onNewTicket,
   puntuacion,
   isRating,
+  ratingState,
   onRate,
 }: {
   ticket: GuestTicketState;
@@ -24,6 +25,7 @@ export function CompletedGuestTicket({
   onNewTicket: () => void;
   puntuacion: number | null;
   isRating: boolean;
+  ratingState: 'pending' | 'rated' | 'expired' | 'unavailable';
   onRate: (puntos: number) => void;
 }) {
   const isAbsent = ticket.status === 'ausente';
@@ -97,6 +99,7 @@ export function CompletedGuestTicket({
       </CustomerCard>
 
       <CustomerButton label={isTerminalBad ? 'Sacar otro turno' : 'Volver al inicio'} onPress={isTerminalBad ? onNewTicket : onReturn} />
+      {!isTerminalBad ? <Button label="Sacar otro turno" onPress={onNewTicket} variant="secondary" /> : null}
 
       {!isTerminalBad ? (
         <View style={styles.rating}>
@@ -114,6 +117,10 @@ export function CompletedGuestTicket({
               </View>
               <Text style={[TypeScale.bodySmall, styles.ratingThanks]}>Gracias por tu puntuación.</Text>
             </>
+          ) : ratingState !== 'pending' ? (
+            <Text style={[TypeScale.bodySmall, styles.ratingThanks]}>
+              {ratingState === 'expired' ? 'El plazo de 24 horas para puntuar terminó.' : 'No hay una fecha de finalización válida para puntuar.'}
+            </Text>
           ) : (
             <>
               <Text style={[TypeScale.bodyStrong, styles.ratingTitle]}>
