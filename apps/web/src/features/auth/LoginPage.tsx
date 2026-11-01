@@ -39,18 +39,18 @@ export function LoginPage() {
 
       <section aria-labelledby="login-title" className="login-page__form-panel">
         <header className="login-page__header">
-          <Link aria-label="Turnify home" className="login-page__mobile-brand" to="/login">
+          <Link aria-label="Inicio de Turnify" className="login-page__mobile-brand" to="/login">
             <img alt="" src="/turnify-logo.png" />
             <span>TURNIFY</span>
           </Link>
-          <span className="login-page__kicker">BARBERSHOP MANAGEMENT</span>
-          <h1 id="login-title">Sign in to your shop</h1>
-          <p>Welcome back. Let’s get your day moving.</p>
+          <span className="login-page__kicker">GESTIÓN DE BARBERÍAS</span>
+          <h1 id="login-title">Iniciar sesión en tu barbería</h1>
+          <p>Accede a tu cuenta para administrar el día.</p>
         </header>
 
         <form className="login-page__form" onSubmit={handleSubmit}>
           <label className="login-page__field">
-            <span>Email address</span>
+            <span>Correo electrónico</span>
             <input
               autoComplete="email"
               autoFocus
@@ -59,14 +59,14 @@ export function LoginPage() {
                 clearError();
                 setEmail(event.target.value);
               }}
-              placeholder="you@yourshop.com"
+              placeholder="tu@barberia.com"
               type="email"
               value={email}
             />
           </label>
 
           <label className="login-page__field">
-            <span>Password</span>
+            <span>Contraseña</span>
             <input
               autoComplete="current-password"
               disabled={pending}
@@ -74,7 +74,7 @@ export function LoginPage() {
                 clearError();
                 setPassword(event.target.value);
               }}
-              placeholder="Enter your password"
+              placeholder="Ingresa tu contraseña"
               type="password"
               value={password}
             />
@@ -86,27 +86,27 @@ export function LoginPage() {
               <span>{error}</span>
             </p>
           ) : bounceMessage ? (
-            <p className="login-page__message" role="status">
+            <p className="login-page__message login-page__message--success" role="status">
               <Icon name="info" size={15} />
               <span>{bounceMessage}</span>
             </p>
           ) : null}
 
           <Button disabled={!canSubmit} icon="arrow-right" size="lg" type="submit">
-            {pending ? 'Signing you in…' : 'Sign in'}
+            {pending ? 'Iniciando sesión…' : 'Iniciar sesión'}
           </Button>
         </form>
 
         {!isSupabaseConfigured() ? (
           <p className="login-page__configuration" role="status">
-            Server connection is unavailable. Configure Supabase to sign in with an account.
+            La conexión con el servidor no está disponible. Configura Supabase para iniciar sesión.
           </p>
         ) : null}
 
         <footer className="login-page__footer">
-          <span>New to Turnify?</span> <Link to="/register">Register your barbershop</Link>
+          <span>¿Aún no tienes cuenta?</span> <Link to="/register">Registra tu barbería</Link>
         </footer>
-        <p className="login-page__access-note">For shop administrators. Barbers can manage their day in the mobile app.</p>
+        <p className="login-page__access-note">Solo para administradores de barberías. Los barberos pueden gestionar su jornada desde la aplicación móvil.</p>
       </section>
     </main>
   );
