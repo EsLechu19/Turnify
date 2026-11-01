@@ -65,7 +65,7 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - [x] **T2b — Add accessible form states.** Password visibility, accessible field icons and credential errors, reserved alert slot, loading spinner/disabled state/`aria-busy`, and visible keyboard focus.
     - RED: `npx vitest run tests/web/login-redesign.test.ts` — 3 failed / 8 passed on the form-state contract.
     - GREEN: focused test 11 passed; web typecheck passed; web build passed (same Vite chunk-size advisory).
-    - Commit/boundary and authored line count: pending while documenting this slice.
+    - Functional commit: `62d4e1f752f2f998b2f68f4f0e4696b560bcad8f`; 213 authored changed lines (168 additions + 45 deletions). Local T2b boundary: `codex/turnify-web-login-parity`; documentation follow-up remains in this slice.
     - Rollback removes the accessible form-state behavior and its tests; T2a remains independently usable.
   - Exclusions: Google OAuth, recovery, persistent Remember me, success delay, and demo. Demo remains deferred and must not be rendered.
   - Acceptance: each slice's focused contract, web typecheck, and build pass independently; preserve auth behavior and shared registration styling.
@@ -99,7 +99,7 @@ main (7d886839)
   └── PR 1: Slice A (95e0212, 371 authored changed lines) ── merge first
   └── PR 2: T1 slices B + C (265 authored changed lines) ── merge second
         └── PR 3: T2a shell (`0347a64`, 269 authored lines; branch `codex/turnify-web-login-parity-shell`) ── merge after PR 2
-              └── PR 4: T2b accessible form states (pending SHA/count; local branch `codex/turnify-web-login-parity`) ── merge after T2a
+              └── PR 4: T2b accessible form states (`62d4e1f` + task-doc follow-up; 213+ authored lines; local branch `codex/turnify-web-login-parity`) ── merge after T2a
 ```
 
 1. **PR 1 — Initial branded login, A**
