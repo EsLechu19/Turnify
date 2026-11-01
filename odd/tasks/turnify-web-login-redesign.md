@@ -113,7 +113,7 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - Added an observable password-toggle state regression (not source-string-only): RED was observed because the new `passwordVisibility` module did not yet exist; after extracting the state transition and rendered input/ARIA/icon props, the test passed. A first integration-harness attempt also exposed that root Vitest aliases `@` to the mobile app; the final focused regression avoids changing global test alias behavior.
   - GREEN: `npx vitest run tests/web/login-password-toggle.test.ts tests/web/login-redesign.test.ts tests/web/google-oauth.test.ts tests/web/password-recovery.test.ts` — 4 files / 24 tests passed; `npm --workspace turnify-web run typecheck` passed; `npm --workspace turnify-web run build` passed with the existing >500 kB JS chunk advisory.
   - Runtime boundary: local browser QA only; no credentials, form submissions, OAuth, or external-service changes. Rollback removes the extracted password-visibility helper and focused regression and restores inline toggle props; no auth flow behavior changes.
-  - Commit/boundary: pending on local branch `codex/turnify-web-login-qa`; no push/PR. Demo remains deferred.
+  - Commit/boundary: `eb25d74673fcf24498cb2b69adecaf58f5474a27` (`test(auth): cubre el toggle accesible de contraseña`), 78 authored changed lines; branch `codex/turnify-web-login-qa` at this local T6 boundary; no push/PR. Demo remains deferred.
 
 - [ ] **T7 — Package and publish with Sites**
   - Route: delegated direct preparation plus parent-owned Sites calls.
@@ -156,7 +156,7 @@ main (7d886839)
 ## Progress
 
 - Current task: T7 (next).
-- Completed: T1, T2a/T2b, T3, T4a/T4b, and T5. Parent spot-check confirmed T4 recovery contract at 19/19. T1 prior boundary `e2b97c7`; review A acknowledged under lineage `review-9fecb982b07fbb26`.
+- Completed: T1, T2a/T2b, T3, T4a/T4b, T5, and T6. Parent spot-check confirmed T4 recovery contract at 19/19. T1 prior boundary `e2b97c7`; review A acknowledged under lineage `review-9fecb982b07fbb26`.
 - T2 is being reconstructed from the clean T1 baseline after authorized restoration; no equality claim against the lost draft.
 - Delivery: `stacked-to-main`, no remote push or PR authorization. T4a and T4b are local commits only; no Supabase remote configuration was changed.
 
