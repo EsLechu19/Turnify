@@ -5,6 +5,13 @@ import type { GuestTicketAccess } from '@/features/queue/public-guest-ticket-api
 export type GuestTicketStore = Pick<SecureStorageAdapter, 'getItem' | 'setItem' | 'removeItem'>;
 
 const STORAGE_KEY = 'turnify.guest-ticket-access.v1';
+const pending = new WeakMap<GuestTicketStore, Promise<unknown>>();
+
+function ordered<T>(store: GuestTicketStore, operation: () => Promise<T>): Promise<T> {
+  const result = (pending.get(store) ?? Promise.resolve()).then(operation);
+  pending.set(store, result.catch(() => undefined));
+  return result;
+}
 
 function isGuestTicketAccess(value: unknown): value is GuestTicketAccess {
   if (!value || typeof value !== 'object') return false;
@@ -25,17 +32,21 @@ export async function storeGuestTicketAccess(
   store: GuestTicketStore = secureStorage,
   access: GuestTicketAccess,
 ): Promise<void> {
-  await store.setItem(STORAGE_KEY, JSON.stringify({
+  await ordered(store, () => store.setItem(STORAGE_KEY, JSON.stringify({
     ticketId: access.ticketId,
     visibleCode: access.visibleCode,
     capability: access.capability,
-  }));
+  })));
 }
 
 /** Reads back a well-formed stored access, or null when absent or invalid. */
 export async function loadStoredGuestTicketAccess(
   store: GuestTicketStore = secureStorage,
 ): Promise<GuestTicketAccess | null> {
+  return ordered(store, () => readAccess(store));
+}
+
+async function readAccess(store: GuestTicketStore): Promise<GuestTicketAccess | null> {
   let raw: string | null = null;
   try {
     raw = await store.getItem(STORAGE_KEY);
@@ -54,10 +65,17 @@ export async function loadStoredGuestTicketAccess(
 /** Drops the stored access: terminal tickets, cancellation, sign-out. */
 export async function clearStoredGuestTicketAccess(
   store: GuestTicketStore = secureStorage,
+  expected?: GuestTicketAccess,
 ): Promise<void> {
-  try {
-    await store.removeItem(STORAGE_KEY);
-  } catch {
-    // Clearing is best-effort; a stale row is revalidated on next launch.
-  }
+  await ordered(store, async () => {
+    try {
+      if (expected) {
+        const current = await readAccess(store);
+        if (current?.ticketId !== expected.ticketId || current.capability !== expected.capability) return;
+      }
+      await store.removeItem(STORAGE_KEY);
+    } catch {
+      // Clearing is best-effort; a stale row is revalidated on next launch.
+    }
+  });
 }

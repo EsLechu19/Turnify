@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BrandMark, Button, Card, Icon, Pill, TextField } from '@/components/ui';
@@ -9,6 +9,8 @@ import { createGuestTicketHomeChannelName, subscribeToGuestTicketHomeChanges } f
 import { normalizeBusinessCode } from '@/features/queue/queue-api';
 import { canCancelTicket } from '@/features/queue/ticket-presentation';
 import { useGuestFlow } from '@/features/public/guest-flow-session';
+import { GuestTicketRequests } from '@/features/public/guest-ticket-requests';
+import { queueMetrics } from '@/features/public/guest-ticket-display';
 import { activeGuestTicketRoute, isActiveGuestTicketStatus, publicShopRoute, workerSignInRoute } from '@/features/public/public-route-policy';
 import { useRemainingTolerance } from '@/features/worker/use-remaining-tolerance';
 import { getSupabase } from '@/lib/supabase';
@@ -26,33 +28,37 @@ export default function PublicWelcomeScreen() {
   const [activeTicket, setActiveTicket] = useState<GuestTicketState | null>(null);
   const [isTicketLoading, setIsTicketLoading] = useState(false);
   const [ticketError, setTicketError] = useState<string | null>(null);
+  const requests = useRef(new GuestTicketRequests()).current;
+  requests.setIdentity(ticketAccess);
   const calledRemaining = useRemainingTolerance(activeTicket?.calledDeadlineAt ?? null);
 
   const refreshActiveTicket = useCallback(async () => {
     if (!ticketAccess) return;
     setIsTicketLoading(true);
     setTicketError(null);
-    try {
-      const ticket = await getGuestTicketState(ticketAccess);
+    await requests.refresh(ticketAccess, getGuestTicketState, (ticket) => {
       if (isActiveGuestTicketStatus(ticket.status)) {
         setActiveTicket(ticket);
       } else {
         setActiveTicket(null);
+        requests.setIdentity(null);
         endGuestTicketSession();
       }
-    } catch {
+    }, () => {
       setTicketError('No pudimos recuperar tu turno. Revisa tu conexión.');
-    } finally {
+    }, () => {
       setIsTicketLoading(false);
-    }
-  }, [endGuestTicketSession, ticketAccess]);
+    });
+  }, [endGuestTicketSession, requests, ticketAccess]);
 
   useEffect(() => {
     if (!ticketAccess) {
+      requests.setActive(false);
       setActiveTicket(null);
       return;
     }
     let mounted = true;
+    requests.setActive(true);
     const channel = subscribeToGuestTicketHomeChanges(
       getSupabase().channel(createGuestTicketHomeChannelName(ticketAccess.ticketId)),
       ticketAccess.ticketId,
@@ -66,10 +72,11 @@ export default function PublicWelcomeScreen() {
     void refreshActiveTicket();
     return () => {
       mounted = false;
+      requests.setActive(false);
       subscription.remove();
       void getSupabase().removeChannel(channel);
     };
-  }, [refreshActiveTicket, ticketAccess]);
+  }, [refreshActiveTicket, requests, ticketAccess]);
 
   function continueWithCode(raw?: string) {
     const normalized = normalizeBusinessCode(raw ?? code);
@@ -134,7 +141,7 @@ export default function PublicWelcomeScreen() {
                 </Text>
               ) : (
                 <Text style={[TypeScale.title, { color: Palette.brandDeep }]}>
-                  {activeTicket.peopleAhead} delante · {activeTicket.waitMinutes} min
+                  {queueMetrics(activeTicket).ahead} delante · {queueMetrics(activeTicket).wait}
                 </Text>
               )}
               {activeTicket.serviceName || barberName ? (

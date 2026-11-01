@@ -10,6 +10,8 @@ import { CompletedGuestTicket } from '@/components/customer/completed-guest-tick
 import { CustomerPage, CustomerState, StatusBadge } from '@/components/customer/customer-ui';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import { DEFAULT_DEMO_TICKET, useGuestFlow } from '@/features/public/guest-flow-session';
+import { GuestTicketRequests } from '@/features/public/guest-ticket-requests';
+import { canRespondToGuestCall, queueMetrics } from '@/features/public/guest-ticket-display';
 import { canUseGuestTicket, isTerminalGuestTicketStatus } from '@/features/public/public-route-policy';
 import {
   cancelGuestTicket,
@@ -20,8 +22,7 @@ import {
   type GuestTicketState,
 } from '@/features/queue/public-guest-ticket-api';
 import { translateQueueError } from '@/features/queue/queue-api';
-import { canCancelTicket, formatEstimatedWait, presentTicketStatus, ticketPosition } from '@/features/queue/ticket-presentation';
-import { useEstimatedWaitSeconds } from '@/features/queue/use-estimated-wait';
+import { canCancelTicket, presentTicketStatus, ticketPosition } from '@/features/queue/ticket-presentation';
 import { getSupabase } from '@/lib/supabase';
 
 function initials(name: string): string {
@@ -54,7 +55,7 @@ function TicketHeader({ isLoading, onBack, onRefresh }: { isLoading: boolean; on
   );
 }
 
-function QueueTimeline({ peopleAhead, status }: { peopleAhead: number; status: 'en_espera' | 'notificado' }) {
+function QueueTimeline({ peopleAhead, status }: { peopleAhead: number | null; status: 'en_espera' | 'notificado' }) {
   const notified = status === 'notificado';
 
   return (
@@ -80,7 +81,7 @@ function QueueTimeline({ peopleAhead, status }: { peopleAhead: number; status: '
         </View>
         <View style={styles.timelineCopy}>
           <Text style={[TypeScale.bodyStrong, { color: Palette.brand }]}>{notified ? 'Notificado' : 'En espera'}</Text>
-          <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>Posición actual: {ticketPosition(peopleAhead)}.</Text>
+          <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>Posición actual: {peopleAhead === null ? 'sin datos' : ticketPosition(peopleAhead)}.</Text>
         </View>
       </View>
 
@@ -109,21 +110,23 @@ export default function GuestTicketScreen() {
   const [isRating, setIsRating] = useState(false);
   const [voted, setVoted] = useState<number | null>(null);
   const [isConfirmingCancel, setIsConfirmingCancel] = useState(false);
+  const requests = useRef(new GuestTicketRequests()).current;
+  const actionPending = useRef(false);
+  requests.setIdentity(ticketAccess);
   // The guest session ends when the ticket reaches a terminal state, but the
   // thanks screen still needs the capability to record the vote afterwards.
   const rateAccess = useRef<GuestTicketAccess | null>(null);
-  const estimatedWaitSeconds = useEstimatedWaitSeconds(
-    ticket?.status === 'en_espera' || ticket?.status === 'notificado' ? ticket.waitMinutes : null,
-  );
+  const metrics = ticket ? queueMetrics(ticket) : null;
 
   const returnHome = useCallback(() => {
     router.replace('/');
   }, []);
 
   const startNewTicket = useCallback(() => {
+    requests.invalidate();
     endGuestTicketSession();
     router.replace('/');
-  }, [endGuestTicketSession]);
+  }, [endGuestTicketSession, requests]);
 
   useEffect(() => {
     if (ticketAccess) rateAccess.current = ticketAccess;
@@ -160,31 +163,32 @@ export default function GuestTicketScreen() {
       return true;
     }
 
-    if (!ticketAccess) return false;
+    if (!ticketAccess || actionPending.current) return false;
     setIsLoading(true);
-    try {
-      const nextTicket = await getGuestTicketState(ticketAccess);
+    return requests.refresh(ticketAccess, getGuestTicketState, (nextTicket) => {
       setTicket(nextTicket);
       setUpdatedAt(new Date());
-      if (isTerminalGuestTicketStatus(nextTicket.status)) endGuestTicketSession();
+      if (isTerminalGuestTicketStatus(nextTicket.status)) {
+        requests.setIdentity(null);
+        endGuestTicketSession();
+      }
       setError(null);
-      return true;
-    } catch (reason) {
+    }, (reason) => {
       setError(translateQueueError(reason instanceof Error ? reason.message : ''));
-      return false;
-    } finally {
+    }, () => {
       setIsLoading(false);
-    }
-  }, [demoTicket, endGuestTicketSession, ticketAccess]);
+    });
+  }, [demoTicket, endGuestTicketSession, requests, ticketAccess]);
 
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
+      requests.setActive(true);
       let channel: ReturnType<ReturnType<typeof getSupabase>['channel']> | undefined;
 
       async function start() {
         const foundTicket = await refresh();
-        if (!isActive || !foundTicket || !ticketAccess) return;
+        if (!isActive || !foundTicket || !ticketAccess || !requests.matches(ticketAccess)) return;
         channel = getSupabase()
           .channel(`guest-ticket:${ticketAccess.ticketId}`)
           .on(
@@ -210,11 +214,12 @@ export default function GuestTicketScreen() {
 
       return () => {
         isActive = false;
+        requests.setActive(false);
         appStateSubscription.remove();
         clearInterval(poll);
         if (channel) void getSupabase().removeChannel(channel);
       };
-    }, [refresh, ticketAccess]),
+    }, [refresh, requests, ticketAccess]),
   );
 
   const status = ticket ? presentTicketStatus(ticket.status) : null;
@@ -222,28 +227,38 @@ export default function GuestTicketScreen() {
   const barberName = ticket?.assignedBarberName ?? ticket?.requestedBarberName ?? null;
 
   async function cancel() {
-    if (!ticketAccess || !canCancel) return;
+    if (!ticketAccess || !canCancel || actionPending.current) return;
+    actionPending.current = true;
+    requests.invalidate();
     setIsCancelling(true);
     try {
       await cancelGuestTicket(ticketAccess);
+      if (!requests.matches(ticketAccess)) return;
       setIsConfirmingCancel(false);
+      actionPending.current = false;
       await refresh();
     } catch (reason) {
-      setError(translateQueueError(reason instanceof Error ? reason.message : ''));
+      if (requests.matches(ticketAccess)) setError(translateQueueError(reason instanceof Error ? reason.message : ''));
     } finally {
+      actionPending.current = false;
       setIsCancelling(false);
     }
   }
 
   async function respond(response: NonNullable<GuestTicketState['customerResponse']>) {
-    if (!ticketAccess || ticket?.status !== 'llamado') return;
+    if (!ticketAccess || ticket?.status !== 'llamado' || !canRespondToGuestCall(ticket) || actionPending.current) return;
+    actionPending.current = true;
+    requests.invalidate();
     setIsResponding(true);
     try {
       await respondToCalledGuestTicket(ticketAccess, response);
+      if (!requests.matches(ticketAccess)) return;
+      actionPending.current = false;
       await refresh();
     } catch (reason) {
-      setError(translateQueueError(reason instanceof Error ? reason.message : ''));
+      if (requests.matches(ticketAccess)) setError(translateQueueError(reason instanceof Error ? reason.message : ''));
     } finally {
+      actionPending.current = false;
       setIsResponding(false);
     }
   }
@@ -366,7 +381,7 @@ export default function GuestTicketScreen() {
                     </View>
                     <View style={styles.heroStatCopy}>
                       <Text style={[TypeScale.title, { color: Palette.ink }]}>
-                        {String(ticket.peopleAhead)}
+                         {metrics?.ahead}
                       </Text>
                       <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>
                         {ticket.peopleAhead === 1 ? 'delante de ti' : 'delante de ti'}
@@ -380,10 +395,10 @@ export default function GuestTicketScreen() {
                     </View>
                     <View style={styles.heroStatCopy}>
                       <Text
-                        accessibilityLabel={`Espera aproximada ${ticket.peopleAhead === 0 ? 'es tu turno ahora' : estimatedWaitSeconds > 0 ? `unos ${Math.ceil(estimatedWaitSeconds / 60)} minutos` : `vas puesto ${ticketPosition(ticket.peopleAhead)}`}`}
+                         accessibilityLabel={`Espera aproximada ${metrics?.wait}`}
                         style={[TypeScale.title, { color: Palette.goldInk }]}
                       >
-                        {ticket.peopleAhead === 0 ? 'Ahora' : estimatedWaitSeconds > 0 ? `~${Math.ceil(estimatedWaitSeconds / 60)} min` : `${ticketPosition(ticket.peopleAhead)}°`}
+                         {metrics?.wait}
                       </Text>
                       <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>espera aprox.</Text>
                     </View>
@@ -416,7 +431,7 @@ export default function GuestTicketScreen() {
             {ticket.status === 'en_espera' || ticket.status === 'notificado' ? (
               <Card padding="md">
                 <Text style={[TypeScale.h3, { color: Palette.ink }]}>Progreso de tu turno</Text>
-                <QueueTimeline peopleAhead={ticket.peopleAhead} status={ticket.status} />
+                 <QueueTimeline peopleAhead={Number.isInteger(ticket.peopleAhead) && ticket.peopleAhead >= 0 ? ticket.peopleAhead : null} status={ticket.status} />
               </Card>
             ) : null}
 

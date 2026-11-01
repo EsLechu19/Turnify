@@ -1,4 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { loadStoredGuestTicketAccess } from '../../apps/mobile/src/features/public/guest-ticket-storage';
+import { getGuestTicketState } from '../../apps/mobile/src/features/queue/public-guest-ticket-api';
+
+vi.mock('../../apps/mobile/src/features/public/guest-ticket-storage', () => ({
+  loadStoredGuestTicketAccess: vi.fn(() => Promise.resolve(null)),
+  storeGuestTicketAccess: vi.fn(() => Promise.resolve()),
+  clearStoredGuestTicketAccess: vi.fn(() => Promise.resolve()),
+}));
+vi.mock('../../apps/mobile/src/features/queue/public-guest-ticket-api', () => ({ getGuestTicketState: vi.fn() }));
 
 type HookSlot = unknown | { deps: readonly unknown[]; value: unknown };
 
@@ -22,8 +31,9 @@ vi.mock('react', () => ({
   createContext: () => ({ Provider: 'GuestFlowProvider' }),
   useCallback: <T>(callback: T, dependencies: readonly unknown[]) => cached(() => callback, dependencies),
   useContext: () => undefined,
-  useEffect: () => undefined,
+  useEffect: (effect: () => void, dependencies: readonly unknown[]) => cached(() => { effect(); }, dependencies),
   useMemo: <T>(factory: () => T, dependencies: readonly unknown[]) => cached(factory, dependencies),
+  useRef: <T,>(value: T) => cached(() => ({ current: value }), []),
   useState: <T,>(initialValue: T) => {
     const index = cursor++;
     if (!(index in slots)) slots[index] = initialValue;
@@ -37,6 +47,8 @@ describe('GuestFlowProvider discovery actions', () => {
   beforeEach(() => {
     slots.length = 0;
     cursor = 0;
+    vi.mocked(loadStoredGuestTicketAccess).mockReset().mockResolvedValue(null);
+    vi.mocked(getGuestTicketState).mockReset();
   });
 
   it('keeps discovery settled after a successful catalog lookup', async () => {
@@ -49,6 +61,8 @@ describe('GuestFlowProvider discovery actions', () => {
       } } }).props.value;
     };
 
+    render();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     const initial = render();
     const discoveryAction = initial.beginDiscovery;
     discoveryAction('TURNIFY', { name: 'Barbería Central' });
@@ -70,6 +84,8 @@ describe('GuestFlowProvider discovery actions', () => {
         endGuestTicketSession(): void;
       } } }).props.value;
     };
+    render();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     render().setTicketAccess({ ticketId: 'ticket-1', visibleCode: 'A-1', capability: 'private-capability' });
     const active = render();
 
@@ -79,5 +95,27 @@ describe('GuestFlowProvider discovery actions', () => {
 
     active.endGuestTicketSession();
     expect(render().hasActiveTicketAccess).toBe(false);
+  });
+
+  it('does not let a slow restore replace a ticket created while validation was pending', async () => {
+    const stored = { ticketId: 'old', visibleCode: 'A-1', capability: 'old-private' };
+    const newer = { ticketId: 'new', visibleCode: 'A-2', capability: 'new-private' };
+    let finish!: (state: { status: 'en_espera' }) => void;
+    vi.mocked(loadStoredGuestTicketAccess).mockResolvedValue(stored);
+    vi.mocked(getGuestTicketState).mockImplementation(() => new Promise((resolve) => { finish = resolve; }) as ReturnType<typeof getGuestTicketState>);
+    const { GuestFlowProvider } = await import('../../apps/mobile/src/features/public/guest-flow-session');
+    const render = () => {
+      cursor = 0;
+      return (GuestFlowProvider({ children: null }) as unknown as { props: { value: {
+        ticketAccess: typeof stored | null;
+        setTicketAccess(access: typeof stored): void;
+      } } }).props.value;
+    };
+    render();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    render().setTicketAccess(newer);
+    finish({ status: 'en_espera' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(render().ticketAccess).toEqual(newer);
   });
 });

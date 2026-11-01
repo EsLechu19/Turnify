@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import type { CommercialCatalog } from '@/features/queue/commercial-queue-api';
 import type { GuestDetails } from '@/features/queue/guest-ticket-details';
@@ -60,13 +60,16 @@ export function GuestFlowProvider({ children }: { children: ReactNode }) {
   const [ticketDetails, setTicketDetails] = useState<GuestDetails | null>(null);
   const [ticketAccess, setTicketAccess] = useState<GuestTicketAccess | null>(null);
   const [demoTicket, setDemoTicket] = useState<DemoGuestTicket | null>(null);
+  const sessionRevision = useRef(0);
+  const currentAccess = useRef<GuestTicketAccess | null>(null);
+  const [restoring, setRestoring] = useState(true);
 
   const beginDiscovery = useCallback((companyCode: string, catalog: CommercialCatalog) => {
-    if (ticketAccess) return false;
+    if (ticketAccess || restoring) return false;
     setTicketDetails(null);
     setDraft({ companyCode, catalog, serviceId: '', requestedBarberId: null, details: { name: '' } });
     return true;
-  }, [ticketAccess]);
+  }, [ticketAccess, restoring]);
   const chooseService = useCallback((serviceId: string) => {
     setDraft((current) => current ? { ...current, serviceId, requestedBarberId: null } : current);
   }, []);
@@ -78,34 +81,43 @@ export function GuestFlowProvider({ children }: { children: ReactNode }) {
     setDraft((current) => current ? { ...current, details } : current);
   }, []);
   const setTicketAccessForFlow = useCallback((access: GuestTicketAccess) => {
+    sessionRevision.current++;
+    currentAccess.current = access;
     setDraft(null);
     setTicketAccess(access);
     void storeGuestTicketAccess(undefined, access).catch(() => undefined);
   }, []);
   const endGuestTicketSession = useCallback(() => {
+    sessionRevision.current++;
+    const oldAccess = currentAccess.current;
+    currentAccess.current = null;
     setDraft(null);
     setTicketDetails(null);
     setTicketAccess(null);
     setDemoTicket(null);
-    void clearStoredGuestTicketAccess().catch(() => undefined);
+    if (oldAccess) void clearStoredGuestTicketAccess(undefined, oldAccess).catch(() => undefined);
   }, []);
 
   // Restores the previous guest ticket without blocking the launch: stored
   // access is revalidated and only active tickets come back.
   useEffect(() => {
     let active = true;
+    const revision = sessionRevision.current;
     void loadStoredGuestTicketAccess()
       .then((stored) => (stored ? getGuestTicketState(stored).then((state) => ({ stored, state })).catch(() => null) : null))
       .then((restored) => {
-        if (!active || !restored) return;
+        if (!active || revision !== sessionRevision.current) return;
+        setRestoring(false);
+        if (!restored) return;
         if (isActiveGuestTicketStatus(restored.state.status)) {
+          currentAccess.current = restored.stored;
           setDraft(null);
           setTicketAccess(restored.stored);
         } else {
-          void clearStoredGuestTicketAccess().catch(() => undefined);
+          void clearStoredGuestTicketAccess(undefined, restored.stored).catch(() => undefined);
         }
       })
-      .catch(() => undefined);
+      .catch(() => { if (active) setRestoring(false); });
     return () => {
       active = false;
     };
@@ -122,9 +134,9 @@ export function GuestFlowProvider({ children }: { children: ReactNode }) {
     setDetails,
     setTicketAccess: setTicketAccessForFlow,
     setDemoTicket,
-    hasActiveTicketAccess: ticketAccess !== null,
+    hasActiveTicketAccess: ticketAccess !== null || restoring,
     endGuestTicketSession,
-  }), [beginDiscovery, chooseBarber, chooseService, demoTicket, draft, endGuestTicketSession, setDetails, setTicketAccessForFlow, ticketAccess, ticketDetails]);
+  }), [beginDiscovery, chooseBarber, chooseService, demoTicket, draft, endGuestTicketSession, restoring, setDetails, setTicketAccessForFlow, ticketAccess, ticketDetails]);
 
   return <GuestFlowContext.Provider value={value}>{children}</GuestFlowContext.Provider>;
 }

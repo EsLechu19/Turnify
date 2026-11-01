@@ -5,6 +5,7 @@ import { CustomerState } from '@/components/customer/customer-ui';
 import { Button, Card, Icon, Pill, ProgressBar } from '@/components/ui';
 import { Palette, Radius, space, TypeScale } from '@/constants/theme';
 import type { GuestTicketState } from '@/features/queue/public-guest-ticket-api';
+import { canRespondToGuestCall } from '@/features/public/guest-ticket-display';
 
 function remainingSeconds(deadline: string | null): number {
   return deadline ? Math.max(0, Math.ceil((new Date(deadline).getTime() - Date.now()) / 1000)) : 0;
@@ -53,12 +54,13 @@ export function CalledGuestTicket({
         ? 'Confirmaste: llegas en 2 minutos'
         : null;
   const hasDeadline = ticket.calledDeadlineAt != null && !Number.isNaN(new Date(ticket.calledDeadlineAt).getTime());
-  const canRespond = (hasDeadline ? seconds > 0 : true) && !ticket.customerResponse;
+  const canRespond = canRespondToGuestCall(ticket) && seconds > 0;
   const graceMinutes = ticket.graciaMin ?? 5;
   const decay = Math.min(1, seconds / Math.max(1, graceMinutes * 60));
   const isUrgent = hasDeadline && seconds <= 60;
 
   function confirmRespond(response: NonNullable<GuestTicketState['customerResponse']>) {
+    if (!canRespondToGuestCall(ticket)) return;
     Alert.alert(
       response === 'presente' ? 'Confirmar presencia' : 'Avisar que llegas',
       response === 'presente'
@@ -118,7 +120,7 @@ export function CalledGuestTicket({
             <ProgressBar tone={isUrgent ? 'danger' : 'brand'} value={decay} />
           </View>
         ) : (
-          <Text style={styles.missingDeadline}>Sin tiempo límite visible: acércate ya al personal.</Text>
+          <Text style={styles.missingDeadline}>Sin tiempo límite visible: acércate al personal. No puedes responder desde la app.</Text>
         )}
       </Card>
 

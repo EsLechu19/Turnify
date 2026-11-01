@@ -41,4 +41,40 @@ describe('guest ticket storage', () => {
     await clearStoredGuestTicketAccess(store);
     await expect(loadStoredGuestTicketAccess(store)).resolves.toBeNull();
   });
+
+  it('serializes a delayed write and clear, and will not delete a replacement session', async () => {
+    let value: string | null = null;
+    let release!: () => void;
+    const delayed = new Promise<void>((resolve) => { release = resolve; });
+    const store: GuestTicketStore = {
+      getItem: async () => value,
+      setItem: async (_key, next) => { await delayed; value = next; },
+      removeItem: async () => { value = null; },
+    };
+    const write = storeGuestTicketAccess(store, ACCESS);
+    const clear = clearStoredGuestTicketAccess(store, ACCESS);
+    release(); await Promise.all([write, clear]);
+    expect(value).toBeNull();
+
+    const newer = { ...ACCESS, ticketId: 'ticket-2', capability: 'new-secret' };
+    await storeGuestTicketAccess(store, newer);
+    await clearStoredGuestTicketAccess(store, ACCESS);
+    await expect(loadStoredGuestTicketAccess(store)).resolves.toEqual(newer);
+  });
+
+  it('reads after a pending device write rather than observing the old value', async () => {
+    let value: string | null = null;
+    let release!: () => void;
+    const pendingWrite = new Promise<void>((resolve) => { release = resolve; });
+    const store: GuestTicketStore = {
+      getItem: async () => value,
+      setItem: async (_key, next) => { await pendingWrite; value = next; },
+      removeItem: async () => { value = null; },
+    };
+    const write = storeGuestTicketAccess(store, ACCESS);
+    const read = loadStoredGuestTicketAccess(store);
+    release();
+    await write;
+    await expect(read).resolves.toEqual(ACCESS);
+  });
 });
