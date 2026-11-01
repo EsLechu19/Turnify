@@ -77,7 +77,7 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - Checked by default selects `localStorage` for Supabase and panel session; unchecked selects `sessionStorage`. Mode changes migrate and remove the alternate copy; restore uses the selected store with safe legacy fallback; sign-out clears session keys in both stores.
   - RED: requested Vitest command failed 6 tests (5 storage behaviors + login checkbox contract) before implementation.
   - GREEN: 18 tests passed; web typecheck passed; web build passed with the existing >500 kB JS chunk advisory. No interactive checkbox test was added without a UI test harness; defer it to T6.
-  - Boundary: commit and line count will be recorded after commit; target local boundary `codex/turnify-web-login-remember`, stacked after T2. Rollback removes the adapter/wiring, checkbox, and T3 tests; T2 remains intact.
+  - Functional commit: `4a6f28d4ae1177f055c3f42b768e0060d013e986` (`feat(auth): implementa la sesión recordada`), 395 authored changed lines; local boundary `codex/turnify-web-login-remember`, stacked after T2. Rollback removes the adapter/wiring, checkbox, and T3 tests; T2 remains intact.
 
 - [ ] **T4 — Implement password recovery**
   - Route: delegated direct. Add only a functional recovery and return flow. Evidence: pending.
