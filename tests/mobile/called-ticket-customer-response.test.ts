@@ -50,7 +50,10 @@ describe('called-ticket customer response mobile contract', () => {
   });
 
   it('returns the completed guest to a fresh launch that admits a new ticket', () => {
-    expect(ticketRoute).toContain('onReturn={startNewTicket}');
+    expect(ticketRoute).toContain('onReturn={returnHome}');
+    expect(ticketRoute).toContain('onNewTicket={startNewTicket}');
+    expect(ticketRoute).toMatch(/const returnHome = useCallback\(\(\) => \{\s*router\.replace\('\/'\);/);
+    expect(ticketRoute).toMatch(/const startNewTicket = useCallback\(\(\) => \{\s*requests\.invalidate\(\);\s*endGuestTicketSession\(\);\s*router\.replace\('\/'\);/);
     expect(ticketRoute).toContain('endGuestTicketSession();');
   });
 
@@ -65,8 +68,10 @@ describe('called-ticket customer response mobile contract', () => {
     expect(ticketRoute).toContain('rateFinishedGuestTicket');
   });
 
-  it('keeps the rating capability after the guest session ends', () => {
-    expect(ticketRoute).toContain('rateAccess');
+  it('keeps eligible rating access in the session until a vote settles the ticket', () => {
+    expect(ticketRoute).toContain("guestRatingState(ticket) !== 'pending'");
+    expect(ticketRoute).toContain('await rateFinishedGuestTicket(access, puntos);');
     expect(ticketRoute).toContain('setVoted(puntos)');
+    expect(ticketRoute).toContain('settleGuestTicket(access, { ...ticket, puntuacion: puntos, canRate: false });');
   });
 });
