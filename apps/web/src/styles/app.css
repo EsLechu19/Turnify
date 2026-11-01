@@ -2986,6 +2986,38 @@ select {
   transition: border-color 150ms ease, box-shadow 150ms ease;
   width: 100%;
 }
+.login-page__input-wrap { display: block; position: relative; }
+.login-page__input-wrap input { padding-left: 42px; }
+.login-page__field-icon {
+  color: rgba(13, 27, 76, 0.58);
+  left: 14px;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+.login-page__input-wrap input[aria-invalid="true"] { border-color: var(--login-error); }
+.login-page__input-wrap input[aria-invalid="true"]:focus-visible {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18);
+}
+.login-page__password-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--login-navy);
+  cursor: pointer;
+  display: inline-flex;
+  inset-block: 0;
+  justify-content: center;
+  min-width: 42px;
+  padding: 0;
+  position: absolute;
+  right: 4px;
+}
+.login-page__input-wrap:has(.login-page__password-toggle) input { padding-right: 48px; }
+.login-page__password-toggle:disabled { cursor: wait; opacity: 0.6; }
 .login-page__field input::placeholder { color: rgba(13, 27, 76, 0.58); }
 .login-page__field input:focus-visible {
   border-color: var(--login-action);
@@ -3004,6 +3036,11 @@ select {
   border-color: var(--login-navy);
 }
 .login-page__form button:disabled { opacity: 0.55; }
+
+.login-page__alerts {
+  min-height: 44px;
+  width: 100%;
+}
 
 .login-page__message {
   align-items: center;
@@ -3028,6 +3065,23 @@ select {
   color: var(--login-error);
 }
 .login-page__message svg { flex: none; }
+.login-page__spinner {
+  animation: login-spin 700ms linear infinite;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  border-top-color: #FFFFFF;
+  display: inline-block;
+  flex: none;
+  height: 16px;
+  margin-right: 9px;
+  vertical-align: middle;
+  width: 16px;
+}
+@keyframes login-spin { to { transform: rotate(360deg); } }
+.login-page :is(input, button, a):focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.5);
+  outline-offset: 3px;
+}
 .login-page__configuration {
   background: rgba(232, 177, 76, 0.1);
   border: 1px solid rgba(232, 177, 76, 0.5);
@@ -3117,5 +3171,13 @@ select {
 @media (max-width: 380px) {
   .login-page__form-panel { padding-left: 18px; padding-right: 18px; }
   .login-page__mobile-brand { margin-bottom: 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-page *, .login-page *::before, .login-page *::after {
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 /* ---------- End branded login ---------- */

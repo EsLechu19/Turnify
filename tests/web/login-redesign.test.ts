@@ -108,4 +108,30 @@ describe('branded web login', () => {
     expect(login).toContain("@fontsource/manrope");
     expect(login).toContain("@fontsource/inter");
   });
+
+  it('toggles password visibility with an accessible, stateful control', () => {
+    expect(login).toContain('showPassword');
+    expect(login).toContain("showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'");
+    expect(login).toContain('aria-pressed={showPassword}');
+    expect(login).toContain("type={showPassword ? 'text' : 'password'}");
+    expect(login).toContain("name={showPassword ? 'eye-slash' : 'eye'}");
+  });
+
+  it('keeps an alert slot and marks invalid credentials on the related fields', () => {
+    expect(login).toContain('login-page__alerts');
+    expect(login).toContain('credentialsInvalid');
+    expect(login).toContain('aria-invalid={credentialsInvalid}');
+    expect(login).toContain("aria-describedby={credentialsInvalid ? 'login-credentials-error' : undefined}");
+    expect(login).toContain("'login-credentials-error'");
+    expect(login).toContain('Correo o contraseña incorrectos.');
+    expect(loginStyles).toContain('.login-page__alerts');
+  });
+
+  it('exposes pending state, loading indicator, and keyboard focus affordances', () => {
+    expect(login).toContain('aria-busy={pending}');
+    expect(login).toContain('login-page__spinner');
+    expect(loginStyles).toContain('.login-page__spinner');
+    expect(loginStyles).toContain(':focus-visible');
+    expect(loginStyles).toContain('prefers-reduced-motion');
+  });
 });

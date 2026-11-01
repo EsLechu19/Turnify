@@ -33,6 +33,8 @@ import {
   faPen,
   faTrashCan,
   faEye,
+  faEyeSlash,
+  faLock,
   faDownload,
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -50,9 +52,11 @@ export type IconName =
   | 'edit'
   | 'ellipsis-v'
   | 'eye'
+  | 'eye-slash'
   | 'grid'
   | 'info'
   | 'list'
+  | 'lock'
   | 'logout'
   | 'pause'
   | 'plus'
@@ -85,9 +89,11 @@ const iconMap: Record<IconName, IconDefinition> = {
   edit: faPen,
   'ellipsis-v': faEllipsisV,
   eye: faEye,
+  'eye-slash': faEyeSlash,
   grid: faTh,
   info: faCircleInfo,
   list: faList,
+  lock: faLock,
   logout: faRightFromBracket,
   pause: faPause,
   plus: faPlus,

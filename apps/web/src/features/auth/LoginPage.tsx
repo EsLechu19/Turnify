@@ -16,7 +16,9 @@ export function LoginPage() {
   const { signIn, error, pending, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const bounceMessage = (useLocation().state as { message?: string } | null)?.message;
+  const credentialsInvalid = error === 'Correo o contraseña incorrectos.';
 
   const canSubmit = email.trim().length > 0 && password.length > 0 && !pending;
 
@@ -59,52 +61,74 @@ export function LoginPage() {
           <p>Accede a tu cuenta para administrar el día.</p>
         </header>
 
-        <form className="login-page__form" onSubmit={handleSubmit}>
+        <form aria-busy={pending} className="login-page__form" onSubmit={handleSubmit}>
           <label className="login-page__field">
             <span>Correo electrónico</span>
-            <input
-              autoComplete="email"
-              autoFocus
-              disabled={pending}
-              onChange={(event) => {
-                clearError();
-                setEmail(event.target.value);
-              }}
-              placeholder="tu@barberia.com"
-              type="email"
-              value={email}
-            />
+            <span className="login-page__input-wrap">
+              <Icon className="login-page__field-icon" name="user" size={16} />
+              <input
+                aria-describedby={credentialsInvalid ? 'login-credentials-error' : undefined}
+                aria-invalid={credentialsInvalid}
+                autoComplete="email"
+                autoFocus
+                disabled={pending}
+                onChange={(event) => {
+                  clearError();
+                  setEmail(event.target.value);
+                }}
+                placeholder="tu@barberia.com"
+                type="email"
+                value={email}
+              />
+            </span>
           </label>
 
           <label className="login-page__field">
             <span>Contraseña</span>
-            <input
-              autoComplete="current-password"
-              disabled={pending}
-              onChange={(event) => {
-                clearError();
-                setPassword(event.target.value);
-              }}
-              placeholder="Ingresa tu contraseña"
-              type="password"
-              value={password}
-            />
+            <span className="login-page__input-wrap">
+              <Icon className="login-page__field-icon" name="lock" size={16} />
+              <input
+                aria-describedby={credentialsInvalid ? 'login-credentials-error' : undefined}
+                aria-invalid={credentialsInvalid}
+                autoComplete="current-password"
+                disabled={pending}
+                onChange={(event) => {
+                  clearError();
+                  setPassword(event.target.value);
+                }}
+                placeholder="Ingresa tu contraseña"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+              />
+              <button
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                aria-pressed={showPassword}
+                className="login-page__password-toggle"
+                disabled={pending}
+                onClick={() => setShowPassword((visible) => !visible)}
+                type="button"
+              >
+                <Icon name={showPassword ? 'eye-slash' : 'eye'} size={16} />
+              </button>
+            </span>
           </label>
 
-          {error ? (
-            <p className="login-page__message login-page__message--error" role="alert">
-              <Icon name="info" size={15} />
-              <span>{error}</span>
-            </p>
-          ) : bounceMessage ? (
-            <p className="login-page__message login-page__message--success" role="status">
-              <Icon name="info" size={15} />
-              <span>{bounceMessage}</span>
-            </p>
-          ) : null}
+          <div aria-atomic="true" aria-live="polite" className="login-page__alerts">
+            {error ? (
+              <p className="login-page__message login-page__message--error" id={credentialsInvalid ? 'login-credentials-error' : undefined} role="alert">
+                <Icon name="info" size={15} />
+                <span>{error}</span>
+              </p>
+            ) : bounceMessage ? (
+              <p className="login-page__message login-page__message--success" role="status">
+                <Icon name="info" size={15} />
+                <span>{bounceMessage}</span>
+              </p>
+            ) : null}
+          </div>
 
-          <Button disabled={!canSubmit} icon="arrow-right" size="lg" type="submit">
-            {pending ? 'Iniciando sesión…' : 'Iniciar sesión'}
+          <Button disabled={!canSubmit} icon={pending ? undefined : 'arrow-right'} size="lg" type="submit">
+            {pending ? <><span aria-hidden="true" className="login-page__spinner" />Iniciando sesión…</> : 'Iniciar sesión'}
           </Button>
         </form>
 

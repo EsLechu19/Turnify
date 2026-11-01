@@ -60,8 +60,13 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - [x] **T2a — Build the editorial responsive shell.** Desktop 60/40 layout, brand/value panel with three benefits, compact mobile brand header, project palette aliases, and locally bundled Manrope/Inter typography.
     - RED: `npx vitest run tests/web/login-redesign.test.ts` — 3 failed / 5 passed on the shell contract.
     - GREEN: focused test 8 passed; web typecheck passed; web build passed (Vite >500 kB JS chunk advisory).
-    - Boundary: local branch `codex/turnify-web-login-parity-shell`, target `main` after T1; no remote push or PR. Rollback removes only T2a brand shell, aliases/fonts, and its contract.
-  - [ ] **T2b — Add accessible form states.** Password visibility, accessible field icons and credential errors, reserved alert slot, loading spinner/disabled state/`aria-busy`, and visible keyboard focus. No shell changes unless needed for the form state behavior.
+    - Commit/boundary: `0347a64` (`codex/turnify-web-login-parity-shell`), 269 authored changed lines; stacked after T1, target `main` after the prior slice. No remote push or PR.
+    - Rollback removes only T2a brand shell, aliases/fonts, and its contract. `npm audit` reported two high-severity advisories; no audit fixes were applied.
+  - [x] **T2b — Add accessible form states.** Password visibility, accessible field icons and credential errors, reserved alert slot, loading spinner/disabled state/`aria-busy`, and visible keyboard focus.
+    - RED: `npx vitest run tests/web/login-redesign.test.ts` — 3 failed / 8 passed on the form-state contract.
+    - GREEN: focused test 11 passed; web typecheck passed; web build passed (same Vite chunk-size advisory).
+    - Commit/boundary and authored line count: pending while documenting this slice.
+    - Rollback removes the accessible form-state behavior and its tests; T2a remains independently usable.
   - Exclusions: Google OAuth, recovery, persistent Remember me, success delay, and demo. Demo remains deferred and must not be rendered.
   - Acceptance: each slice's focused contract, web typecheck, and build pass independently; preserve auth behavior and shared registration styling.
   - Evidence: reconstruction from the clean T1 baseline; the previous uncommitted draft was lost during its authorized restoration and is not used as equality evidence.
@@ -93,8 +98,8 @@ No push or PR has been created. Each PR targets `main`; PR 2 follows PR 1 after 
 main (7d886839)
   └── PR 1: Slice A (95e0212, 371 authored changed lines) ── merge first
   └── PR 2: T1 slices B + C (265 authored changed lines) ── merge second
-        └── PR 3: T2a shell (local boundary `codex/turnify-web-login-parity-shell`, SHA pending) ── merge after PR 2
-              └── PR 4: T2b accessible form states (pending ≤400 lines) ── merge after T2a
+        └── PR 3: T2a shell (`0347a64`, 269 authored lines; branch `codex/turnify-web-login-parity-shell`) ── merge after PR 2
+              └── PR 4: T2b accessible form states (pending SHA/count; local branch `codex/turnify-web-login-parity`) ── merge after T2a
 ```
 
 1. **PR 1 — Initial branded login, A**
@@ -115,11 +120,11 @@ main (7d886839)
 
 ## Progress
 
-- Current task: T2.
-- Completed: T1, including the user-requested palette and Spanish-copy correction; prior through `e2b97c7`, review A acknowledged under lineage `review-9fecb982b07fbb26`.
+- Current task: T3.
+- Completed: T1 and T2a/T2b. T1 prior boundary `e2b97c7`; review A acknowledged under lineage `review-9fecb982b07fbb26`.
 - T2 is being reconstructed from the clean T1 baseline after authorized restoration; no equality claim against the lost draft.
 - Delivery: `stacked-to-main`, no remote push or PR authorization.
 
 ## Next step
 
-Implement and independently verify T2b; follow with T3.
+Implement persistent Remember me behavior (T3).
