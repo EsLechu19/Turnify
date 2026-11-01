@@ -29,7 +29,7 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
 - TDD runner: `npx vitest run tests/web/login-redesign.test.ts`.
 - Full checks: `npx vitest run tests/web/login-redesign.test.ts`, `npm --workspace turnify-web run typecheck`, `npm --workspace turnify-web run build`.
 - Delivery strategy: `stacked-to-main`.
-- Forecast for the initial implementation was approximately 350 authored changed lines. The actual baseline commit is 448 changed lines including the 77-line task-document addition (371 source/test lines, binary asset excluded); it exceeds the 400-line PR budget and must be re-sliced or receive an explicit size exception before any PR is created. No exception is authorized.
+- Review budget: 400 authored changed lines per PR; binary assets are excluded from authored line counts.
 
 ## Authorized scope
 
@@ -46,13 +46,14 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
 - [x] **T1 — Define the login contract and implement the branded layout**
   - Route: delegated direct.
   - Trigger evidence: implementation requires coordinated changes across JSX, CSS, a visual asset, and a new test.
-  - The user reopened T1 after review to correct the palette and form language; the confirmed correction is now applied.
+  - The user reopened T1 after review to correct the palette and form language; the confirmed correction is applied.
   - Initial implementation RED: `npx vitest run tests/web/login-redesign.test.ts` failed with 2 failed / 1 passed before implementation.
   - Correction RED: the updated palette/Spanish-copy contract failed with 2 failed / 3 passed before changing the implementation.
-  - Implemented a split desktop login using the supplied barber-shop image, compact mobile layout, and Spanish form copy. Login-only styles use the specified reference palette; shared `.auth` styles remain unchanged for registration.
   - Preserved Supabase email/password submission, pending/error/return/configuration states, and registration access; no OAuth or recovery controls were added.
   - Acceptance: focused contract test GREEN; typecheck and build pass; registration selectors stay isolated.
-  - Evidence: correction contract 5 passed; `npm --workspace turnify-web run typecheck` passed; `npm --workspace turnify-web run build` passed (Vite large-chunk advisory); baseline commit `5dae003b26cad253d9a99adb6662123a2a8350cc`; correction work-unit commit recorded in the handoff.
+  - Slice A evidence: 3 focused tests passed; typecheck passed; build passed with Vite large-chunk advisory.
+  - Slice B/C evidence: 5 focused tests passed; typecheck passed; build passed with the same advisory. User-requested palette and Spanish form-copy corrections are included.
+  - Commits: A `95e021277713e0b3763c2701b56ea8b84455add4`; B `d3267c0629d557115a676f867a132fa7691eec4a`.
 
 - [ ] **T2 — Validate responsive presentation and accessibility**
   - Route: delegated direct verification/refinement.
@@ -70,17 +71,35 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
 
 ## Delivery slices — stacked-to-main
 
-No branch push or PR has been created or authorized.
+No push or PR has been created. Each PR targets `main`; PR 2 follows PR 1 after PR 1 merges.
 
-1. **PR 1 — Initial T1 branded login**: commit `5dae003b26cad253d9a99adb6662123a2a8350cc`, from the feature branch base to `main`; includes the layout, image asset, contract test, and initial task document. Actual baseline is 448 changed lines including the task document (binary asset excluded), so this slice is over the 400-line budget and MUST be split into cohesive PR slices or receive a maintainer-approved `size:exception` before publication.
-2. **PR 2 — Palette and Spanish form-copy correction**: the new T1 correction work-unit commit on this feature branch, targeting `main` after PR 1 is merged; estimated at approximately 190 changed lines including task-document updates. This PR depends on PR 1. Its exact commit SHA is reported in the handoff.
-3. **Later Site publication**: only after the local slices are reviewed and accepted; no remote operation is part of this task.
+```text
+main (7d886839)
+  └── PR 1: Slice A (95e0212, 371 authored changed lines) ── merge first
+        └── PR 2: Slices B + C (265 authored changed lines) ── merge second
+```
+
+1. **PR 1 — Initial branded login, A**
+   - Base/start: `main` at `7d8868390c1370018db0fb6823ae43e2e14b2d3f`.
+   - End: A `95e021277713e0b3763c2701b56ea8b84455add4` on local branch `codex/turnify-web-login-layout`; target `main`; no dependency.
+   - Contents: initial split composition, hero asset, login-only CSS, and initial contract tests; excludes the task document.
+   - Budget: 371 changed authored lines (336 additions + 35 deletions; binary asset excluded).
+   - Follow-up: merge before PR 2. Out of scope: final palette/copy correction and task-document tracking metadata.
+   - Rollback boundary: remove the login-page implementation, its isolated CSS, hero asset, and contract test.
+
+2. **PR 2 — Reference palette, Spanish form copy, and tracking, B + C**
+   - Base/start: A `95e021277713e0b3763c2701b56ea8b84455add4`, after PR 1 merges to `main`.
+   - B: `d3267c0`, final palette and Spanish form copy plus the task doc; C records the exact A/B SHAs and chain metadata.
+   - End/target: final C on `codex/turnify-web-login-redesign`, then `main` after PR 1 merges. No additional dependencies.
+   - Budget: 265 authored changed lines for B + C relative to A (212 additions + 53 deletions).
+   - Follow-up: T2 responsive/accessibility verification, then T3 Sites preparation/publication. Out of scope: pushing, PR creation, and publication in this task.
+   - Rollback boundary: revert B + C to restore A's original copy/palette and remove the task document; retain PR 1's layout.
 
 ## Progress
 
 - Current task: T2.
 - Completed: T1, including the user-requested palette and Spanish-copy correction.
-- Verification: focused test, web typecheck, and web build pass; visual/browser verification remains for T2.
+- Verification: both slices pass focused tests, web typecheck, and web build; visual/browser verification remains for T2.
 
 ## Next step
 
