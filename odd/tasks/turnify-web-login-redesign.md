@@ -115,12 +115,14 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - Runtime boundary: local browser QA only; no credentials, form submissions, OAuth, or external-service changes. Rollback removes the extracted password-visibility helper and focused regression and restores inline toggle props; no auth flow behavior changes.
   - Commit/boundary: `eb25d74673fcf24498cb2b69adecaf58f5474a27` (`test(auth): cubre el toggle accesible de contraseña`), 78 authored changed lines; branch `codex/turnify-web-login-qa` at this local T6 boundary; no push/PR. Demo remains deferred.
 
-- [ ] **T7 — Package and publish with Sites**
-  - Route: delegated direct preparation plus parent-owned Sites calls.
-  - Trigger evidence: Sites source preparation/build/package spans hosting metadata and generated output.
-  - Create a new private Turnify Site, synchronize source, save a version, and deploy it.
-  - Acceptance: Sites reports a successful deployment and returns the live URL.
-  - Evidence: pending.
+- [ ] **T7 — Package and publish with Sites** — in progress; local preparation only.
+  - Route: delegated direct preparation; all Sites registration, source synchronization, versioning, and deployment remain parent-owned.
+  - Strategy: buildless static Site containing only a copy of the verified `apps/web/dist` output; do not upload the full repository or include source maps, `.env`, credentials, or source files.
+  - Build: `npm --workspace turnify-web run build` passed; Vite emitted its existing advisory for the 1.3 MB minified JS chunk.
+  - Prepared isolated source: `C:\Users\esa\.codex\visualizations\2026\11\01\01a19829-9292-7952-9742-d1f6e4908455\turnify-web-login-site` — 68 dist files (64 in `dist/assets`), 4,160,055 bytes total. SHA-256 checks matched every copied dist file to the build output; `dist/index.html` is present.
+  - Configuration: `.openai/hosting.json` contains only `{"static":{"directory":"dist"}}`; no `project_id` was invented. The Site package has no source maps, `.env*` files, or nested Git directory; its only configuration file is the hosting manifest, and its configuration contains no secret-like keys. Public client configuration embedded by Vite was not printed.
+  - Boundary: local branch `codex/turnify-web-login-sites`; no Git remote, Sites tool, `create_site`, credential, source sync, deployment, or PR was used. Waiting for parent-owned Site registration/project ID and publication.
+  - Acceptance remains pending until Sites confirms deployment and returns a live URL.
 
 ## Delivery slices — stacked-to-main
 
@@ -162,4 +164,4 @@ main (7d886839)
 
 ## Next step
 
-Proceed to T7 Sites packaging/publication only with its existing authorization. Keep demo deferred.
+T7 package is prepared locally. Await parent-owned Sites registration/project ID and publication; keep demo deferred.
