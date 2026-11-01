@@ -18,7 +18,7 @@ export function validateNewPassword(password: string, confirmation: string): str
 
 export function translateRecoveryError(message: string | undefined): string {
   const normalized = (message ?? '').toLowerCase();
-  if (normalized.includes('rate limit') || normalized.includes('too many')) {
+  if (normalized.includes('rate limit') || normalized.includes('rate_limit') || normalized.includes('too many')) {
     return 'Se realizaron demasiados intentos. Espera unos minutos y vuelve a intentarlo.';
   }
   if (normalized.includes('network') || normalized.includes('fetch')) {

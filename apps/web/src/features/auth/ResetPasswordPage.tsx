@@ -13,6 +13,8 @@ export function ResetPasswordPage() {
   const [pending, setPending] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const passwordInvalid = error === 'La contraseña debe tener al menos 8 caracteres.';
+  const confirmationInvalid = error === 'Las contraseñas no coinciden.';
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -52,14 +54,14 @@ export function ResetPasswordPage() {
         <form aria-busy={pending} className="login-page__form" onSubmit={handleSubmit}>
           <label className="login-page__field">
             <span>Nueva contraseña</span>
-            <input autoComplete="new-password" autoFocus disabled={pending} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} />
+            <input aria-describedby={error ? 'reset-password-error' : undefined} aria-invalid={passwordInvalid} autoComplete="new-password" autoFocus disabled={pending} onChange={(event) => { setError(null); setPassword(event.target.value); }} required type="password" value={password} />
           </label>
           <label className="login-page__field">
             <span>Confirmar contraseña</span>
-            <input autoComplete="new-password" disabled={pending} onChange={(event) => setConfirmation(event.target.value)} required type="password" value={confirmation} />
+            <input aria-describedby={error ? 'reset-password-error' : undefined} aria-invalid={confirmationInvalid} autoComplete="new-password" disabled={pending} onChange={(event) => { setError(null); setConfirmation(event.target.value); }} required type="password" value={confirmation} />
           </label>
           <div aria-atomic="true" aria-live="polite" className="login-page__alerts">
-            {error ? <p className="login-page__message login-page__message--error" role="alert">{error}</p> : null}
+            {error ? <p className="login-page__message login-page__message--error" id="reset-password-error" role="alert">{error}</p> : null}
           </div>
           <Button disabled={pending || !password || !confirmation} size="lg" type="submit">
             {pending ? <><span aria-hidden="true" className="login-page__spinner" />Actualizando contraseña…</> : 'Actualizar contraseña'}

@@ -80,17 +80,18 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - GREEN: 18 tests passed; web typecheck passed; web build passed with the existing >500 kB JS chunk advisory. No interactive checkbox test was added without a UI test harness; defer it to T6.
   - Functional commit: `4a6f28d4ae1177f055c3f42b768e0060d013e986` (`feat(auth): implementa la sesión recordada`), 395 authored changed lines; local boundary `codex/turnify-web-login-remember`, stacked after T2. Reviewed/acknowledged: `review-ca4a0dc9168df75c`. Rollback removes the adapter/wiring, checkbox, and T3 tests; T2 remains intact.
 
-- [ ] **T4 — Implement password recovery** — in progress, split into two dependent request/reset slices to keep each review unit cohesive.
+- [x] **T4 — Implement password recovery** — split into two dependent request/reset slices to keep each review unit cohesive.
   - Operational prerequisite: allow the deployed `/reset-password` URL in Supabase Auth Redirect URLs; do not mutate Supabase remotely.
   - [x] **T4a — Request reset email.** Added a public request form, login link, generic non-enumerating confirmation, and a same-origin fixed callback with no open redirect.
     - RED: `npx vitest run tests/web/password-recovery.test.ts tests/web/login-redesign.test.ts` — 3 recovery-request tests failed / 12 login tests passed before implementation.
     - GREEN: same command — 15 tests passed; `npm --workspace turnify-web run typecheck` passed; `npm --workspace turnify-web run build` passed with the existing >500 kB JS chunk advisory.
-    - Commit/boundary: `0a8d0cc` (`feat(auth): agrega solicitud de recuperación de contraseña`), 216 authored changed lines; T4b depends on this request boundary. No remote push or PR.
+    - Commit/boundary: `0a8d0cc` (`feat(auth): agrega solicitud de recuperación de contraseña`), 216 authored changed lines; local slice branch `codex/turnify-web-login-recovery-request`, target `main` after T3. T4b depends on this request boundary. No remote push or PR.
     - Rollback removes only request-email UI, login link, redirect helper, and request contract; the reset-update slice depends on these shared pieces.
-  - [ ] **T4b — Validate recovery session and update password** — implementation and checks complete; commit recording pending. Added a recovery-event gate for `updateUser`, password/confirmation validation, and persistent in-page success/expired-link states. A new `SIGNED_IN` or `SIGNED_OUT` event clears recovery authority.
+  - [x] **T4b — Validate recovery session and update password.** Added a recovery-event gate for `updateUser`, password/confirmation validation, and persistent in-page success/expired-link states. A new `SIGNED_IN` or `SIGNED_OUT` event clears recovery authority.
     - RED: focused recovery/login test run — 3 reset-flow tests failed / 15 request/login tests passed before implementation.
     - GREEN: `npx vitest run tests/web/password-recovery.test.ts tests/web/login-redesign.test.ts` — 18 passed; `npm --workspace turnify-web run typecheck` passed; `npm --workspace turnify-web run build` passed with the existing >500 kB JS chunk advisory.
-    - Commit/boundary: pending. Rollback removes the update page, password-update/session gate, and reset contract; T4a request flow remains available.
+    - TDD follow-up RED: 2 new accessibility/recovery-restore contract failures / 16 passed; GREEN after change: 19 passed. Added field-error associations, handling for provider rate-limit codes, and prevented panel-role restore from discarding a valid recovery session. Latest focused test/typecheck/build all pass with the same chunk advisory.
+    - Functional commit: `fcfd51d` (`feat(auth): habilita el restablecimiento de contraseña`), 220 authored changed lines; T4b follow-up commit and final branch-boundary documentation pending. Target `main` after T4a. Rollback removes the update page, password-update/session gate, and reset contract; T4a request flow remains available.
   - Acceptance: both slice contracts, web typecheck, and build pass. No remote Supabase change.
 
 - [ ] **T5 — Implement Google OAuth and callback handling**
@@ -116,6 +117,8 @@ main (7d886839)
   └── PR 2: T1 slices B + C (265 authored changed lines) ── merge second
         └── PR 3: T2a shell (`0347a64`, 269 authored lines; branch `codex/turnify-web-login-parity-shell`) ── merge after PR 2
               └── PR 4: T2b accessible form states (`62d4e1f` + task-doc follow-up; 213+ authored lines; local branch `codex/turnify-web-login-parity`) ── merge after T2a
+            └── PR 5: T4a reset request (`0a8d0cc`, 216 authored lines; local branch `codex/turnify-web-login-recovery-request`) ── merge after T2b and T3
+                  └── PR 6: T4b password update (`fcfd51d`, 220 authored lines; local branch `codex/turnify-web-login-recovery`) ── merge after T4a
 ```
 
 1. **PR 1 — Initial branded login, A**
@@ -136,11 +139,11 @@ main (7d886839)
 
 ## Progress
 
-- Current task: T4 (in progress).
-- Completed: T1 and T2a/T2b. T1 prior boundary `e2b97c7`; review A acknowledged under lineage `review-9fecb982b07fbb26`.
+- Current task: T5 (pending).
+- Completed: T1, T2a/T2b, T3, and T4a/T4b. T1 prior boundary `e2b97c7`; review A acknowledged under lineage `review-9fecb982b07fbb26`.
 - T2 is being reconstructed from the clean T1 baseline after authorized restoration; no equality claim against the lost draft.
-- Delivery: `stacked-to-main`, no remote push or PR authorization.
+- Delivery: `stacked-to-main`, no remote push or PR authorization. T4a and T4b are local commits only; no Supabase remote configuration was changed.
 
 ## Next step
 
-Implement password recovery (T4), only once the backend flow is functional.
+Implement Google OAuth and callback handling (T5); keep demo deferred and do not publish until its authorized Sites slice (T7).

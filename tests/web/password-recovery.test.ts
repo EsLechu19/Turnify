@@ -46,10 +46,18 @@ describe('password recovery request', () => {
     expect(recovery.validateNewPassword('long-enough', 'long-enough')).toBeNull();
   });
 
+  it('maps expired links, rate limits, and connection failures to safe Spanish feedback', async () => {
+    const recovery = await import('../../apps/web/src/features/auth/passwordRecovery');
+    expect(recovery.translateRecoveryError('over_email_send_rate_limit')).toContain('demasiados intentos');
+    expect(recovery.translateRecoveryError('Invalid or expired OTP')).toBe('El enlace de recuperación no es válido o venció.');
+    expect(recovery.translateRecoveryError('network fetch failed')).toContain('Revisa tu conexión');
+  });
+
   it('only allows updateUser after a Supabase recovery event', () => {
     expect(repository).toContain("event === 'PASSWORD_RECOVERY'");
     expect(repository).toContain("event === 'SIGNED_IN' || event === 'SIGNED_OUT'");
     expect(repository).toContain('recoverySessionActive');
+    expect(repository).toContain('if (recoverySessionActive) return null;');
     expect(repository).toContain('updateUser({ password })');
     expect(authContext).toContain('subscribeToPasswordRecovery');
   });
@@ -60,5 +68,7 @@ describe('password recovery request', () => {
     expect(resetPage).toContain('Contraseña actualizada');
     expect(resetPage).toContain('to="/login"');
     expect(resetPage).toContain('aria-busy');
+    expect(resetPage).toContain('aria-describedby');
+    expect(resetPage).toContain('aria-invalid');
   });
 });

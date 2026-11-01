@@ -312,6 +312,8 @@ export const authRepository: AuthRepository = {
       return null;
     }
 
+    if (recoverySessionActive) return null;
+
     const profile = await fetchOwnPanelProfile(data.session.user.id);
 
     if (!profile || (profile.rol !== 'admin' && profile.rol !== 'personal')) {
