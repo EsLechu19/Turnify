@@ -1335,9 +1335,11 @@ select {
 .public-option { align-items: flex-start; border: 1px solid var(--border); border-radius: var(--radius-md); cursor: pointer; display: flex; gap: 12px; padding: 14px; }
 .public-option--selected { background: var(--brand-soft); border-color: var(--brand); }
 .public-option input { accent-color: var(--brand); margin-top: 4px; }
+.public-option:focus-within { outline: 2px solid var(--brand); outline-offset: 2px; }
 .public-option span { display: grid; gap: 3px; }
 .public-option small, .public-ticket-stats small { color: var(--ink-muted); }
 .public-form select { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); min-height: 44px; padding: 0 12px; }
+.public-form select, .public-form .field input { max-width: 100%; width: 100%; }
 .consent { align-items: flex-start; display: flex; gap: 10px; font: var(--text-caption); }
 .consent input { accent-color: var(--brand); margin-top: 2px; }
 .public-form__error { color: var(--danger-ink); margin: 0; }
@@ -1352,11 +1354,15 @@ select {
 .public-ticket-stats { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .public-ticket-stats .card { gap: 5px; }
 .public-ticket-stats strong { font: var(--text-title); }
+.public-ticket-details { display: grid; gap: 8px; }
+.public-updated { color: var(--ink-muted); font: var(--text-caption); margin: 0; }
+.public-updated span { display: block; }
 .public-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .public-called p, .public-rating p { color: var(--ink-muted); margin: 0; }
 .public-rating__choices { display: flex; gap: 8px; }
-.public-rating__star { background: transparent; border: 0; color: var(--border-strong); cursor: pointer; font-size: 2rem; line-height: 1; padding: 4px; }
+.public-rating__star { align-items: center; background: transparent; border: 0; color: var(--border-strong); cursor: pointer; display: inline-flex; font-size: 2rem; justify-content: center; line-height: 1; min-height: 44px; min-width: 44px; }
 .public-rating__star--selected, .public-rating__star:hover { color: var(--gold); }
+.public-rating__star:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 @media (max-width: 560px) { .public-page { padding: 18px 14px 36px; } .public-page__header { margin-bottom: 28px; } .public-ticket-stats { grid-template-columns: 1fr; } .public-actions .btn { flex: 1 1 100%; } }
 
 /* ------------------------------------------------------------ new dashboard cards -- */

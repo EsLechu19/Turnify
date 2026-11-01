@@ -121,6 +121,33 @@ describe('GuestFlowProvider discovery actions', () => {
     expect(render().ticketAccess).toEqual(newer);
   });
 
+  it('unblocks discovery when the guest ends a session during a pending restore', async () => {
+    const saved = { ticketId: 'old', visibleCode: 'A-1', capability: 'old-private' };
+    let finish!: (state: { status: 'en_espera' }) => void;
+    vi.mocked(loadStoredGuestTicketAccess).mockResolvedValue(saved);
+    vi.mocked(getGuestTicketState).mockImplementation(() => new Promise((resolve) => { finish = resolve; }) as ReturnType<typeof getGuestTicketState>);
+    const { GuestFlowProvider } = await import('../../apps/mobile/src/features/public/guest-flow-session');
+    const render = () => {
+      cursor = 0;
+      return (GuestFlowProvider({ children: null }) as unknown as { props: { value: {
+        ticketAccess: typeof saved | null;
+        hasActiveTicketAccess: boolean;
+        beginDiscovery(code: string, catalog: never): boolean;
+        endGuestTicketSession(): void;
+      } } }).props.value;
+    };
+    render();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(render().hasActiveTicketAccess).toBe(true);
+    render().endGuestTicketSession();
+    expect(render().hasActiveTicketAccess).toBe(false);
+    expect(render().beginDiscovery('new-shop', {} as never)).toBe(true);
+    finish({ status: 'en_espera' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(render().ticketAccess).toBeNull();
+    expect(clearStoredGuestTicketAccess).toHaveBeenCalledWith(undefined, saved);
+  });
+
   it('restores finished unrated access, but not rated, cancelled or absent tickets', async () => {
     const saved = { ticketId: 'finished', visibleCode: 'A', capability: 'private' };
     const { GuestFlowProvider } = await import('../../apps/mobile/src/features/public/guest-flow-session');

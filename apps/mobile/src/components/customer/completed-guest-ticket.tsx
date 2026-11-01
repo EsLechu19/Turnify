@@ -98,9 +98,6 @@ export function CompletedGuestTicket({
         ) : null}
       </CustomerCard>
 
-      <CustomerButton label={isTerminalBad ? 'Sacar otro turno' : 'Volver al inicio'} onPress={isTerminalBad ? onNewTicket : onReturn} />
-      {!isTerminalBad ? <Button label="Sacar otro turno" onPress={onNewTicket} variant="secondary" /> : null}
-
       {!isTerminalBad ? (
         <View style={styles.rating}>
           {puntuacion != null ? (
@@ -130,12 +127,13 @@ export function CompletedGuestTicket({
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Pressable
                     accessibilityLabel={`Puntuar ${star} de 5`}
-                    accessibilityRole="button"
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: selected === star, disabled: isRating }}
                     disabled={isRating}
                     hitSlop={12}
                     key={star}
                     onPress={() => chooseRating(star)}
-                    style={({ pressed }) => [pressed ? styles.starPressed : null, isRating ? styles.ratingBusy : null]}
+                    style={({ pressed }) => [styles.starTarget, pressed ? styles.starPressed : null, isRating ? styles.ratingBusy : null]}
                   >
                     <Icon color={star <= selected ? Palette.gold : Palette.inkFaint} name="star" size={40} />
                   </Pressable>
@@ -151,6 +149,8 @@ export function CompletedGuestTicket({
           )}
         </View>
       ) : null}
+      <CustomerButton label={isTerminalBad ? 'Sacar otro turno' : 'Volver al inicio'} onPress={isTerminalBad ? onNewTicket : onReturn} />
+      {!isTerminalBad ? <Button label="Sacar otro turno" onPress={onNewTicket} variant="secondary" /> : null}
     </>
   );
 }
@@ -180,5 +180,6 @@ const styles = StyleSheet.create({
   ratingHint: { color: Palette.inkMuted, textAlign: 'center' },
   ratingBusy: { opacity: 0.6 },
   starPressed: { transform: [{ scale: 0.88 }] },
+  starTarget: { alignItems: 'center', justifyContent: 'center', minHeight: 48, minWidth: 44 },
   stars: { flexDirection: 'row', gap: space(2), justifyContent: 'center' },
 });

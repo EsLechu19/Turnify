@@ -27,6 +27,20 @@ function setup(saved: GuestTicketAccess | null = null) {
 }
 
 describe('guest session lifecycle', () => {
+  it('records the last successful refresh and leaves it unchanged after an offline failure', async () => {
+    const { controller, deps } = setup(access('old'));
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-10-31T12:00:00Z'));
+      deps.refresh.mockResolvedValueOnce(state('en_espera')).mockRejectedValueOnce(new Error('offline'));
+      expect(controller.getSnapshot().updatedAt).toBeNull();
+      await controller.refresh();
+      expect(controller.getSnapshot().updatedAt).toBe(Date.now());
+      vi.advanceTimersByTime(60_000);
+      await controller.refresh();
+      expect(controller.getSnapshot()).toMatchObject({ updatedAt: Date.parse('2026-10-31T12:00:00Z'), error: expect.any(String) });
+    } finally { vi.useRealTimers(); }
+  });
   it('holds a restored access through failure and retry instead of offering another creation', async () => {
     const { controller, deps, stored } = setup(access('old'));
     deps.refresh.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(state('en_espera'));

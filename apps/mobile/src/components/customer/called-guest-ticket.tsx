@@ -60,7 +60,7 @@ export function CalledGuestTicket({
   const isUrgent = hasDeadline && seconds <= 60;
 
   function confirmRespond(response: NonNullable<GuestTicketState['customerResponse']>) {
-    if (!canRespondToGuestCall(ticket)) return;
+    if (isResponding || !canRespondToGuestCall(ticket)) return;
     Alert.alert(
       response === 'presente' ? 'Confirmar presencia' : 'Avisar que llegas',
       response === 'presente'
@@ -192,7 +192,7 @@ export function CalledGuestTicket({
       ) : (
         <Card accessibilityRole="alert" padding="lg" tone="danger">
           <Text style={[TypeScale.bodyStrong, { color: Palette.dangerInk }]}>
-            La tolerancia terminó. Espera la actualización del turno.
+            {hasDeadline ? 'La tolerancia terminó. Actualiza el turno para conocer su estado.' : 'No hay un plazo válido para responder. Consulta al personal y actualiza el turno.'}
           </Text>
         </Card>
       )}

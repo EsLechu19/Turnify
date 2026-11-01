@@ -36,13 +36,16 @@ function initials(name: string): string {
  */
 const GUEST_TICKET_POLL_MS = 10_000;
 
-function TicketHeader({ isLoading, onBack, onRefresh }: { isLoading: boolean; onBack: () => void; onRefresh: () => void }) {
+function TicketHeader({ isLoading, updatedAt, error, onBack, onRefresh }: { isLoading: boolean; updatedAt: Date | null; error: string | null; onBack: () => void; onRefresh: () => void }) {
   return (
     <View style={styles.header}>
       <IconButton accessibilityLabel="Volver al inicio" name="arrow-left" onPress={onBack} tone="ghost" />
       <View style={styles.headerTitle}>
         <Text style={[TypeScale.eyebrow, { color: Palette.inkFaint }]}>Turnify</Text>
         <Text style={[TypeScale.headline, { color: Palette.ink }]}>Turno activo</Text>
+        <Text accessibilityLiveRegion="polite" style={[TypeScale.caption, { color: Palette.inkMuted }]}>
+          {error ? 'No se pudo actualizar · ' : ''}{updatedAt ? `Actualizado ${new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit' }).format(updatedAt)}` : 'Sin actualización reciente'}
+        </Text>
       </View>
       <IconButton
         accessibilityLabel="Actualizar turno"
@@ -166,6 +169,7 @@ export default function GuestTicketScreen() {
       });
       setError(null);
       setIsLoading(false);
+      setUpdatedAt(new Date());
       return true;
     }
 
@@ -230,7 +234,7 @@ export default function GuestTicketScreen() {
   const barberName = ticket?.assignedBarberName ?? ticket?.requestedBarberName ?? null;
 
   async function cancel() {
-    if (!ticketAccess || !canCancel || actionPending.current) return;
+    if (!ticketAccess || !canCancel || error || actionPending.current) return;
     actionPending.current = true;
     requests.invalidate();
     setIsCancelling(true);
@@ -249,7 +253,7 @@ export default function GuestTicketScreen() {
   }
 
   async function respond(response: NonNullable<GuestTicketState['customerResponse']>) {
-    if (!ticketAccess || ticket?.status !== 'llamado' || !canRespondToGuestCall(ticket) || actionPending.current) return;
+    if (!ticketAccess || ticket?.status !== 'llamado' || error || !canRespondToGuestCall(ticket) || actionPending.current) return;
     actionPending.current = true;
     requests.invalidate();
     setIsResponding(true);
@@ -268,7 +272,7 @@ export default function GuestTicketScreen() {
 
   async function rate(puntos: number) {
     const access = ticketAccess;
-    if (!access || !ticket || ticket.status !== 'finalizado' || guestRatingState(ticket) !== 'pending' || isRating || actionPending.current) return;
+    if (!access || !ticket || error || ticket.status !== 'finalizado' || guestRatingState(ticket) !== 'pending' || isRating || actionPending.current) return;
     actionPending.current = true;
     requests.invalidate();
     setIsRating(true);
@@ -288,11 +292,11 @@ export default function GuestTicketScreen() {
   if (ticket && status?.isActiveTurn) {
     return (
       <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
-        <TicketHeader isLoading={isLoading} onBack={returnHome} onRefresh={() => void refresh()} />
+        <TicketHeader isLoading={isLoading} updatedAt={updatedAt} error={error} onBack={returnHome} onRefresh={() => void refresh()} />
         <CustomerPage>
           <CalledGuestTicket
             error={error}
-            isResponding={isResponding}
+            isResponding={isResponding || !!error}
             onRespond={(response) => void respond(response)}
             onRetry={() => void refresh()}
             ticket={ticket}
@@ -306,6 +310,7 @@ export default function GuestTicketScreen() {
     return (
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <CustomerPage>
+          <Text accessibilityLiveRegion="polite" style={[TypeScale.caption, { color: Palette.inkMuted }]}>{error ? 'No se pudo actualizar · ' : ''}{updatedAt ? `Actualizado ${new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit' }).format(updatedAt)}` : 'Sin actualización reciente'}</Text>
           <CompletedGuestTicket
             error={error}
             onNewTicket={startNewTicket}
@@ -313,7 +318,7 @@ export default function GuestTicketScreen() {
             onReturn={returnHome}
             ticket={ticket}
             puntuacion={voted ?? ticket.puntuacion}
-            isRating={isRating}
+            isRating={isRating || !!error}
             ratingState={voted != null ? 'rated' : guestRatingState(ticket, now)}
             onRate={(puntos) => void rate(puntos)}
           />
@@ -338,7 +343,7 @@ export default function GuestTicketScreen() {
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
-      <TicketHeader isLoading={isLoading} onBack={returnHome} onRefresh={() => void refresh()} />
+      <TicketHeader isLoading={isLoading} updatedAt={updatedAt} error={error} onBack={returnHome} onRefresh={() => void refresh()} />
       <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
         {isLoading && !ticket ? <CustomerState isLoading label="Actualizando tu turno…" /> : null}
         {error ? <CustomerState action={() => void refresh()} label={error} /> : null}
@@ -353,7 +358,6 @@ export default function GuestTicketScreen() {
                   <Text style={[TypeScale.bodyStrong, { color: Palette.ink }]}>{shopName ?? 'Turnify'}</Text>
                   <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>
                     {shopName ? 'Tu turno en esta barbería' : 'Tu turno en la barbería'}
-                    {updatedAt ? ` · ${new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit' }).format(updatedAt)}` : ''}
                   </Text>
                 </View>
               </View>
@@ -393,7 +397,7 @@ export default function GuestTicketScreen() {
                          {metrics?.ahead}
                       </Text>
                       <Text style={[TypeScale.caption, { color: Palette.inkMuted }]}>
-                        {ticket.peopleAhead === 1 ? 'delante de ti' : 'delante de ti'}
+                         delante de ti
                       </Text>
                     </View>
                   </View>
@@ -488,6 +492,7 @@ export default function GuestTicketScreen() {
             {canCancel ? (
               <Button
                 accessibilityLabel="Cancelar turno"
+                disabled={!!error || isLoading}
                 fullWidth
                 label="Cancelar turno"
                 onPress={() => setIsConfirmingCancel(true)}

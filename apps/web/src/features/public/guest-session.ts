@@ -19,6 +19,7 @@ export type GuestSession = {
   busy: boolean;
   needsRefresh: boolean;
   storageWarning: string | null;
+  updatedAt: number | null;
 };
 
 export type GuestSessionDependencies = {
@@ -58,7 +59,7 @@ export class GuestSessionController {
   private alive = true;
 
   constructor(private businessCode: string, private deps: GuestSessionDependencies) {
-    this.current = { access: deps.read(), ticket: null, error: null, busy: false, needsRefresh: false, storageWarning: null };
+    this.current = { access: deps.read(), ticket: null, error: null, busy: false, needsRefresh: false, storageWarning: null, updatedAt: null };
   }
 
   getSnapshot = (): GuestSession => this.current;
@@ -94,7 +95,7 @@ export class GuestSessionController {
     try {
       const ticket = await this.deps.refresh(access);
       if (!this.matches(revision, access)) return;
-      this.update({ ticket, needsRefresh: false });
+      this.update({ ticket, needsRefresh: false, updatedAt: Date.now() });
       if (terminal.has(ticket.status)) {
         try {
           if (ticket.status === 'finalizado' && ratingState(ticket, Date.now()) === 'pending') this.deps.write(access, ticket.ratingDeadlineAt);

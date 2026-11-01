@@ -91,6 +91,7 @@ export function GuestFlowProvider({ children }: { children: ReactNode }) {
   }, []);
   const endGuestTicketSession = useCallback(() => {
     sessionRevision.current++;
+    setRestoring(false);
     const oldAccess = currentAccess.current;
     currentAccess.current = null;
     setDraft(null);
@@ -118,7 +119,13 @@ export function GuestFlowProvider({ children }: { children: ReactNode }) {
     void loadStoredGuestTicketAccess()
       .then((stored) => (stored ? getGuestTicketState(stored).then((state) => ({ stored, state })).catch(() => ({ stored, state: null })) : null))
       .then((restored) => {
-        if (!active || revision !== sessionRevision.current) return;
+        if (!active) return;
+        if (revision !== sessionRevision.current) {
+          if (restored && (currentAccess.current?.ticketId !== restored.stored.ticketId || currentAccess.current.capability !== restored.stored.capability)) {
+            void clearStoredGuestTicketAccess(undefined, restored.stored).catch(() => undefined);
+          }
+          return;
+        }
         setRestoring(false);
         if (!restored) return;
         if (!restored.state || isActiveGuestTicketStatus(restored.state.status) || (restored.state.status === 'finalizado' && guestRatingState(restored.state) === 'pending')) {
