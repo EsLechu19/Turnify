@@ -58,7 +58,7 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - Slice B/C evidence: 5 focused tests passed; typecheck passed; build passed with the same advisory. User-requested palette and Spanish form-copy corrections are included.
   - Commits: A `95e021277713e0b3763c2701b56ea8b84455add4`; B `d3267c0629d557115a676f867a132fa7691eec4a`.
 
-- [ ] **T2 — Match the reference and add local form states**
+- [x] **T2 — Match the reference and add local form states**
   - Route: delegated direct, split into two stacked-to-main work units after one honest slice plan.
   - [x] **T2a — Build the editorial responsive shell.** Desktop 60/40 layout, brand/value panel with three benefits, compact mobile brand header, project palette aliases, and locally bundled Manrope/Inter typography.
     - RED: `npx vitest run tests/web/login-redesign.test.ts` — 3 failed / 5 passed on the shell contract.
@@ -125,6 +125,18 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - Live URL: `https://turnify-barber-login.esaulechuga1.chatgpt.site`. The Site remains owner-private and opening it shows the expected ChatGPT sign-in gate.
   - Acceptance passed: Sites confirmed a successful production deployment and returned the live URL.
 
+- [x] **T8 — Match the reference exactly and fit the login within target viewports**
+  - Route: delegated direct.
+  - Trigger evidence: the current feature branch requires a bounded visual follow-up across the login JSX, isolated login CSS, focused contract test, and this ODD record; the user explicitly prohibited delegation and remote operations.
+  - Acceptance: desktop uses the reference's centered premium 60/40 card, navy photographic value panel, exact headline and three compact benefits; the compact form preserves all real auth routes/states and uses the requested CTA/copy without inventing demo behavior. Mobile keeps a short branded hero and all essential form controls in one column.
+  - Viewport fit: at 1366×768 and 390×844, essential login content fits within the visible viewport with no document-level vertical scrolling. Responsive `100dvh`, `clamp()`, and short-height rules may compact spacing or hide mobile benefits; extremely short or accessibility-zoomed viewports may scroll rather than clip controls, alerts, or focus rings.
+  - TDD evidence: RED was observed with 1 failed / 12 passed after adding the compact reference/viewport contract; GREEN returned 13/13 focused tests after implementation.
+  - Checks: password-toggle/login/OAuth/recovery suite passed 4 files / 25 tests; web typecheck passed; web build passed with the existing >500 kB chunk advisory; `git diff --check` passed with line-ending warnings only.
+  - Runtime boundary: no existing local browser/screenshot harness is present, so runtime visual inspection and measured `scrollHeight <= clientHeight` at 1366×768 and 390×844 were unavailable. Static contracts cover the target responsive rules; no credentials or external auth were used.
+  - Commit/boundary: this single work-unit commit, `fix(auth): ajusta el login al viewport`; 506 authored changed lines. The exact SHA is reported after commit because a commit cannot contain its own final object ID.
+  - Engram mirror: pending. The full-document mirror to project `turnify`, topic `odd/turnify-web-login-redesign/tasks`, was attempted after completion but Engram could not confirm session registration.
+  - Rollback boundary: remove only the T8 compact reference-parity JSX/CSS/test changes and this task evidence; all existing authentication, recovery, OAuth, registration, and prior ODD slices remain intact.
+
 ## Delivery slices — stacked-to-main
 
 No push or PR has been created. Each PR targets `main`; PR 2 follows PR 1 after PR 1 merges.
@@ -158,11 +170,11 @@ main (7d886839)
 
 ## Progress
 
-- Current task: feature complete; external Supabase/Google allowlist configuration remains an operational follow-up.
-- Completed: T1, T2a/T2b, T3, T4a/T4b, T5, T6, and T7. Parent spot-check confirmed the final focused suite at 24/24. T1 prior boundary `e2b97c7`; review A acknowledged under lineage `review-9fecb982b07fbb26`.
-- T2 is being reconstructed from the clean T1 baseline after authorized restoration; no equality claim against the lost draft.
-- Delivery: `stacked-to-main`, no remote push or PR authorization. T4a and T4b are local commits only; no Supabase remote configuration was changed.
+- Current task: T8 complete; external Supabase/Google allowlist configuration remains an operational follow-up.
+- Completed: T1, T2, T3, T4a/T4b, T5, T6, T7, and T8. The latest focused suite passed 25/25, typecheck and build passed, and the compact viewport-fit contract passed 13/13.
+- Runtime caveat: no existing credential-free browser/screenshot harness was available to measure target viewport scroll heights; static responsive rules are verified, but runtime visual/no-scroll validation remains outstanding.
+- Delivery: `stacked-to-main`; T8 is one local work-unit commit. No push, PR, publication, merge, or remote-service mutation was authorized or performed.
 
 ## Next step
 
-Configure the deployed `/reset-password` and `/auth/callback` URLs in Supabase, enable the Google provider, and add Google's authorized origin/callback before production authentication testing. Demo remains deferred.
+Optionally perform credential-free browser QA at 1366×768 and 390×844 when a local harness is available, then configure the deployed recovery/OAuth URLs and Google provider before production authentication testing. Demo remains deferred.

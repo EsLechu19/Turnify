@@ -50,8 +50,8 @@ describe('branded web login', () => {
   it('shows professional Spanish copy throughout the form panel', () => {
     const formPanel = login.slice(login.indexOf('className="login-page__form-panel"'));
     [
-      'Iniciar sesión en tu barbería',
-      'Accede a tu cuenta para administrar el día.',
+      'Iniciar sesión',
+      'Ingresa tus datos para acceder al panel.',
       'Correo electrónico',
       'tu@barberia.com',
       'Contraseña',
@@ -62,7 +62,7 @@ describe('branded web login', () => {
       'Solo para administradores de barberías. Los barberos pueden gestionar su jornada desde la aplicación móvil.',
       'La conexión con el servidor no está disponible. Configura Supabase para iniciar sesión.',
     ].forEach((copy) => expect(formPanel).toContain(copy));
-    expect(formPanel).toContain("'Iniciar sesión'");
+    expect(formPanel).toContain("'Entrar al panel'");
     expect(formPanel).not.toContain('Sign in to your shop');
     expect(formPanel).not.toContain('Welcome back. Let’s get your day moving.');
     expect(formPanel).not.toContain('Email address');
@@ -81,14 +81,14 @@ describe('branded web login', () => {
     expect(login).toContain('login-page__benefits');
     expect(login).toContain('Control de turnos');
     expect(login).toContain('Mejor experiencia');
-    expect(login).toContain('Crecimiento de tu barbería');
+    expect(login).toContain('Crece tu barbería');
     expect(login).toContain('name="clock"');
     expect(login).toContain('name="star"');
     expect(login).toContain('name="chart"');
   });
 
   it('uses a 60/40 desktop split and keeps compact brand content on mobile', () => {
-    expect(loginStyles).toMatch(/grid-template-columns:\s*minmax\(0,\s*3fr\)\s+minmax\(0,\s*2fr\)/);
+    expect(loginStyles).toMatch(/\.login-page__card\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*3fr\)\s+minmax\(0,\s*2fr\)/);
     expect(loginStyles).toMatch(/@media\s*\(max-width:\s*760px\)[\s\S]*?\.login-page__brand-panel/);
     expect(loginStyles).not.toMatch(/@media\s*\(max-width:\s*760px\)[\s\S]*?\.login-page__brand-panel\s*\{[^}]*display:\s*none/);
   });
@@ -144,5 +144,20 @@ describe('branded web login', () => {
     expect(login).toContain('setRememberMe');
     expect(login).toContain('signIn(email, password, rememberMe)');
     expect(loginStyles).toContain('.login-page__remember');
+  });
+
+  it('contracts the exact compact reference copy and viewport-fit behavior', () => {
+    expect(login).toContain('Gestiona turnos con rapidez y orden.');
+    expect(login).toContain('Crece tu barbería');
+    expect(login).toContain("'Entrar al panel'");
+    expect(login).toContain('login-page__separator');
+    expect(login).toContain('Controla la agenda y reduce esperas.');
+    expect(login).toContain('Ofrece una atención más ágil.');
+    expect(login).toContain('Convierte cada visita en crecimiento.');
+
+    expect(loginStyles).toMatch(/\.login-page\s*\{[^}]*min-height:\s*100dvh/);
+    expect(loginStyles).toMatch(/\.login-page__card\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*3fr\)\s+minmax\(0,\s*2fr\)/);
+    expect(loginStyles).toMatch(/@media\s*\(max-width:\s*760px\)[\s\S]*?\.login-page__benefits\s*\{[^}]*display:\s*none/);
+    expect(loginStyles).toMatch(/@media\s*\(max-height:\s*700px\)[\s\S]*?overflow-y:\s*auto/);
   });
 });
