@@ -183,7 +183,7 @@ export function LoginPage() {
             </Button>
             <div className="login-page__separator"><span>o</span></div>
             <Button className="login-page__google-button" disabled={pending || !isSupabaseConfigured()} onClick={handleGoogleSignIn} size="lg" type="button" variant="secondary">
-              {googlePending ? <><span aria-hidden="true" className="login-page__spinner login-page__spinner--dark" />Conectando con Google…</> : 'Continuar con Google'}
+              {googlePending ? <><span aria-hidden="true" className="login-page__spinner login-page__spinner--dark" />Conectando con Google…</> : <><Icon name="google" size={18} />Continuar con Google</>}
             </Button>
           </form>
 

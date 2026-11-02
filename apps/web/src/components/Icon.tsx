@@ -1,5 +1,6 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import { faGoogle } from '@fortawesome/free-brands-svg-icons';
 import {
   faArrowRight,
   faBell,
@@ -54,6 +55,7 @@ export type IconName =
   | 'eye'
   | 'eye-slash'
   | 'grid'
+  | 'google'
   | 'info'
   | 'list'
   | 'lock'
@@ -91,6 +93,7 @@ const iconMap: Record<IconName, IconDefinition> = {
   eye: faEye,
   'eye-slash': faEyeSlash,
   grid: faTh,
+  google: faGoogle,
   info: faCircleInfo,
   list: faList,
   lock: faLock,

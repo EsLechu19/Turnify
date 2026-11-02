@@ -34,6 +34,7 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
 ## Authorized scope
 
 - `apps/web/src/features/auth/LoginPage.tsx`
+- `apps/web/src/components/Icon.tsx` and the maintained Font Awesome brands dependency for T11
 - `apps/web/src/styles/app.css`
 - `apps/web/src/styles/tokens.css` only if existing tokens are insufficient
 - T3 storage wiring in `apps/web/src/data/authStorage.ts`, `apps/web/src/data/supabase.ts`, `apps/web/src/data/repositories.ts`, `apps/web/src/state/AuthContext.tsx`, and `tests/web/auth-storage.test.ts`
@@ -162,6 +163,17 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - Engram mirror: pending. The completed document mirror to project `turnify`, topic `odd/turnify-web-login-redesign/tasks`, was attempted but Engram could not confirm session registration.
   - Rollback boundary: remove only T10's mobile-only markup/CSS/test changes and this task evidence to restore the T9 full-bleed mobile shell while leaving the T9 desktop untouched.
 
+- [x] **T11 — Use the official Google brand icon in the OAuth button**
+  - Route: delegated direct.
+  - Trigger evidence: implementation requires a maintained dependency, the shared web icon abstraction, login rendering, focused tests, lockfile metadata, and this recovery record.
+  - Acceptance: the Google OAuth button renders Font Awesome's official `faGoogle` brand icon without changing OAuth behavior, loading copy, disabled state, or accessibility; focused tests, web typecheck, and web build pass.
+  - TDD runner: `npx vitest run tests/web/login-redesign.test.ts tests/web/google-oauth.test.ts`.
+  - TDD evidence: RED was observed with 1 failed / 19 passed after adding the brands package/icon/button wiring contract; GREEN returned 20/20 focused tests after implementation.
+  - Checks: the required focused suite passed 2 files / 20 tests; web typecheck passed; web build passed with the existing >500 kB chunk advisory; `git diff --check` passed with line-ending warnings only.
+  - Runtime harness: N/A — live Google OAuth requires external Google/Supabase credentials and allowlists; no external configuration or OAuth behavior was changed.
+  - Commit/boundary: this single work-unit commit, `feat(auth): usa el ícono oficial de Google`; the exact SHA is reported after commit because a commit cannot contain its own final object ID.
+  - Rollback boundary: remove the brands package, `google` icon mapping, button icon usage, and focused contract assertions; existing OAuth behavior remains unchanged.
+
 ## Delivery slices — stacked-to-main
 
 No push or PR has been created. Each PR targets `main`; PR 2 follows PR 1 after PR 1 merges.
@@ -195,11 +207,11 @@ main (7d886839)
 
 ## Progress
 
-- Current task: T10 complete; external Supabase/Google allowlist configuration remains an operational follow-up.
-- Completed: T1 through T10. The latest focused suite passed 27/27, typecheck and build passed, and the historical-mobile contract passed 15/15.
+- Current task: T11 complete; external Supabase/Google allowlist configuration remains an operational follow-up.
+- Completed: T1 through T11. The latest required focused suite passed 20/20, typecheck and build passed, and the Google brand-icon contract covers dependency, lockfile, typed mapping, and button wiring.
 - Runtime caveat: no existing credential-free browser/screenshot harness was available for 390×844 visual inspection. Desktop no-scroll remains statically contracted; mobile intentionally uses natural document flow and may scroll.
-- Delivery: `stacked-to-main`; T10 is one new local work-unit commit on `fix/login-mobile-restore`. No push, PR, publication, merge, or remote-service mutation was authorized or performed.
+- Delivery: `stacked-to-main`; T11 is one new local work-unit commit on `fix/login-mobile-restore`. No push, PR, publication, merge, or remote-service mutation was authorized or performed.
 
 ## Next step
 
-Optionally inspect the restored mobile flow at 390×844 when a local browser harness is available, then configure the deployed recovery/OAuth URLs and Google provider before production authentication testing. Demo remains deferred.
+Optionally inspect the restored mobile flow at 390×844 when a local browser harness is available. Configure the deployed recovery/OAuth URLs and Google provider before production authentication testing. Demo remains deferred.
