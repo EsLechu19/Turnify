@@ -159,7 +159,7 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - TDD evidence: RED was observed with 1 failed / 14 passed after adding the historical-mobile contract; GREEN returned 15/15 focused tests after implementation and updating the superseded hidden-benefits assertion.
   - Checks: password-toggle/login/OAuth/recovery suite passed 4 files / 27 tests; web typecheck passed; web build passed with the existing >500 kB chunk advisory; `git diff --check` passed with line-ending warnings only.
   - Runtime boundary: no Playwright/Cypress configuration or other existing credential-free browser harness was found, so 390×844 visual runtime validation was unavailable. Static contracts verify CSS/markup rules only.
-  - Commit/boundary: this single follow-up work-unit commit, `fix(auth): restaura la experiencia móvil del login`; 142 authored changed lines. The exact SHA is reported after commit because a commit cannot contain its own final object ID.
+  - Commit/boundary: `d7d7c0ee75cf25b70388f858438b951ab2a827af` (`fix(auth): restaura la experiencia móvil del login`); 142 authored changed lines.
   - Engram mirror: pending. The completed document mirror to project `turnify`, topic `odd/turnify-web-login-redesign/tasks`, was attempted but Engram could not confirm session registration.
   - Rollback boundary: remove only T10's mobile-only markup/CSS/test changes and this task evidence to restore the T9 full-bleed mobile shell while leaving the T9 desktop untouched.
 
@@ -171,7 +171,7 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - TDD evidence: RED was observed with 1 failed / 19 passed after adding the brands package/icon/button wiring contract; GREEN returned 20/20 focused tests after implementation.
   - Checks: the required focused suite passed 2 files / 20 tests; web typecheck passed; web build passed with the existing >500 kB chunk advisory; `git diff --check` passed with line-ending warnings only.
   - Runtime harness: N/A — live Google OAuth requires external Google/Supabase credentials and allowlists; no external configuration or OAuth behavior was changed.
-  - Commit/boundary: this single work-unit commit, `feat(auth): usa el ícono oficial de Google`; the exact SHA is reported after commit because a commit cannot contain its own final object ID.
+  - Commit/boundary: `26607befa34657b63eefdb210bb35b070f135741` (`feat(auth): usa el ícono oficial de Google`).
   - Rollback boundary: remove the brands package, `google` icon mapping, button icon usage, and focused contract assertions; existing OAuth behavior remains unchanged.
 
 ## Delivery slices — stacked-to-main
@@ -210,7 +210,7 @@ main (7d886839)
 - Current task: T11 complete; external Supabase/Google allowlist configuration remains an operational follow-up.
 - Completed: T1 through T11. The latest required focused suite passed 20/20, typecheck and build passed, and the Google brand-icon contract covers dependency, lockfile, typed mapping, and button wiring.
 - Runtime caveat: no existing credential-free browser/screenshot harness was available for 390×844 visual inspection. Desktop no-scroll remains statically contracted; mobile intentionally uses natural document flow and may scroll.
-- Delivery: `stacked-to-main`; T11 is one new local work-unit commit on `fix/login-mobile-restore`. No push, PR, publication, merge, or remote-service mutation was authorized or performed.
+- Delivery: T10 and T11 were fast-forwarded to `main` and pushed to `origin/main` through `26607befa34657b63eefdb210bb35b070f135741`; no PR was created. The untracked mascot PNGs were excluded.
 
 ## Next step
 
