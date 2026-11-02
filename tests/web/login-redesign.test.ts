@@ -160,4 +160,22 @@ describe('branded web login', () => {
     expect(loginStyles).toMatch(/@media\s*\(max-width:\s*760px\)[\s\S]*?\.login-page__benefits\s*\{[^}]*display:\s*none/);
     expect(loginStyles).toMatch(/@media\s*\(max-height:\s*700px\)[\s\S]*?overflow-y:\s*auto/);
   });
+
+  it('uses a full-bleed shell instead of a floating card on desktop and mobile', () => {
+    const pageRule = loginStyles.match(/\.login-page\s*\{([^}]*)\}/)?.[1] ?? '';
+    const shellRule = loginStyles.match(/\.login-page__card\s*\{([^}]*)\}/)?.[1] ?? '';
+
+    expect(pageRule).toMatch(/width:\s*100vw/);
+    expect(pageRule).toMatch(/min-height:\s*100dvh/);
+    expect(pageRule).not.toMatch(/padding:/);
+
+    expect(shellRule).toMatch(/width:\s*100vw/);
+    expect(shellRule).toMatch(/height:\s*100dvh/);
+    expect(shellRule).toMatch(/grid-template-columns:\s*minmax\(0,\s*3fr\)\s+minmax\(0,\s*2fr\)/);
+    expect(shellRule).not.toMatch(/(?:max-width|border(?:-radius)?|box-shadow):/);
+
+    expect(loginStyles).toMatch(/@media\s*\(max-width:\s*760px\)[\s\S]*?\.login-page\s*\{[^}]*padding:\s*0/);
+    expect(loginStyles).toMatch(/@media\s*\(max-width:\s*760px\)[\s\S]*?\.login-page__card\s*\{[^}]*border-radius:\s*0/);
+    expect(loginStyles).toMatch(/@media\s*\(max-width:\s*760px\)[\s\S]*?\.login-page__card\s*\{[^}]*width:\s*100vw/);
+  });
 });

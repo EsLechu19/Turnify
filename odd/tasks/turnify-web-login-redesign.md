@@ -137,6 +137,18 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - Engram mirror: pending. The full-document mirror to project `turnify`, topic `odd/turnify-web-login-redesign/tasks`, was attempted after completion but Engram could not confirm session registration.
   - Rollback boundary: remove only the T8 compact reference-parity JSX/CSS/test changes and this task evidence; all existing authentication, recovery, OAuth, registration, and prior ODD slices remain intact.
 
+- [x] **T9 — Correct the login shell to a full-bleed 60/40 layout**
+  - Route: delegated direct.
+  - Trigger evidence: the user explicitly corrected T8's centered floating-card interpretation. This bounded follow-up changes only the login shell contract, isolated CSS, and ODD evidence; delegation and remote operations remain prohibited.
+  - Acceptance: normal desktop viewports render the combined login at `100vw` by `100dvh` with edge-to-edge 60/40 panels and no outer padding, gutters, exposed page background, border, radius, shadow, or max-width. Mobile remains a full-width/full-height single column with a short branded hero, all form controls, no outer gutter, and no rounded shell.
+  - Accessibility boundary: preserve compact typography/content/form behavior and the no-scroll goal at 1366×768 and 390×844; very short or accessibility-zoomed viewports may scroll rather than clip essential controls.
+  - TDD evidence: RED was observed with 1 failed / 13 passed after adding the full-bleed contract; GREEN returned 14/14 focused tests after removing the floating-shell properties.
+  - Checks: password-toggle/login/OAuth/recovery suite passed 4 files / 26 tests; web typecheck passed; web build passed with the existing >500 kB chunk advisory; `git diff --check` passed with line-ending warnings only.
+  - Runtime boundary: no existing credential-free browser/screenshot harness is present, so measured `scrollHeight <= clientHeight` at 1366×768 and 390×844 remains unavailable. No credentials or external auth were used.
+  - Commit/boundary: this single follow-up work-unit commit, `fix(auth): extiende el login a pantalla completa`; 59 authored changed lines. The exact SHA is reported after commit because a commit cannot contain its own final object ID.
+  - Engram mirror: pending. The completed document mirror to project `turnify`, topic `odd/turnify-web-login-redesign/tasks`, was attempted but Engram could not confirm session registration.
+  - Rollback boundary: remove only T9's full-bleed CSS/test changes and this task evidence to restore the reviewed T8 centered-shell boundary.
+
 ## Delivery slices — stacked-to-main
 
 No push or PR has been created. Each PR targets `main`; PR 2 follows PR 1 after PR 1 merges.
@@ -170,11 +182,11 @@ main (7d886839)
 
 ## Progress
 
-- Current task: T8 complete; external Supabase/Google allowlist configuration remains an operational follow-up.
-- Completed: T1, T2, T3, T4a/T4b, T5, T6, T7, and T8. The latest focused suite passed 25/25, typecheck and build passed, and the compact viewport-fit contract passed 13/13.
+- Current task: T9 complete; external Supabase/Google allowlist configuration remains an operational follow-up.
+- Completed: T1 through T9. The latest focused suite passed 26/26, typecheck and build passed, and the full-bleed contract passed 14/14.
 - Runtime caveat: no existing credential-free browser/screenshot harness was available to measure target viewport scroll heights; static responsive rules are verified, but runtime visual/no-scroll validation remains outstanding.
-- Delivery: `stacked-to-main`; T8 is one local work-unit commit. No push, PR, publication, merge, or remote-service mutation was authorized or performed.
+- Delivery: `stacked-to-main`; T9 is one new local work-unit commit after reviewed T8. No push, PR, publication, merge, or remote-service mutation was authorized or performed.
 
 ## Next step
 
-Optionally perform credential-free browser QA at 1366×768 and 390×844 when a local harness is available, then configure the deployed recovery/OAuth URLs and Google provider before production authentication testing. Demo remains deferred.
+Optionally measure the full-bleed login at 1366×768 and 390×844 when a local browser harness is available, then configure the deployed recovery/OAuth URLs and Google provider before production authentication testing. Demo remains deferred.

@@ -2816,29 +2816,22 @@ select {
 
 /* ---------- Branded login ---------- */
 .login-page {
-  align-items: center;
   background: var(--login-background);
   color: var(--login-navy);
   display: flex;
   font-family: var(--login-font-interface);
-  justify-content: center;
   min-height: 100dvh;
   overflow: hidden;
-  padding: clamp(12px, 2.4vh, 22px);
+  width: 100vw;
 }
 
 .login-page__card {
   background: #FFFFFF;
-  border: 1px solid var(--login-border);
-  border-radius: 24px;
-  box-shadow: 0 24px 70px rgba(13, 27, 76, 0.16);
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-  height: min(700px, calc(100dvh - clamp(24px, 4.8vh, 44px)));
-  max-width: 1160px;
-  min-height: 620px;
+  height: 100dvh;
   overflow: hidden;
-  width: min(100%, 1160px);
+  width: 100vw;
 }
 
 .login-page__visual {
@@ -3204,15 +3197,15 @@ select {
 @media (max-width: 760px) {
   .login-page {
     min-height: 100dvh;
-    padding: 8px;
+    padding: 0;
   }
   .login-page__card {
-    border-radius: 18px;
+    border-radius: 0;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: clamp(142px, 21dvh, 176px) minmax(0, 1fr);
-    height: calc(100dvh - 16px);
-    max-width: 430px;
+    height: 100dvh;
     min-height: 0;
+    width: 100vw;
   }
   .login-page__visual { min-height: 0; }
   .login-page__brand-panel { display: block; }
