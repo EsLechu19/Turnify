@@ -149,6 +149,19 @@ A focused, trustworthy login is the first product touchpoint for barbershop staf
   - Engram mirror: pending. The completed document mirror to project `turnify`, topic `odd/turnify-web-login-redesign/tasks`, was attempted but Engram could not confirm session registration.
   - Rollback boundary: remove only T9's full-bleed CSS/test changes and this task evidence to restore the reviewed T8 centered-shell boundary.
 
+- [x] **T10 — Restore the pre-T8 mobile login while preserving the T9 desktop**
+  - Route: delegated direct.
+  - Trigger evidence: the user explicitly selected commit `e81d530` as the historical mobile reference while retaining commit `28af915` for the desktop full-bleed 60/40 shell. This bounded follow-up requires historical inspection, a focused contract, responsive CSS, and only demonstrably necessary mobile markup.
+  - Acceptance: desktop remains edge-to-edge `100vw × 100dvh` with a 60/40 split and no outer border, gutter, radius, shadow, or max-width. Under the existing mobile breakpoint, restore the historical single-column natural document flow, compact visible brand/benefit composition, and historical panel/form spacing without reverting current copy or authentication controls/routes.
+  - Accessibility boundary: the no-scroll target remains mandatory on desktop only. Mobile may scroll naturally rather than forcing the shell to `height: 100dvh`; essential controls must not be clipped.
+  - Historical evidence: inspected `e81d530` versions of `LoginPage.tsx`, `app.css`, and `tests/web/login-redesign.test.ts`. The baseline used natural mobile document flow, visible wrapped benefits, `24px 24px 28px` visual padding, `28px 24px 36px` form-panel padding, and a mobile-only brand link with a 52px lower margin.
+  - TDD evidence: RED was observed with 1 failed / 14 passed after adding the historical-mobile contract; GREEN returned 15/15 focused tests after implementation and updating the superseded hidden-benefits assertion.
+  - Checks: password-toggle/login/OAuth/recovery suite passed 4 files / 27 tests; web typecheck passed; web build passed with the existing >500 kB chunk advisory; `git diff --check` passed with line-ending warnings only.
+  - Runtime boundary: no Playwright/Cypress configuration or other existing credential-free browser harness was found, so 390×844 visual runtime validation was unavailable. Static contracts verify CSS/markup rules only.
+  - Commit/boundary: this single follow-up work-unit commit, `fix(auth): restaura la experiencia móvil del login`; 142 authored changed lines. The exact SHA is reported after commit because a commit cannot contain its own final object ID.
+  - Engram mirror: pending. The completed document mirror to project `turnify`, topic `odd/turnify-web-login-redesign/tasks`, was attempted but Engram could not confirm session registration.
+  - Rollback boundary: remove only T10's mobile-only markup/CSS/test changes and this task evidence to restore the T9 full-bleed mobile shell while leaving the T9 desktop untouched.
+
 ## Delivery slices — stacked-to-main
 
 No push or PR has been created. Each PR targets `main`; PR 2 follows PR 1 after PR 1 merges.
@@ -182,11 +195,11 @@ main (7d886839)
 
 ## Progress
 
-- Current task: T9 complete; external Supabase/Google allowlist configuration remains an operational follow-up.
-- Completed: T1 through T9. The latest focused suite passed 26/26, typecheck and build passed, and the full-bleed contract passed 14/14.
-- Runtime caveat: no existing credential-free browser/screenshot harness was available to measure target viewport scroll heights; static responsive rules are verified, but runtime visual/no-scroll validation remains outstanding.
-- Delivery: `stacked-to-main`; T9 is one new local work-unit commit after reviewed T8. No push, PR, publication, merge, or remote-service mutation was authorized or performed.
+- Current task: T10 complete; external Supabase/Google allowlist configuration remains an operational follow-up.
+- Completed: T1 through T10. The latest focused suite passed 27/27, typecheck and build passed, and the historical-mobile contract passed 15/15.
+- Runtime caveat: no existing credential-free browser/screenshot harness was available for 390×844 visual inspection. Desktop no-scroll remains statically contracted; mobile intentionally uses natural document flow and may scroll.
+- Delivery: `stacked-to-main`; T10 is one new local work-unit commit on `fix/login-mobile-restore`. No push, PR, publication, merge, or remote-service mutation was authorized or performed.
 
 ## Next step
 
-Optionally measure the full-bleed login at 1366×768 and 390×844 when a local browser harness is available, then configure the deployed recovery/OAuth URLs and Google provider before production authentication testing. Demo remains deferred.
+Optionally inspect the restored mobile flow at 390×844 when a local browser harness is available, then configure the deployed recovery/OAuth URLs and Google provider before production authentication testing. Demo remains deferred.

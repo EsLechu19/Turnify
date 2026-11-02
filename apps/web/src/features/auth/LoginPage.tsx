@@ -76,6 +76,10 @@ export function LoginPage() {
 
         <section aria-labelledby="login-title" className="login-page__form-panel">
           <header className="login-page__header">
+            <Link aria-label="Inicio de Turnify" className="login-page__mobile-brand" to="/login">
+              <img alt="" src="/turnify-logo.png" />
+              <span>TURNIFY</span>
+            </Link>
             <span className="login-page__kicker">GESTIÓN DE BARBERÍAS</span>
             <h1 id="login-title">Iniciar sesión</h1>
             <p>Ingresa tus datos para acceder al panel.</p>

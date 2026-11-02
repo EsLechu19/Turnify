@@ -157,7 +157,7 @@ describe('branded web login', () => {
 
     expect(loginStyles).toMatch(/\.login-page\s*\{[^}]*min-height:\s*100dvh/);
     expect(loginStyles).toMatch(/\.login-page__card\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*3fr\)\s+minmax\(0,\s*2fr\)/);
-    expect(loginStyles).toMatch(/@media\s*\(max-width:\s*760px\)[\s\S]*?\.login-page__benefits\s*\{[^}]*display:\s*none/);
+    expect(loginStyles).toMatch(/@media\s*\(max-width:\s*760px\)[\s\S]*?\.login-page__benefits\s*\{[^}]*display:\s*flex/);
     expect(loginStyles).toMatch(/@media\s*\(max-height:\s*700px\)[\s\S]*?overflow-y:\s*auto/);
   });
 
@@ -177,5 +177,29 @@ describe('branded web login', () => {
     expect(loginStyles).toMatch(/@media\s*\(max-width:\s*760px\)[\s\S]*?\.login-page\s*\{[^}]*padding:\s*0/);
     expect(loginStyles).toMatch(/@media\s*\(max-width:\s*760px\)[\s\S]*?\.login-page__card\s*\{[^}]*border-radius:\s*0/);
     expect(loginStyles).toMatch(/@media\s*\(max-width:\s*760px\)[\s\S]*?\.login-page__card\s*\{[^}]*width:\s*100vw/);
+  });
+
+  it('restores the historical mobile flow without changing the full-bleed desktop shell', () => {
+    const shellRule = loginStyles.match(/\.login-page__card\s*\{([^}]*)\}/)?.[1] ?? '';
+    const mobileStyles = loginStyles.slice(
+      loginStyles.indexOf('@media (max-width: 760px)'),
+      loginStyles.indexOf('@media (max-width: 380px)'),
+    );
+
+    expect(shellRule).toMatch(/width:\s*100vw/);
+    expect(shellRule).toMatch(/height:\s*100dvh/);
+    expect(shellRule).toMatch(/grid-template-columns:\s*minmax\(0,\s*3fr\)\s+minmax\(0,\s*2fr\)/);
+
+    expect(mobileStyles).toMatch(/\.login-page__card\s*\{[^}]*height:\s*auto/);
+    expect(mobileStyles).not.toMatch(/\.login-page__card\s*\{[^}]*height:\s*100dvh/);
+    expect(mobileStyles).toMatch(/\.login-page__visual-content\s*\{[^}]*padding:\s*24px 24px 28px[^}]*position:\s*relative/);
+    expect(mobileStyles).toMatch(/\.login-page__benefits\s*\{[^}]*display:\s*flex/);
+    expect(mobileStyles).toMatch(/\.login-page__form-panel\s*\{[^}]*padding:\s*28px 24px 36px/);
+    expect(mobileStyles).toMatch(/\.login-page__mobile-brand\s*\{[^}]*display:\s*flex[^}]*margin-bottom:\s*52px/);
+    expect(login).toContain('className="login-page__mobile-brand"');
+
+    expect(login).toContain('to="/forgot-password"');
+    expect(login).toContain('signInWithGoogle(rememberMe)');
+    expect(login).toContain('to="/register"');
   });
 });
